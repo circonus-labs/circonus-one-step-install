@@ -1,0 +1,12 @@
+---
+
+cosi_directory: "/opt/circonus/cosi"
+cosi_owner: "root"
+cosi_group: "root"
+
+hook_post_script: "agent_post_hook.sh"
+hook_pre_script: "agent_pre_hook.sh"
+
+cosi_installer: "/opt/circonus/cosi-install.sh"
+
+cosi_regconf: "/opt/circonus/cosi/etc/registration-options.json"

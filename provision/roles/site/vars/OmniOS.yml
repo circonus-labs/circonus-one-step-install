@@ -1,0 +1,7 @@
+---
+
+# overrides
+cosi_group: "bin"
+
+# os specific
+smf_directory: "/var/svc/manifest/application/circonus"

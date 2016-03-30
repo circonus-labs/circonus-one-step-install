@@ -1,0 +1,14 @@
+{
+    "host_name": "Ubuntu",
+    "host_vars": {
+        "os_ver": "{{ ansible_lsb.description }}"
+    },
+    "graph": {
+        "fs": {
+            "title": "{{ '{{' }}=cosi.os_ver{{ '}}' }} Root FS({{ '{{' }}=cosi.fstype{{ '}}' }}) %Used",
+            "vars": {
+                "fstype": "{{ ansible_mounts[0].fstype }}"
+            }
+        }
+    }
+}

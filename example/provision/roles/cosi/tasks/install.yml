@@ -1,0 +1,24 @@
+---
+
+- name: Download COSI installer script
+  become: true
+  get_url: url="{{ cosi_url }}/install" dest="{{ cosi_installer }}"
+
+- name: Check COSI installer script
+  become: true
+  file: path="{{ cosi_installer }}" owner="{{ cosi_owner }}" group="{{ cosi_group }}" mode="0700" state="file"
+
+- name: Run COSI installer
+  become: true
+  shell: bash {{ cosi_installer }} --key {{ cosi_api_token | quote }} --app {{ cosi_api_app | quote }} --agent {{ cosi_mode }} --regconf {{ cosi_regconf }}
+  args:
+    creates: "{{ cosi_directory }}/registration/registration-check.json"
+  register: install
+  ignore_errors: true
+
+- debug: msg="{{ install.stdout_lines }}"
+  when: install.rc == 0
+
+- name: fail on installation issues
+  fail: msg="{{ install.stdout_lines }}\n\n{{ install.stderr }}"
+  when: install.rc != 0

@@ -1,0 +1,70 @@
+---
+
+- name: Load common role variables
+  include_vars: "../vars/common.yml"
+
+- name: Load OS specific role variables
+  include_vars: "{{ item }}"
+  with_first_found:
+      - files:
+          - "../vars/{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+          - "../vars/{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+          - "../vars/{{ ansible_distribution }}.yml"
+          - "../vars/{{ ansible_os_family }}.yml"
+          - "../vars/{{ ansible_system }}.yml"
+        skip: true
+
+- name: Check directory
+  become: true
+  file: path="{{ node_directory }}/bin" state=directory owner="{{ node_owner }}" group="{{ node_group }}" mode=0755
+
+- name: Get current version
+  ignore_errors: true
+  register: node_ver_result
+  command: ./bin/node -v
+  args:
+    chdir: "{{ node_directory }}"
+  changed_when: false
+
+- debug: msg="Found Node {{ node_ver_result.stdout }} want v{{ node_version }}"
+  when: node_ver_result.rc == 0
+
+- name: Set install action
+  set_fact: install_node={{ node_ver_result.rc != 0 or node_ver_result.stdout != "v"+node_version }}
+
+# note, we don't want to skip if not found, we want an error
+- name: Install Node v{{ node_version }}
+  include: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+    - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+    - "{{ ansible_distribution }}.yml"
+    - "{{ ansible_os_family }}.yml"
+    - "{{ ansible_system }}.yml"
+  when: install_node
+
+#
+# set the locations of node and npm as facts (used in site role)
+# verify node and npm are actually installed
+#
+- name: Set node_bin
+  set_fact: node_bin="{{ node_directory }}/bin/node" state=file
+
+- name: Stat node_bin
+  stat: path="{{ node_bin }}"
+  register: st
+
+- name: Verify node_bin
+  fail: "Node binary not found {{ node_bin }}"
+  when: st.stat.exists is not defined or st.stat.exists == false
+
+- name: Set npm_bin
+  set_fact: npm_bin="{{ node_directory }}/bin/npm" state=file
+
+- name: Stat npm_bin
+  stat: path="{{ npm_bin }}"
+  register: st
+
+- name: Verify npm_bin
+  fail: "NPM binary(link) not found {{ npm_bin }}"
+  when: st.stat.islnk is not defined or st.stat.islnk == false

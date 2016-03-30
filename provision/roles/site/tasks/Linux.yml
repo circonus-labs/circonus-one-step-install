@@ -1,0 +1,39 @@
+---
+
+# CentOS specifc tasks
+#
+# check how services are managed {{ ansible_service_mgr }}
+#
+
+- name: Check service manager
+  fail: msg="Do not know how to setup {{ ansible_service_mgr }} service."
+  when: ansible_service_mgr not in ["systemd", "initd", "upstart"]
+
+#
+# Systemd
+#
+- name: Install COSI-Site service (systemd)
+  become: true
+  template: src=cosi-site.service.j2 dest=/etc/systemd/system/cosi-site.service
+  when: ansible_service_mgr == "systemd"
+
+- name: Install cosilog command (systemd)
+  become: true
+  copy: src=files/cosilog.sh dest=/opt/circonus/osi-site/bin/cosilog owner=root group=root mode=0700
+  when: ansible_service_mgr == "systemd"
+
+#
+# initd
+#
+- name: Install COSI-Site service (initd)
+  become: true
+  template: src=cosi-site.initd.j2 dest=/etc/init.d/cosi-site
+  when: ansible_service_mgr == "initd"
+
+#
+# upstart
+#
+- name: Install COSI-Site service (upstart)
+  become: true
+  template: src=cosi-site.conf.j2 dest=/etc/init/cosi-site.conf owner=root group=root
+  when: ansible_service_mgr == "upstart"

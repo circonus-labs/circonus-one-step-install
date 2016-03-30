@@ -1,0 +1,16 @@
+{
+    "id": "system",
+    "type": "worksheet",
+    "description": "generic system worksheet template",
+    "version": "0.1.0",
+    "notes": [],
+    "config": {
+        "description": "COSI worksheet for {{=cosi.host_name}}",
+        "favorite": false,
+        "graphs": [],
+        "notes": null,
+        "smart_queries": null,
+        "tags": null,
+        "title": "COSI {{=cosi.host_name}} {{=cosi.host_target}}"
+    }
+}

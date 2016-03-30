@@ -1,0 +1,36 @@
+---
+#
+# install cosi site
+#
+
+- name: Common variables
+  include_vars: "../vars/common.yml"
+
+- name: OS Specific variables
+  include_vars: "{{ item }}"
+  with_first_found:
+      - files:
+          - "../vars/{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+          - "../vars/{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+          - "../vars/{{ ansible_distribution }}.yml"
+          - "../vars/{{ ansible_os_family }}.yml"
+          - "../vars/{{ ansible_system }}.yml"
+        skip: true
+
+- name: Common tasks
+  include: "common.yml"
+
+- name: OS Specific tasks
+  include: "{{ item }}"
+  with_first_found:
+      - files:
+          - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+          - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+          - "{{ ansible_distribution }}.yml"
+          - "{{ ansible_os_family }}.yml"
+          - "{{ ansible_system }}.yml"
+        skip: true
+
+- name: Enable COSI-Site service
+  become: true
+  service: name="cosi-site" enabled=yes state=started

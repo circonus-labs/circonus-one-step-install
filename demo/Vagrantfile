@@ -1,0 +1,79 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+# rubocop:disable Metrics/LineLength
+
+require 'digest/sha1'
+site_ip = '192.168.100.10'
+
+Vagrant.configure(2) do |config|
+    #
+    # cosi-site
+    #
+    host_sig = Digest::SHA1.hexdigest("#{`hostname`}-cosi-site")[0..8]
+    config.vm.define 'site' do |site|
+        site.vm.box = 'maier/centos-7.2.1511-x86_64'
+        site.vm.hostname = "cosi-site-#{host_sig}"
+        site.vm.network 'private_network', ip: site_ip
+        # leverage main 'cosi-site' ansible playbook
+        site.vm.provision 'ansible' do |ansible|
+            # ansible.verbose = 'vvvv'
+            ansible.playbook = '../provision/cosi-site.yml'
+        end
+    end
+
+    #
+    # client node(s)
+    #
+    host_sig = Digest::SHA1.hexdigest("#{`hostname`}-cosi-c7")[0..8]
+    config.vm.define 'c7', autostart: false do |c7|
+        c7.vm.box = 'maier/centos-7.2.1511-x86_64'
+        c7.vm.hostname = "cosi-c7-#{host_sig}"
+        c7.vm.network 'private_network', ip: '192.168.100.11'
+        c7.vm.provision 'shell', inline: <<-SHELL
+            # add alias for setup.circonus.com, so it will "resolve"
+            echo "#{site_ip} cosi.circonus.com" >> /etc/hosts
+            yum makecache fast && yum install -y perl
+            echo
+            echo
+            echo "Installed perl because NAD requires it."
+            echo
+            echo "Installing Agent POST hook script for CentOS7"
+            mkdir -pv /opt/circonus/cosi
+            cp -v /vagrant/hooks/c7/agent_post_hook.sh /opt/circonus/cosi
+            chmod -v 755 /opt/circonus/cosi/agent_post_hook.sh
+            echo " "
+            echo " "
+            echo "run: [ curl 'http://cosi.circonus.com/install' | bash -s -- --key ... --app ... --cosiurl 'http://cosi.circonus.com/' --agent push ]"
+            echo ">>>>> -----------------------------------------------------------  ^ +++++++ ^ API KEY & APP REQUIRED!!!"
+            echo ">>>>> --cosiurl points to the 'site' VM created above, elide to use the default (https://setup.circonus.com)"
+            echo ">>>>> --agent 'push' because this is a VM and the Circonus Broker cannot directly connect to NAD to *pull* metrics"
+            echo "Obtain valid API key and app values from https://login.circonus.com/user/tokens -- click (i) next to the token to use"
+            echo " "
+            echo " "
+        SHELL
+    end
+
+    host_sig = Digest::SHA1.hexdigest("#{`hostname`}-cosi-u14")[0..8]
+    config.vm.define 'u14', autostart: false do |u14|
+        u14.vm.box = 'ubuntu/trusty64'
+        u14.vm.hostname = "cosi-u14-#{host_sig}"
+        u14.vm.network 'private_network', ip: '192.168.100.12'
+        u14.vm.provision 'fix-no-tty', type: 'shell' do |s|
+            s.privileged = false
+            s.inline = "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
+        end
+        u14.vm.provision 'shell', inline: <<-SHELL
+            # add alias for cosi.circonus.com, so it will "resolve"
+            echo "#{site_ip} cosi.circonus.com" >> /etc/hosts
+            echo " "
+            echo " "
+            echo "run: [ curl 'http://cosi.circonus.com/install' | bash -s -- --key ... --app ... --cosiurl 'http://cosi.circonus.com/' --agent push ]"
+            echo ">>>>> -----------------------------------------------------------  ^ +++++++ ^ API KEY & APP REQUIRED!!!"
+            echo ">>>>> --cosiurl points to the 'site' VM created above, elide to use the default (https://setup.circonus.com)"
+            echo ">>>>> --agent 'push' because this is a VM and the Circonus Broker cannot directly connect to NAD to *pull* metrics"
+            echo "Obtain valid API key and app values from https://login.circonus.com/user/tokens -- click (i) next to the token to use"
+            echo " "
+            echo " "
+        SHELL
+    end
+end

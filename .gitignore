@@ -1,0 +1,30 @@
+.DS_Store
+.vagrant*/
+scratch/
+NOTES.md
+
+# node modules
+node_modules/
+
+# local provisioning customizations
+**/group_vars/all.yml
+**/group_vars/cosi.yml
+provision/deploy.sh
+provision/cosi.hosts
+
+# temporary provisioning files
+## omnios specific, see node-builder
+provision/roles/node/files/node-v*-omnios-r*-x86.tar.gz
+provision/roles/site/files/node_modules-v*-omnios-r*.tar.gz
+
+## this is built, cd src && make package
+provision/roles/site/files/cosi-site.tar.gz
+
+# artifacts from dev runs
+src/log
+
+# temporary build files
+src/**/cosi-statsd.tar.gz
+src/**/cosi-util.tar.gz
+src/**/cosi-site.tar.gz
+.modules/

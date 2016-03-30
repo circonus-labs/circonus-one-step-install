@@ -1,0 +1,19 @@
+---
+
+- name: Verify COSI directory
+  become: true
+  file: path="{{ cosi_directory }}" owner="{{ cosi_owner }}" group="{{ cosi_group }}" mode="0755" state="directory"
+
+- name: Verify COSI/etc directory
+  become: true
+  file: path="{{ cosi_directory }}/etc" owner="{{ cosi_owner }}" group="{{ cosi_group }}" mode="0755" state="directory"
+
+- name: Install blank registration options configuration
+  become: true
+  copy:
+    content="{}"
+    dest="{{ cosi_regconf }}"
+    owner="{{ cosi_owner }}"
+    group="{{ cosi_group }}"
+    mode="0640"
+  when: ansible_distribution != "Ubuntu"

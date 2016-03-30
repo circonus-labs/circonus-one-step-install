@@ -1,0 +1,18 @@
+---
+
+# 1. copy this file to "all.yml"
+# 2. go to Circonus API Tokens (https://login.circonus.com/user/tokens)
+# 3. create a new token, if there are none in the list
+# 4. click the (i) next to the token, copy the --key and --app items
+
+# The base URL to use for Circonus One Step Install
+cosi_url: "https://onestep.circonus.com"
+
+# Circonus API One Step Install token (replace ... below with value from --key)
+cosi_api_token: "..."
+
+# Circonus API One Step Install token app name (replace ... below with value from --app)
+cosi_api_app: "..."
+
+# The agent mode for the host being provisioned, Vagrant VM would be "push" default for agent is "pull"
+cosi_mode: "push"

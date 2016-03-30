@@ -1,0 +1,73 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+# rubocop:disable Metrics/LineLength
+
+#
+# dev      - testing bin w/o transpile, https://nodejs.org/download/release/v4.3.2/
+# prod sim - testing build/bin AFTER transpile, https://nodejs.org/download/release/v0.10.42/
+#
+node_base_url = 'https://nodejs.org/download/release'
+nad_url = 'http://updates.circonus.net/node-agent/packages/nad-omnibus-20150422T174727Z-1.el7.x86_64.rpm'
+
+Vagrant.configure(2) do |config|
+    config.vm.define 'dev', primary: true, autostart: true do |bx|
+        node_ver = 'v4.4.1'
+        bx.vm.box = 'maier/centos-7.2.1511-x86_64'
+        bx.vm.hostname = 'cosi-cli-dev'
+        bx.vm.provider 'virtualbox' do |vb|
+            vb.cpus = 2
+            vb.memory = 2048
+        end
+        bx.vm.provision 'node', type: 'shell', inline: <<-SHELL
+            [[ -d /opt/node ]] || mkdir -p /opt/node
+            NODE_TGZ="node-#{node_ver}-linux-x64.tar.gz"
+            NODE_URL="#{node_base_url}/#{node_ver}/${NODE_TGZ}"
+            echo "$NODE_URL"
+            [[ -f /opt/node/$NODE_TGZ ]] || curl "${NODE_URL}" -o /opt/node/${NODE_TGZ}
+            [[ -x /opt/node/bin/node ]] || {
+                echo "Unpacking $NODE_TGZ"
+                tar -zx -C /opt/node --strip-components=1 -f "/opt/node/${NODE_TGZ}"
+            }
+            date > /home/vagrant/provision_node.timestamp
+        SHELL
+    end
+
+    config.vm.define 'sim', primary: false, autostart: false do |bx|
+        node_ver = 'v0.10.42'
+        bx.vm.box = 'maier/centos-7.2.1511-x86_64'
+        bx.vm.hostname = 'cosi-cli-sim'
+        bx.vm.provider 'virtualbox' do |vb|
+            vb.cpus = 2
+            vb.memory = 2048
+        end
+        bx.vm.provision 'node', type: 'shell', inline: <<-SHELL
+            [[ -d /opt/node ]] || mkdir -p /opt/node
+            NODE_TGZ="node-#{node_ver}-linux-x64.tar.gz"
+            NODE_URL="#{node_base_url}/#{node_ver}/${NODE_TGZ}"
+            echo "$NODE_URL"
+            [[ -f /opt/node/$NODE_TGZ ]] || curl "${NODE_URL}" -o /opt/node/${NODE_TGZ}
+            [[ -x /opt/node/bin/node ]] || {
+                echo "Unpacking $NODE_TGZ"
+                tar -zx -C /opt/node --strip-components=1 -f "/opt/node/${NODE_TGZ}"
+            }
+            date > /home/vagrant/provision_node.timestamp
+        SHELL
+    end
+
+    #
+    # common provision
+    #
+    config.vm.provision 'common', type: 'shell', inline: <<-SHELL
+        yum makecache fast && \
+            yum update -y && \
+            yum install -y perl
+        [[ -x /opt/circonus/sbin/nad ]] || rpm -ivh "#{nad_url}"
+        [[ $(grep -c "127.0.0.1:2609" /etc/sysconfig/nad) -eq 0 ]] && { \
+            echo "NAD_OPTS=\"\${NAD_OPTS} -p 127.0.0.1:2609\"" >> /etc/sysconfig/nad
+            service nad restart
+        }
+        [[ $(grep -c "/opt/node/bin" /home/vagrant/.bashrc) -eq 0 ]] && \
+            echo "export PATH=/opt/node/bin:\$PATH" >> /home/vagrant/.bashrc
+        date > /home/vagrant/provision_common.timestamp
+    SHELL
+end

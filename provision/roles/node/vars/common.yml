@@ -1,0 +1,21 @@
+---
+# moved to playbook as it is used in site role as well:
+# node_version: 4.3.1
+
+node_arch: "x{{ '86' if ansible_userspace_bits == '32' else '64' if ansible_userspace_bits == '64' else 'UNK'}}"
+
+# using ansible_system (expecting either Linux or SunOS)
+node_tar_file: node-v{{ node_version }}-{{ ansible_system|lower }}-{{ node_arch }}.tar.xz
+
+node_url: https://nodejs.org/dist/v{{ node_version }}/{{ node_tar_file }}
+
+#
+# the base directory where binaries are expected to be in ./bin. e.g.
+#   {{ node_directory }}/bin/node
+#   {{ node_directory }}/bin/npm
+#
+node_directory: /opt/circonus
+
+# default owner/group of {{ node_directory }}/bin
+node_owner: root
+node_group: root

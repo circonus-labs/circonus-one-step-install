@@ -1,0 +1,17 @@
+[Unit]
+Description=Circonus Node Agent Metrics sender
+Documentation=http://github.com/circonus-labs/circonus-one-step-install
+After=nad.service
+Requires=nad.service
+
+[Service]
+Type=simple
+ExecStart=/opt/circonus/bin/circonus-nadpush --config=/opt/circonus/etc/circonus-nadpush.json
+WorkingDirectory=/opt/circonus/cosi
+Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=circonus-nadpush
+
+[Install]
+WantedBy=multi-user.target

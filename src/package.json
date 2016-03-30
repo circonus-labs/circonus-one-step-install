@@ -1,0 +1,43 @@
+{
+  "name": "cosi-site",
+  "version": "1.0.0",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "description": "Circonus One Step Install registration API",
+  "keywords": [
+    "circonus",
+    "monitoring",
+    "metrics",
+    "install"
+  ],
+  "author": "Circonus, Inc.",
+  "contributors": [
+    "maier (https://github.com/maier)"
+  ],
+  "engines": {
+    "node": ">=4.3.1 <5"
+  },
+  "main": "cosi-site.js",
+  "dependencies": {
+    "bunyan": "1.8.0",
+    "commander": "^2.9.0",
+    "node-statsd": "^0.1.1",
+    "restify": "^4.0.4"
+  },
+  "scripts": {
+    "check": "make check",
+    "test": "node_modules/tape/bin/tape test/*.js",
+    "showenv": "echo \"Host system $(uname -srv)\" ; vagrant --version ; echo \"Virtualbox $(vboxmanage --version)\" ; ansible --version ; echo \"Node $(node --version)\" ; echo \"NPM $(npm --version)\" ; echo 'Global npm modules'; npm ls -g --depth=0; echo 'Local npm modules' ; npm ls --depth=0"
+  },
+  "devDependencies": {
+    "tape": "^4.4.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/circonus/circonus-onestep-install.git"
+  },
+  "bugs": {
+    "url": "https://github.com/circonus/circonus-onestep-install/issues"
+  },
+  "homepage": "https://github.com/circonus/circonus-onestep-install#readme"
+}

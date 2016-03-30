@@ -1,0 +1,8 @@
+---
+#
+# common tasks across OS distributions
+#
+
+- name: Check architecture
+  fail: msg="Architecture '{{ ansible_userspace_architecture }}' not one of {{ valid_architectures|join(', ') }}"
+  when: ansible_userspace_architecture not in valid_architectures

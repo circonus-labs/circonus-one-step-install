@@ -1,0 +1,24 @@
+---
+#
+# OmniOS specific tasks
+#
+
+- name: Install GNU tar
+  become: true
+  package: name="archiver/gnu-tar" state=installed use=pkg5
+
+# update: esproul created node v4.2.4 omnios pkg
+#
+# note, in order to use get_url for the node install, https://nodejs.org/...
+# python 2.6.8 install needs up-to-date CA cert from http://curl.haxx.se/ca/cacert.pem
+#
+# this is being installed for Ansible ONLY (it will not overwrite the system
+# cacert.pem file in /etc/ssl. mainly because python doesn't use the system one...)
+#
+# - name: Check Ansible directory for CA Certs
+#   become: true
+#   file: path=/etc/ansible mode=0755 owner=root group=root state=directory
+#
+# - name: Check for updated CA certs for Ansible(only)
+#   become: true
+#   get_url: url=http://curl.haxx.se/ca/cacert.pem dest=/etc/ansible/cacert.pem mode=0644 owner=root group=root

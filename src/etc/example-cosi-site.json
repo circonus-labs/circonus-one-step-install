@@ -1,0 +1,7 @@
+{
+    "hostname": "0.0.0.0",
+    "port": 2611,
+    "package_url": "http://updates.circonus.net/node-agent/packages/",
+    "package_list_file": "./etc/packages.json",
+    "log_dir": "/var/log/circonus/cosi-site"
+}

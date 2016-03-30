@@ -1,0 +1,15 @@
+.[Unit]
+Description=Statsd with Circonus push backend
+Documentation=http://github.com/circonus-labs/cosi-util
+
+[Service]
+Type=simple
+ExecStart=/opt/circonus/embedded/bin/node --expose-gc /opt/circonus/cosi/statsd/stats.js /opt/circonus/cosi/etc/statsd-config.js
+WorkingDirectory=/opt/circonus/cosi/statsd
+Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=circonus-statsd
+
+[Install]
+WantedBy=multi-user.target

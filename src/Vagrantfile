@@ -1,0 +1,18 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+  config.vm.box = "maier/centos-7.2.1511-x86_64"
+
+  config.vm.provision "shell", inline: <<-SHELL
+    yum install -y vim-enhanced
+    echo "alias vi=vim" >> ~/.bashrc
+    NODE_VER="4.4.1"
+    NODE_TGZ="node-v${NODE_VER}-linux-x64.tar.gz"
+    [[ -d /opt/node ]] || mkdir -p /opt/node
+    cd /opt/node
+    [[ -f $NODE_TGZ ]] || curl -sSL -O "https://nodejs.org/dist/v${NODE_VER}/$NODE_TGZ"
+    [[ -x bin/node ]] || tar --strip-components=1 -zxf "$NODE_TGZ"
+    echo "[[ -f ~/.iterm2_shell_integration.bash ]] || curl -L https://iterm2.com/misc/install_shell_integration.sh | bash" >> ~vagrant/.bashrc
+  SHELL
+end

@@ -1,0 +1,41 @@
+---
+
+- name: Install POST Agent Install hook directory
+  become: true
+  file:
+      path="{{ cosi_directory }}/hooks"
+      owner="{{ cosi_owner }}"
+      group="{{ cosi_group }}"
+      mode="0755" state="directory"
+
+
+- name: Install POST Agent Install hook script
+  become: true
+  copy:
+    src="files/hooks/{{ ansible_distribution }}/{{ hook_post_script }}"
+    dest="{{ cosi_directory }}/{{ hook_post_script }}"
+    owner="{{ cosi_owner }}"
+    group="{{ cosi_group }}"
+    mode="0700"
+
+
+- name: Install POST Agent Install hook assets
+  become: true
+  copy:
+      src="{{ item }}"
+      dest="{{ cosi_directory }}/hooks/"
+      owner="{{ cosi_owner }}"
+      group="{{ cosi_group }}"
+      mode="0600"
+  with_fileglob:
+      - "files/hooks/{{ ansible_distribution }}/scripts/*"
+      - "files/hooks/{{ ansible_distribution }}/templates/*"
+
+- name: Install custom registration options configuration
+  become: true
+  template:
+      src="{{ ansible_distribution }}-regopts.json.j2"
+      dest="{{ cosi_regconf }}"
+      owner="{{ cosi_owner }}"
+      group="{{ cosi_group }}"
+      mode="0640"

@@ -1,0 +1,9 @@
+description "Circonus Node Agent Metrics sender"
+author "circonus <support@circonus.com>"
+
+start on filesystem and started networking
+stop on shutdown
+
+respawn
+
+exec /opt/circonus/bin/circonus-nadpush --config=/opt/circonus/etc/circonus-nadpush.json

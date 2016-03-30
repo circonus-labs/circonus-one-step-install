@@ -1,0 +1,117 @@
+#!/bin/bash
+# chkconfig: 345 98 02
+#
+# description: Circonus One Step Install Site
+# processname: cosi-site
+#
+### BEGIN INIT INFO
+# Provides:          cosi-site
+# Required-Start: $local_fs $remote_fs
+# Required-Stop: $local_fs $remote_fs
+# Should-Start: $network
+# Should-Stop: $network
+# Default-Start:        3 4 5
+# Default-Stop:         0 1 2 6
+# Short-Description: COSI-Site
+# Description: Circonus One Step Install Site
+### END INIT INFO
+
+[[ -f /etc/init.d/functions ]] && source /etc/init.d/functions
+
+app_name="cosi-site"
+app_dir="{{ cosi_directory }}"
+app_file="cosi-site.js"
+lock_file="/var/lock/subsys/${app_name}"
+pid_file="/var/run/${app_name}.pid"
+log_dir="/var/log/circonus"
+console_log="${log_dir}/console-${app_name}.log"
+
+[[ -d "$log_dir" ]] || mkdir -p "$log_dir"
+
+RETVAL=0
+
+start() {
+    echo -n "Starting ${app_name}:"
+    cd "$app_dir"
+    nohup -- {{ node_bin }} $app_file --config=/opt/circonus/osi-site/etc/cosi-site.json &> $console_log &
+    RETVAL=$?
+    PID=$(pidof -s $app_name)
+    if [[ "$RETVAL" == 0 ]]; then
+        touch $lock_file
+        echo $PID > $pid_file
+        success
+    else
+        [[ -f $lock_file ]] && rm -f $lock_file
+        [[ -f $pid_file ]] && rm -f $pid_file
+        failure
+    fi
+    echo
+    return $RETVAL
+}
+
+stop() {
+    if [[ -f "$pid_file" ]]; then
+    	echo -n "Stopping ${app_name}:"
+        kill -TERM $(cat "$pid_file")
+        RETVAL=$?
+        if [ "$RETVAL" = 0 ]; then
+            [[ -f $lock_file ]] && rm -f $lock_file
+            [[ -f $pid_file ]] && rm -f $pid_file
+            success "$app_name shutdown"
+        else
+            RETVAL=7
+            failure "$app_name shutdown"
+        fi
+    else
+        RETVAL=7
+        echo -n "${app_name}, no pid file found:"
+        warning "${app_name}, no pid file found:"
+    fi
+    echo
+    return $RETVAL
+}
+
+restart() {
+    echo -n "Restarting $app_name:"
+    stop
+    start
+}
+
+status() {
+    # 0=running, 1=not running but pid file exits, 3=not running, 4=unknown
+    if [[ -f "$pid_file" ]]; then
+        if [[ -f /proc/$(cat "$pid_file")/status ]]; then
+                echo "Status for $app_name: running."
+            RETVAL=0
+        else
+                echo "Status for $app_name: stopped, pid file exits ($pid_file)."
+            RETVAL=2
+        fi
+    else
+                echo "Status for $app_name: stopped."
+        RETVAL=3
+    fi
+   return $RETVAL
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status
+        ;;
+    restart)
+        restart
+        ;;
+    *)
+        echo "Usage: {start|stop|status|restart}"
+        exit 1
+        ;;
+esac
+exit $RETVAL
+
+## END

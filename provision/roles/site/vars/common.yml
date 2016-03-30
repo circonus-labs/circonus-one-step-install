@@ -1,0 +1,8 @@
+---
+
+# common variables
+cosi_directory: "/opt/circonus/osi-site"
+log_directory: "{{ cosi_directory }}/log"
+
+cosi_owner: "root"
+cosi_group: "root"

@@ -1,0 +1,71 @@
+{
+    "description": "Percent of space and inodes used per filesystem.",
+    "notes": [
+        "For dynamic graphs, variable metrics, the metric names should be regular expressions.",
+        "The metric_name will be replaced with the actual metric that matches",
+        "when building the graph configuration. The replacement variable for",
+        "other attributes (e.g. title) is cosi.graph_item (e.g. {{=cosi.graph_item}}) which will be replaced with the first",
+        "match '()' in the regular expression. Use the include and exclude",
+        "filters, to identify filesytems. The include/exclude arrays should",
+        "be strings which match the matched portion of the regular expression",
+        "(e.g. the part that would be used in a %VAR1% marco replacement).",
+        "rx=fs`([^`]+)`df_used_percent metric=fs`/var`df_used_percent the",
+        "matched value would be '/var'. By default every filesystem is",
+        "incuded. Exclude filtering is applied only to included filesystems."
+    ],
+    "variable_metrics": true,
+    "filter": {
+      "exclude": ["/boot","/dev"],
+      "include": null
+    },
+    "graphs": [
+        {
+            "access_keys": [],
+            "composites": [],
+            "datapoints": [
+                {
+                    "legend_formula": null,
+                    "check_id": null,
+                    "metric_type": "numeric",
+                    "stack": null,
+                    "name": "% Space Used",
+                    "axis": "l",
+                    "data_formula": null,
+                    "color": "#4fa18e",
+                    "alpha": "0.3",
+                    "metric_name": "df`([^`]+)`pct_used",
+                    "hidden": false,
+                    "derive": "gauge"
+                },
+                {
+                    "legend_formula": null,
+                    "check_id": null,
+                    "metric_type": "numeric",
+                    "stack": null,
+                    "name": "% Inode Used",
+                    "axis": "l",
+                    "data_formula": null,
+                    "color": "#657aa6",
+                    "alpha": "0.3",
+                    "metric_name": "df`([^`]+)`pct_inode_used",
+                    "hidden": false,
+                    "derive": "gauge"
+                }
+            ],
+            "description": "% space and inodes used per filesystem",
+            "guides": [],
+            "line_style": "stepped",
+            "logarithmic_left_y": null,
+            "logarithmic_right_y": null,
+            "max_left_y": "100",
+            "max_right_y": null,
+            "metric_clusters": [],
+            "min_left_y": null,
+            "min_right_y": null,
+            "notes": "Circonus One Step Install",
+            "style": "area",
+            "tags": [],
+            "title": "{{=cosi.host_name}} {{=cosi.graph_item}} %Used"
+        }
+    ]
+}

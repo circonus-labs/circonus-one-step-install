@@ -1,0 +1,13 @@
+---
+
+# override default group
+node_group: bin
+
+# override tar file name
+node_tar_file: node-v{{ node_version }}-omnios-{{ ansible_distribution_version }}-x86.tar.gz
+
+# the pre-built binaries for "solaris" that
+# nodejs.org has *do not work* on omnios.
+#
+# deprecated now that node builds on omnios. place built tar.gz in ../files
+# node_pkg_file: node424.p5a

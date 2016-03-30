@@ -1,0 +1,28 @@
+---
+
+- name: Copy OmniOS node archive
+  become: true
+  copy: src="{{ node_tar_file }}" dest="{{ node_directory }}" owner="{{ node_owner }}" group="{{ node_group }}" mode=0640
+
+- name: Unpack OmniOS node archive
+  become: true
+  register: node_tar_result
+  failed_when: node_tar_result.rc != 0
+  changed_when: node_tar_result.rc == 0
+  shell: cd "{{ node_directory }}" && /usr/gnu/bin/tar --no-same-owner --owner={{ node_owner }} --group={{ node_group }} -zxf "{{ node_tar_file }}"
+  when: install_node
+
+- debug: var=node_tar_result
+  when: install_node and node_tar_result.rc != 0
+
+# - name: Install OmniOS Node v{{ node_version }} build
+#   become: true
+#   unarchive: src="node-v{{ node_version }}-omnios-x86.tar.gz" dest=/opt/circonus owner="{{ node_owner }}" group="{{ node_group }}" copy=yes follow=yes
+
+# - name: Copying node package
+#   become: true
+#   copy: src="{{ node_pkg_file }}" dest="{{ node_directory }}/{{ node_pkg_file }}"
+#
+# - name: Pkg install
+#   become: true
+#   command: /usr/bin/pkg install -g "{{ node_directory }}/{{ node_pkg_file }}" platform/runtime/nodejs

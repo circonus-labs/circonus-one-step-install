@@ -1,0 +1,15 @@
+.vagrant*/
+scratch/
+build/
+etc/
+/registration/
+node_modules/
+.modules/
+cosi-util.tar.gz
+cosi-statsd.tar.gz
+
+bin/*
+!bin/install_nadpush.sh
+!bin/*.js
+bin/test.js
+

@@ -1,0 +1,50 @@
+---
+
+- name: Check COSI directory
+  become: true
+  file:
+      path="{{ cosi_directory }}"
+      owner="{{ cosi_owner }}"
+      group="{{ cosi_group }}"
+      mode="0755"
+      state="directory"
+
+- name: Check log directory
+  become: true
+  file:
+      path="{{ log_directory }}"
+      owner="{{ cosi_owner }}"
+      group="{{ cosi_group }}"
+      mode="0755"
+      state="directory"
+
+- name: Copy COSI node modules for OmniOS
+  become: true
+  copy:
+      src="node_modules-v{{ node_version }}-omnios-{{ ansible_distribution_version }}.tar.gz"
+      dest="{{ cosi_directory }}/cosi-node_modules-omnios.tar.gz"
+      owner="{{ cosi_owner}}"
+      group="{{ cosi_group }}"
+      mode="0640"
+  when: ansible_distribution == "OmniOS"
+
+- name: Unpack COSI Site package
+  become: true
+  unarchive:
+      src="cosi-site.tar.gz"
+      dest="{{ cosi_directory }}"
+      copy="yes"
+      owner="{{ cosi_owner }}"
+      group="{{ cosi_group }}"
+  notify: Install COSI Site
+
+- name: Install COSI Site config
+  become: true
+  template:
+      src="cosi-site.json.j2"
+      dest="{{ cosi_directory }}/etc/cosi-site.json"
+      owner="{{ cosi_owner }}"
+      group="{{ cosi_group }}"
+      mode="0640"
+
+- meta: flush_handlers

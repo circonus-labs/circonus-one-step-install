@@ -1,0 +1,30 @@
+---
+
+- name: Install POST Agent Install hook directory
+  become: true
+  file:
+      path="{{ cosi_directory }}/hooks"
+      owner="{{ cosi_owner }}"
+      group="{{ cosi_group }}"
+      mode="0755" state="directory"
+
+- name: Install POST Agent Install hook script
+  become: true
+  copy:
+    src="files/hooks/{{ ansible_distribution }}/{{ ansible_distribution_major_version }}/{{ hook_post_script }}"
+    dest="{{ cosi_directory }}/{{ hook_post_script }}"
+    owner="{{ cosi_owner }}"
+    group="{{ cosi_group }}"
+    mode="0700"
+
+
+- name: Install POST Agent Install hook assets
+  become: true
+  copy:
+      src="{{ item }}"
+      dest="{{ cosi_directory }}/hooks/"
+      owner="{{ cosi_owner }}"
+      group="{{ cosi_group }}"
+      mode="0600"
+  with_fileglob:
+      - "files/hooks/{{ ansible_distribution }}/{{ ansible_distribution_major_version }}/scripts/*"

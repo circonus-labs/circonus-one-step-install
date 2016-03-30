@@ -1,0 +1,7 @@
+{
+    "presets": [
+        "es2015"
+    ],
+    "retainLines": true,
+    "comments": false
+}

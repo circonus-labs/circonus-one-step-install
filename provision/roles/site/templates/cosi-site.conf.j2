@@ -1,0 +1,12 @@
+description "Circonus One Step Install site"
+author "circonus <support@circonus.com>"
+
+console log
+
+start on filesystem and started networking
+stop on shutdown
+
+respawn
+
+chdir {{ cosi_directory }}
+exec {{ node_bin }} cosi-site.js --config=/opt/circonus/osi-site/etc/cosi-site.json

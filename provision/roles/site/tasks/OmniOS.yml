@@ -1,0 +1,18 @@
+---
+
+# OmniOS service config
+
+- name: Create cosi-site log directory
+  become: true
+  file: path="{{ log_directory }}" owner="{{ cosi_owner }}" group="{{ cosi_group }}" mode=0755 state=directory
+
+- name: Circonus service manifest directory
+  become: true
+  file: path="{{ smf_directory }}" owner=root group=sys mode=0755 state=directory
+
+- name: Copy COSI-Site service manifest
+  become: true
+  template: src="cosi-site.smf.j2" dest="{{ smf_directory }}/cosi-site.xml" owner=root group=sys mode=0644
+  notify: Import SMF manifest
+
+- meta: flush_handlers

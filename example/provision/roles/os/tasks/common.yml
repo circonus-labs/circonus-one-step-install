@@ -1,0 +1,5 @@
+---
+
+- name: Install perl (NAD requires it)
+  become: true
+  package: name=perl state=latest

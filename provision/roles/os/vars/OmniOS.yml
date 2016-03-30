@@ -1,0 +1,8 @@
+---
+
+#
+# OmniOS specific variables
+#
+
+tar_cmd: /usr/gnu/bin/tar
+

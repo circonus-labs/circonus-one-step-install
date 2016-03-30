@@ -1,0 +1,15 @@
+[Unit]
+Description=Circonus One Step Install site
+Documentation=http://github.com/circonus-labs/cosi-site
+
+[Service]
+Type=simple
+WorkingDirectory={{ cosi_directory }}
+ExecStart={{ node_bin }} cosi-site.js --config=/opt/circonus/osi-site/etc/cosi-site.json
+Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=cosi-site
+
+[Install]
+WantedBy=multi-user.target
