@@ -2,6 +2,7 @@
 .vagrant*/
 scratch/
 NOTES.md
+wiki/
 
 # node modules
 node_modules/
