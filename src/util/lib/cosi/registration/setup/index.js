@@ -37,7 +37,8 @@ class Setup extends Registration {
             templateData: {
                 host_name: this.customOptions.host_name ? this.customOptions.host_name : os.hostname(),
                 host_target: this.customOptions.host_target ? this.customOptions.host_target : this._getDefaultHostIp(),
-                host_vars: this.customOptions.host_vars ? this.customOptions.host_vars : {}
+                host_vars: this.customOptions.host_vars ? this.customOptions.host_vars : {},
+                host_tags: this.customOptions.host_tags ? this.customOptions.host_tags : []
             }
         };
 
