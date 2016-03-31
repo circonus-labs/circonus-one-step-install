@@ -1,7 +1,9 @@
 {
+    "type": "graph",
+    "id": "load",
     "description": "System load",
+    "version": "0.1.0",
     "notes": [],
-    "variable_metrics": false,
     "graphs": [
         {
             "access_keys": [],
@@ -68,7 +70,7 @@
             "metric_clusters": [],
             "min_left_y": null,
             "min_right_y": null,
-            "notes": "Circonus One Step Install",
+            "notes": null,
             "style": "line",
             "tags": [],
             "title": "{{=cosi.host_name}} System Load"

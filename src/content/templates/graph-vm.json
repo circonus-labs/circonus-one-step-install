@@ -1,113 +1,105 @@
 {
-  "description": "Memory and swap utilization.",
-  "notes": [],
-  "variable_metrics": false,
-  "graphs": [
-    {
-      "access_keys": [
-      ],
-      "composites": [
-      ],
-      "datapoints": [
+    "type": "graph",
+    "id": "vm",
+    "description": "Memory and swap utilization.",
+    "version": "0.1.0",
+    "notes": [],
+    "graphs": [
         {
-          "alpha": "0.3",
-          "axis": "l",
-          "check_id": null,
-          "color": "#af5779",
-          "data_formula": null,
-          "derive": "gauge",
-          "hidden": false,
-          "legend_formula": "=round(bytes(VAL),2)",
-          "metric_name": "vm`memory`used",
-          "metric_type": "numeric",
-          "name": "Used",
-          "stack": 0
+            "access_keys": [],
+            "composites": [],
+            "datapoints": [
+                {
+                    "alpha": "0.3",
+                    "axis": "l",
+                    "check_id": null,
+                    "color": "#af5779",
+                    "data_formula": null,
+                    "derive": "gauge",
+                    "hidden": false,
+                    "legend_formula": "=round(bytes(VAL),2)",
+                    "metric_name": "vm`memory`used",
+                    "metric_type": "numeric",
+                    "name": "Used",
+                    "stack": 0
+                },
+                {
+                    "alpha": "0.3",
+                    "axis": "l",
+                    "check_id": null,
+                    "color": "#5fa54e",
+                    "data_formula": null,
+                    "derive": "gauge",
+                    "hidden": false,
+                    "legend_formula": "=round(bytes(VAL),2)",
+                    "metric_name": "vm`memory`free",
+                    "metric_type": "numeric",
+                    "name": "Free",
+                    "stack": 0
+                }
+            ],
+            "description": "Memory Utilization",
+            "guides": [],
+            "line_style": "interpolated",
+            "logarithmic_left_y": null,
+            "logarithmic_right_y": null,
+            "max_left_y": null,
+            "max_right_y": null,
+            "metric_clusters": [],
+            "min_left_y": null,
+            "min_right_y": null,
+            "notes": null,
+            "style": "area",
+            "tags": [],
+            "title": "{{=cosi.host_name}} VM RAM Usage"
         },
         {
-          "alpha": "0.3",
-          "axis": "l",
-          "check_id": null,
-          "color": "#5fa54e",
-          "data_formula": null,
-          "derive": "gauge",
-          "hidden": false,
-          "legend_formula": "=round(bytes(VAL),2)",
-          "metric_name": "vm`memory`free",
-          "metric_type": "numeric",
-          "name": "Free",
-          "stack": 0
+            "access_keys": [],
+            "composites": [],
+            "datapoints": [
+                {
+                    "alpha": "0.3",
+                    "axis": "l",
+                    "check_id": null,
+                    "color": "#af5779",
+                    "data_formula": null,
+                    "derive": "gauge",
+                    "hidden": false,
+                    "legend_formula": "=round(bytes(VAL),2)",
+                    "metric_name": "vm`swap`used",
+                    "metric_type": "numeric",
+                    "name": "Used",
+                    "stack": 0
+                },
+                {
+                    "alpha": "0.3",
+                    "axis": "l",
+                    "check_id": null,
+                    "color": "#5fa54e",
+                    "data_formula": null,
+                    "derive": "gauge",
+                    "hidden": false,
+                    "legend_formula": "=round(bytes(VAL),2)",
+                    "metric_name": "vm`swap`free",
+                    "metric_type": "numeric",
+                    "name": "Free",
+                    "stack": 0
+                }
+            ],
+            "description": "Swap Utilization",
+            "guides": [],
+            "line_style": "interpolated",
+            "logarithmic_left_y": null,
+            "logarithmic_right_y": null,
+            "max_left_y": null,
+            "max_right_y": null,
+            "metric_clusters": [],
+            "min_left_y": null,
+            "min_right_y": null,
+            "notes": null,
+            "style": "area",
+            "tags": [],
+            "title": "{{=cosi.host_name}} VM Swap Usage"
         }
-      ],
-      "description": "Memory Utilization",
-      "guides": [
-      ],
-      "line_style": "interpolated",
-      "logarithmic_left_y": null,
-      "logarithmic_right_y": null,
-      "max_left_y": null,
-      "max_right_y": null,
-      "metric_clusters": [
-      ],
-      "min_left_y": null,
-      "min_right_y": null,
-      "notes": "Circonus One Step Install",
-      "style": "area",
-      "tags": [
-      ],
-      "title": "{{=cosi.host_name}} VM RAM Usage"
-    },
-    {
-      "access_keys": [
-      ],
-      "composites": [
-      ],
-      "datapoints": [
-        {
-          "alpha": "0.3",
-          "axis": "l",
-          "check_id": null,
-          "color": "#af5779",
-          "data_formula": null,
-          "derive": "gauge",
-          "hidden": false,
-          "legend_formula": "=round(bytes(VAL),2)",
-          "metric_name": "vm`swap`used",
-          "metric_type": "numeric",
-          "name": "Used",
-          "stack": 0
-        },
-        {
-          "alpha": "0.3",
-          "axis": "l",
-          "check_id": null,
-          "color": "#5fa54e",
-          "data_formula": null,
-          "derive": "gauge",
-          "hidden": false,
-          "legend_formula": "=round(bytes(VAL),2)",
-          "metric_name": "vm`swap`free",
-          "metric_type": "numeric",
-          "name": "Free",
-          "stack": 0
-        }
-      ],
-      "description": "Swap Utilization",
-      "guides": [
-      ],
-      "line_style": "interpolated",
-      "logarithmic_left_y": null,
-      "logarithmic_right_y": null,
-      "max_left_y": null,
-      "max_right_y": null,
-      "metric_clusters": [
-      ],
-      "min_left_y": null,
-      "min_right_y": null,
-      "notes": "Circonus One Step Install",
-      "style": "area",
-      "tags": [
-      ],
-      "title": "{{=cosi.host_name}} VM Swap Usage"
-    }
-  ]
+    ]
 }

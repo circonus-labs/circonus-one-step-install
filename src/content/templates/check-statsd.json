@@ -1,6 +1,6 @@
 {
-    "id": "statsd",
     "type": "check",
+    "id": "statsd",
     "description": "generic StatsD check configuration template",
     "version": "0.1.0",
     "notes": [

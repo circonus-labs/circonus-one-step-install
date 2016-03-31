@@ -1,17 +1,17 @@
 {
+    "type": "graph",
+    "id": "df",
     "description": "Percent of space and inodes used per filesystem.",
+    "version": "0.1.0",
     "notes": [
-        "For dynamic graphs, variable metrics, the metric names should be regular expressions.",
-        "The metric_name will be replaced with the actual metric that matches",
-        "when building the graph configuration. The replacement variable for",
-        "other attributes (e.g. title) is cosi.graph_item (e.g. {{=cosi.graph_item}}) which will be replaced with the first",
-        "match '()' in the regular expression. Use the include and exclude",
-        "filters, to identify filesytems. The include/exclude arrays should",
-        "be strings which match the matched portion of the regular expression",
-        "(e.g. the part that would be used in a %VAR1% marco replacement).",
-        "rx=fs`([^`]+)`df_used_percent metric=fs`/var`df_used_percent the",
-        "matched value would be '/var'. By default every filesystem is",
-        "incuded. Exclude filtering is applied only to included filesystems."
+        "Graphs with variable metrics use regular expressions for the datapoint",
+        "metric_name. The regular expression should include a grouping ().",
+        "What is matched by the first matched group will be available for use",
+        "in interpolated fields as '{{=cosi.graph_item}}'.",
+        "",
+        "Filters (include/exclude) work by matching the value used as graph_item",
+        "this is an equality test not a regular expression. The strings in filter",
+        "lists are evaluated using '==='."
     ],
     "variable_metrics": true,
     "filter": {
@@ -62,7 +62,7 @@
             "metric_clusters": [],
             "min_left_y": null,
             "min_right_y": null,
-            "notes": "Circonus One Step Install",
+            "notes": null,
             "style": "area",
             "tags": [],
             "title": "{{=cosi.host_name}} {{=cosi.graph_item}} %Used"

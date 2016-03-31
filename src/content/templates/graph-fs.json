@@ -1,76 +1,71 @@
 {
-  "description": "Percent of space and inodes used per filesystem.",
-  "notes": [
-      "For dynamic graphs, the metric names should be regular expressions.",
-      "The metric_name will be replaced with the actual metric that matches",
-      "when building the graph. The replacement macro for other attributes",
-      "is %VAR1% which will be replaced with the first match () in the",
-      "regular expression. Use the include and exclude filters, to identify",
-      "filesytems. The include/exclude arrays should be strings which match",
-      "the matched portion of the regular expression (e.g. the part that",
-      "would be used in a %VAR1% marco replacement).",
-      "rx=fs`([^`]+)`df_used_percent metric=fs`/var`df_used_percent the",
-      "matched value would be '/var'. By default every filesystem is included.",
-      "Exclude filtering is applied only to included filesystems"
-  ],
-  "variable_metrics": true,
-  "filter": {
-    "exclude": ["/boot","/dev"],
-    "include": null
-  },
-  "graphs": [
-    {
-      "access_keys": [
-      ],
-      "composites": [
-      ],
-      "datapoints": [
+    "type": "graph",
+    "id": "fs",
+    "description": "Percent of space and inodes used per filesystem.",
+    "version": "0.1.0",
+    "notes": [
+        "Graphs with variable metrics use regular expressions for the datapoint",
+        "metric_name. The regular expression should include a grouping ().",
+        "What is matched by the first matched group will be available for use",
+        "in interpolated fields as '{{=cosi.graph_item}}'.",
+        "",
+        "Filters (include/exclude) work by matching the value used as graph_item",
+        "this is an equality test not a regular expression. The strings in filter",
+        "lists are evaluated using '==='."
+    ],
+    "variable_metrics": true,
+    "filter": {
+        "exclude": ["/boot","/dev"],
+        "include": null
+    },
+    "graphs": [
         {
-          "alpha": "0.3",
-          "axis": "l",
-          "check_id": null,
-          "color": "#657aa6",
-          "data_formula": null,
-          "derive": "gauge",
-          "hidden": false,
-          "legend_formula": null,
-          "metric_name": "fs`([^`]+)`df_used_percent",
-          "metric_type": "numeric",
-          "name": "% Used (bytes)",
-          "stack": null
-        },
-        {
-          "alpha": "0.3",
-          "axis": "l",
-          "check_id": null,
-          "color": "#4fa18e",
-          "data_formula": null,
-          "derive": "gauge",
-          "hidden": false,
-          "legend_formula": null,
-          "metric_name": "fs`([^`]+)`df_used_inode_percent",
-          "metric_type": "numeric",
-          "name": "% Used (inode)",
-          "stack": null
+            "access_keys": [],
+            "composites": [],
+            "datapoints": [
+                {
+                    "alpha": "0.3",
+                    "axis": "l",
+                    "check_id": null,
+                    "color": "#657aa6",
+                    "data_formula": null,
+                    "derive": "gauge",
+                    "hidden": false,
+                    "legend_formula": null,
+                    "metric_name": "fs`([^`]+)`df_used_percent",
+                    "metric_type": "numeric",
+                    "name": "% Used (bytes)",
+                    "stack": null
+                },
+                {
+                    "alpha": "0.3",
+                    "axis": "l",
+                    "check_id": null,
+                    "color": "#4fa18e",
+                    "data_formula": null,
+                    "derive": "gauge",
+                    "hidden": false,
+                    "legend_formula": null,
+                    "metric_name": "fs`([^`]+)`df_used_inode_percent",
+                    "metric_type": "numeric",
+                    "name": "% Used (inode)",
+                    "stack": null
+                }
+            ],
+            "description": "Filesystem space used and inodes used.",
+            "guides": [],
+            "line_style": "interpolated",
+            "logarithmic_left_y": null,
+            "logarithmic_right_y": null,
+            "max_left_y": "100",
+            "max_right_y": null,
+            "metric_clusters": [],
+            "min_left_y": null,
+            "min_right_y": null,
+            "notes": null,
+            "style": "line",
+            "tags": [],
+            "title": "{{=cosi.host_name}} {{=cosi.graph_item}} %Used"
         }
-      ],
-      "description": "Filesystem space used and inodes used.",
-      "guides": [
-      ],
-      "line_style": "interpolated",
-      "logarithmic_left_y": null,
-      "logarithmic_right_y": null,
-      "max_left_y": "100",
-      "max_right_y": null,
-      "metric_clusters": [
-      ],
-      "min_left_y": null,
-      "min_right_y": null,
-      "notes": "Circonus One Step Install",
-      "style": "line",
-      "tags": [
-      ],
-      "title": "{{=cosi.host_name}} {{=cosi.graph_item}} %Used"
-    }
-  ]
+    ]
 }

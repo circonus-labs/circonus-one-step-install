@@ -1,9 +1,9 @@
 {
-    "id": "system",
     "type": "check",
+    "id": "system",
     "description": "generic system check configuration template",
     "version": "0.1.0",
-    "notes": "",
+    "notes": [],
     "check": {
         "brokers": [],
         "config": {},

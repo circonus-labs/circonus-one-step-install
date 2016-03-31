@@ -1,97 +1,99 @@
 {
-  "description": "Disk IO number of read/write and bytes read/written.",
-  "notes": [
-      "For dynamic graphs, the metric names should be regular expressions.",
-      "The metric_name will be replaced with the actual metric that matches",
-      "when building the graph configuration. The replacement macro for other",
-      "attributes is {{=cosi.graph_item}} which will be replaced with the first match ()",
-      "in the regular expression. Use the include and exclude filters, to",
-      "identify items. The include/exclude arrays should be strings which",
-      "match the matched portion of the regular expression (e.g. the part",
-      "that would be used in a %VAR1% marco replacement). By default every",
-      "item is incuded. Exclude filtering is applied only to included items."
-  ],
-  "variable_metrics": true,
-  "filter": {
-    "exclude": null,
-    "include": ["sda"]
-  },
-  "graphs": [
-    {
-        "access_keys": [],
-        "composites": [],
-        "datapoints": [
-            {
-                "legend_formula": "=round(VAL,2)",
-                "check_id": null,
-                "metric_type": "numeric",
-                "stack": null,
-                "name": "Reads",
-                "axis": "l",
-                "data_formula": null,
-                "color": "#4fa18e",
-                "alpha": "0.3",
-                "metric_name": "disk`([^`]+)`reads",
-                "hidden": false,
-                "derive": "counter"
-            },
-            {
-                "legend_formula": "=round(VAL,2)",
-                "check_id": null,
-                "metric_type": "numeric",
-                "stack": null,
-                "name": "Writes",
-                "axis": "l",
-                "data_formula": "=-1 * VAL",
-                "color": "#657aa6",
-                "alpha": "0.3",
-                "metric_name": "disk`([^`]+)`writes",
-                "hidden": false,
-                "derive": "counter"
-            },
-            {
-                "legend_formula": "=round(auto(VAL),2)",
-                "check_id": null,
-                "metric_type": "numeric",
-                "stack": null,
-                "name": "Bytes read",
-                "axis": "r",
-                "data_formula": null,
-                "color": "#b5c52d",
-                "alpha": "0.3",
-                "metric_name": "disk`([^`]+)`nread",
-                "hidden": false,
-                "derive": "counter"
-            },
-            {
-                "legend_formula": "=round(auto(VAL),2)",
-                "check_id": null,
-                "metric_type": "numeric",
-                "stack": null,
-                "name": "Bytes written",
-                "axis": "r",
-                "data_formula": "=-1 * VAL",
-                "color": "#8e69a2",
-                "alpha": "0.3",
-                "metric_name": "disk`([^`]+)`nwritten",
-                "hidden": false,
-                "derive": "counter"
-            }
-        ],
-        "description": "Disk IO number of read/write and bytes read/written.",
-        "guides": [],
-        "line_style": "stepped",
-        "logarithmic_left_y": null,
-        "logarithmic_right_y": null,
-        "max_left_y": null,
-        "max_right_y": null,
-        "metric_clusters": [],
-        "min_left_y": null,
-        "min_right_y": null,
-        "notes": "Circonus One Step Install",
-        "style": "area",
-        "tags": [],
-        "title": "{{=cosi.host_name}} {{=cosi.graph_item}} Disk IO"
-    }
-  ]
+    "type": "graph",
+    "id": "disk",
+    "description": "Disk IO number of read/write and bytes read/written.",
+    "version": "0.1.0",
+    "notes": [
+        "Graphs with variable metrics use regular expressions for the datapoint",
+        "metric_name. The regular expression should include a grouping ().",
+        "What is matched by the first matched group will be available for use",
+        "in interpolated fields as '{{=cosi.graph_item}}'.",
+        "",
+        "Filters (include/exclude) work by matching the value used as graph_item",
+        "this is an equality test not a regular expression. The strings in filter",
+        "lists are evaluated using '==='."
+    ],
+    "variable_metrics": true,
+    "filter": {
+        "exclude": null,
+        "include": ["sda"]
+    },
+    "graphs": [
+        {
+            "access_keys": [],
+            "composites": [],
+            "datapoints": [
+                {
+                    "legend_formula": "=round(VAL,2)",
+                    "check_id": null,
+                    "metric_type": "numeric",
+                    "stack": null,
+                    "name": "Reads",
+                    "axis": "l",
+                    "data_formula": null,
+                    "color": "#4fa18e",
+                    "alpha": "0.3",
+                    "metric_name": "disk`([^`]+)`reads",
+                    "hidden": false,
+                    "derive": "counter"
+                },
+                {
+                    "legend_formula": "=round(VAL,2)",
+                    "check_id": null,
+                    "metric_type": "numeric",
+                    "stack": null,
+                    "name": "Writes",
+                    "axis": "l",
+                    "data_formula": "=-1 * VAL",
+                    "color": "#657aa6",
+                    "alpha": "0.3",
+                    "metric_name": "disk`([^`]+)`writes",
+                    "hidden": false,
+                    "derive": "counter"
+                },
+                {
+                    "legend_formula": "=round(auto(VAL),2)",
+                    "check_id": null,
+                    "metric_type": "numeric",
+                    "stack": null,
+                    "name": "Bytes read",
+                    "axis": "r",
+                    "data_formula": null,
+                    "color": "#b5c52d",
+                    "alpha": "0.3",
+                    "metric_name": "disk`([^`]+)`nread",
+                    "hidden": false,
+                    "derive": "counter"
+                },
+                {
+                    "legend_formula": "=round(auto(VAL),2)",
+                    "check_id": null,
+                    "metric_type": "numeric",
+                    "stack": null,
+                    "name": "Bytes written",
+                    "axis": "r",
+                    "data_formula": "=-1 * VAL",
+                    "color": "#8e69a2",
+                    "alpha": "0.3",
+                    "metric_name": "disk`([^`]+)`nwritten",
+                    "hidden": false,
+                    "derive": "counter"
+                }
+            ],
+            "description": "Disk IO number of read/write and bytes read/written.",
+            "guides": [],
+            "line_style": "stepped",
+            "logarithmic_left_y": null,
+            "logarithmic_right_y": null,
+            "max_left_y": null,
+            "max_right_y": null,
+            "metric_clusters": [],
+            "min_left_y": null,
+            "min_right_y": null,
+            "notes": null,
+            "style": "area",
+            "tags": [],
+            "title": "{{=cosi.host_name}} {{=cosi.graph_item}} Disk IO"
+        }
+    ]
 }

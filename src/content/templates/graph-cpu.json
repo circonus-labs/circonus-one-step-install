@@ -1,10 +1,9 @@
 {
-    "id": "cpu",
     "type": "graph",
+    "id": "cpu",
     "description": "Simple CPU utilization.",
-    "notes": [],
     "version": "0.1.0",
-    "variable_metrics": false,
+    "notes": [],
     "graphs": [
         {
             "access_keys": [],
@@ -91,7 +90,7 @@
             "metric_clusters": [],
             "min_left_y": null,
             "min_right_y": null,
-            "notes": "Circonus One Step Install",
+            "notes": null,
             "style": "area",
             "tags": [],
             "title": "{{=cosi.host_name}} CPU Utilization"

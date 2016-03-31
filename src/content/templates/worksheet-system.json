@@ -1,6 +1,6 @@
 {
-    "id": "system",
     "type": "worksheet",
+    "id": "system",
     "description": "generic system worksheet template",
     "version": "0.1.0",
     "notes": [],

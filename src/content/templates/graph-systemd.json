@@ -1,7 +1,9 @@
 {
+    "type": "graph",
+    "id": "systemd",
     "description": "Systemd service metrics",
+    "version": "0.1.0",
     "notes": [],
-    "variable_metrics": false,
     "graphs":[
         {
             "access_keys": [],
