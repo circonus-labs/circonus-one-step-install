@@ -10,7 +10,7 @@
         "graphs": [],
         "notes": null,
         "smart_queries": null,
-        "tags": null,
+        "tags": [],
         "title": "COSI {{=cosi.host_name}} {{=cosi.host_target}}"
     }
 }
