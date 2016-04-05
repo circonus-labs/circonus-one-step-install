@@ -2,7 +2,7 @@
 
 ## Documentation
 
-The [COSI user documentation](https://github.com/circonus/circonus-one-step-install/wiki) is in the wiki for this repository. The documentation contained here pertains to the repository itself.
+The [COSI user documentation](https://github.com/circonus-labs/circonus-one-step-install/wiki) is in the wiki for this repository. The documentation contained here pertains to the repository itself.
 
 ## TL;DR _quick start_
 
@@ -10,7 +10,7 @@ The [COSI user documentation](https://github.com/circonus/circonus-one-step-inst
 2. Click the (i) information icon next to the token to use it.
 3. Copy and run the command displayed on the host to be setup.
 
-For more information [see the documentation](https://github.com/circonus/circonus-one-step-install/wiki).
+For more information [see the documentation](https://github.com/circonus-labs/circonus-one-step-install/wiki).
 
 ---
 
