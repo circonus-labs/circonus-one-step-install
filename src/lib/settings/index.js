@@ -162,13 +162,6 @@ class Settings {
         this.listen = options.listen || cfg.listen || defaults.listen;
         this.user = options.user || cfg.user || defaults.user;
 
-        // this.config_dir = path.resolve(this.base_dir, "content", "configs");
-        // try {
-        //     fs.accessSync(this.config_dir, fs.R_OK);
-        // } catch (err) {
-        //     config_error(`Configurations directory:\n${err}`);
-        // }
-
         this.template_dir = path.resolve(this.base_dir, "content", "templates");
         try {
             fs.accessSync(this.template_dir, fs.R_OK);
