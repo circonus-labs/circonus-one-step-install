@@ -239,11 +239,15 @@ class Broker extends Events {
                 }
                 for (let i = 0; i < brokers.length; i++) {
                     if (brokers[i]._type === "enterprise") {
-                        const brokerId = brokers[i]._cid.replace("/broker/", "");
+                        for (let j = 0; j < brokers[i]._details.length; j++) {
+                            if (brokers[i]._details[j].status === "provisioned") {
+                                const brokerId = brokers[i]._cid.replace("/broker/", "");
 
-                        log(`Identified enterprise broker ID ${brokerId}`);
-                        self.emit("gdb.verify", brokerId);
-                        return;
+                                log(`Identified enterprise broker ID ${brokerId}`);
+                                self.emit("gdb.verify", brokerId);
+                                return;
+                            }
+                        }
                     }
                 }
                 self.emit("gdb.cosi");
