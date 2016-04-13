@@ -26,7 +26,8 @@ function emitLine(quiet, id, name, type) {
 
     if (quiet) {
         console.log([ id, type, name ].join("|"));
-    } else {
+    }
+    else {
         console.log(sprintf(lineFormat, id, type, name));
     }
 
@@ -51,7 +52,8 @@ broker.getBrokerList((err, list) => {
 
     emitLine(app.quiet);
 
-    for (const item of list) {
+    for (let i = 0; i < list.length; i++) {
+        const item = list[i];
         const id = item._cid.replace("/broker/", "");
         const type = item._type;
         const name = item._name;
