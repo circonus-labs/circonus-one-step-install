@@ -13,7 +13,7 @@ Vagrant.configure(2) do |config|
     end
 
     config.vm.define 'omnios', primary: false, autostart: false do |omnios|
-        omnios.vm.box = 'omnios-r151014'
+        omnios.vm.box = 'maier/omnios-r151014-x86_64'
         omnios.vm.hostname = 'omnios-osi-test'
         omnios.vm.provider 'virtualbox' do |vb|
             # vb.cpus = 2
