@@ -15,7 +15,7 @@ provision/cosi.hosts
 
 # temporary provisioning files
 ## omnios specific, see node-builder
-provision/roles/node/files/node-v*-omnios-r*-x86.tar.gz
+provision/roles/node/files/node-v*-omnios-r*.tar.gz
 provision/roles/site/files/node_modules-v*-omnios-r*.tar.gz
 
 ## this is built, cd src && make package
