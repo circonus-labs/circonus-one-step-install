@@ -1,0 +1,9 @@
+description "Statsd with Circonus push backend"
+author "circonus <support@circonus.com>"
+
+start on filesystem and started networking
+stop on shutdown
+
+respawn
+
+exec /opt/circonus/embedded/bin/node --expose-gc /opt/circonus/cosi/statsd/stats.js /opt/circonus/cosi/etc/statsd.json

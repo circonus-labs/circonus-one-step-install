@@ -70,6 +70,7 @@ class Register extends Registration {
 
         this.once("statsd", this.statsdCheck);
         this.once("statsd.done", () => {
+
             self.emit("graphs");
         });
 
@@ -169,11 +170,75 @@ class Register extends Registration {
             return;
         }
 
+        const self = this;
+
+        const saveStatsdConfig = (submitUrl) => {
+            const statsdCfgFile = `${cosi.etc_dir}/statsd.json`;
+            const circonusBackend = "./backends/circonus";
+
+            console.log(`\tSaving statsd configuration ${statsdCfgFile}`);
+
+            // default configuration
+            let statsdConfig = {
+                port: 8125,
+                address: "127.0.0.1",
+                flushInterval: 60000,
+                backends: [ circonusBackend ],
+                circonus: {
+                    check_url: submitUrl
+                }
+            };
+
+            // load an existing configuration, if it exists
+            try {
+                statsdConfig = require(statsdCfgFile);
+            }
+            catch (err) {
+                if (err.code !== "MODULE_NOT_FOUND") {
+                    self.emit("error", err);
+                }
+            }
+
+            // set check_url
+            if (!statsdConfig.hasOwnProperty("circonus")) {
+                statsdConfig.circonus = {};
+            }
+            statsdConfig.circonus.check_url = submitUrl;
+
+            // add circonus backend if it is not already defined
+            if (!statsdConfig.hasOwnProperty("backends") || !Array.isArray(statsdConfig.backends)) {
+                statsdConfig.backends = [];
+            }
+            if (statsdConfig.backends.indexOf(circonusBackend) === -1) {
+                statsdConfig.backends.push(circonusBackend);
+            }
+
+            console.log(`\tSaving StatsD configuration file ${statsdCfgFile}`);
+            try {
+                fs.writeFileSync(
+                    statsdCfgFile,
+                    JSON.stringify(statsdConfig, null, 4),
+                    { encoding: "utf8", mode: 0o644, flag: "w" }
+                );
+            }
+            catch (statsdConfigErr) {
+                self.emit("error", statsdConfigErr);
+                return;
+            }
+        };
+
         const regFile = path.resolve(this.regDir, "registration-check-statsd.json");
         const cfgFile = regFile.replace("registration-", "config-");
 
         if (this._fileExists(regFile)) {
             console.log(chalk.bold("Registration exists"), `using ${regFile}`);
+
+            if (this.statsd === "host") {
+                const check = new Check(regFile);
+
+                saveStatsdConfig(check.config.submission_url);
+            }
+
             this.emit("statsd.done");
             return;
         }
@@ -186,10 +251,10 @@ class Register extends Registration {
         const check = new Check(cfgFile);
 
         if (check.verifyConfig()) {
-            console.log("valid check config");
+            console.log("\tValid check config");
         }
 
-        const self = this;
+        console.log("\tSending check configuration to Circonus API");
 
         check.create((err) => {
             if (err) {
@@ -201,6 +266,8 @@ class Register extends Registration {
             check.save(regFile);
 
             console.log(chalk.green("\tCheck created:"), `${self.regConfig.account.uiUrl}${check._checks[0]}`);
+
+            saveStatsdConfig(check.config.submission_url);
 
             self.emit("statsd.done");
         });

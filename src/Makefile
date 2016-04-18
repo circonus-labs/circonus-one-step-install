@@ -13,8 +13,6 @@ DOC_SRC = README.md LICENSE
 SITE_PKG=cosi-site.tar.gz
 UTIL_TGZ=cosi-util.tar.gz
 UTIL_PKG=util/$(UTIL_TGZ)
-STATSD_TGZ=cosi-statsd.tar.gz
-STATSD_PKG=util/$(STATSD_TGZ)
 
 DEST_DIR=$(DEST)/provision/roles/site/files
 
@@ -33,7 +31,6 @@ clean:
 	-rm $(SITE_PKG)
 	-rm $(DEST_DIR)/$(SITE_PKG)
 	-rm content/files/$(UTIL_TGZ)
-	-rm content/files/$(STATSD_TGZ)
 
 
 .PHONY: check
@@ -55,7 +52,7 @@ package: $(SITE_PKG)
 	install -vC $(SITE_PKG) $(DEST_DIR)
 	@echo
 
-# statsd gets created as a side-effect (it is an ephemeral package)
+
 $(UTIL_PKG): $(UTIL_SRC)
 	make -C util package
 
@@ -66,5 +63,4 @@ $(SITE_PKG): $(ALL_SRC) $(UTIL_PKG)
 	test -d node_modules || npm install
 	pac --production
 	install -vC $(UTIL_PKG) content/files
-	install -vC $(STATSD_PKG) content/files
 	COPYFILE_DISABLE=true tar -czf $@ $(BIN_SRC) $(LIB_SRC) $(ETC_SRC) $(MOD_SRC) $(OTH_SRC) $(DOC_SRC)

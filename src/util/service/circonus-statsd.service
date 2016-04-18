@@ -1,10 +1,10 @@
-.[Unit]
+[Unit]
 Description=Statsd with Circonus push backend
 Documentation=http://github.com/circonus-labs/cosi-util
 
 [Service]
 Type=simple
-ExecStart=/opt/circonus/embedded/bin/node --expose-gc /opt/circonus/cosi/statsd/stats.js /opt/circonus/cosi/etc/statsd-config.js
+ExecStart=/opt/circonus/embedded/bin/node --expose-gc /opt/circonus/cosi/statsd/stats.js /opt/circonus/cosi/etc/statsd.json
 WorkingDirectory=/opt/circonus/cosi/statsd
 Restart=always
 StandardOutput=syslog

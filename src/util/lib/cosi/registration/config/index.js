@@ -399,7 +399,10 @@ class Config extends Registration {
 
         if (statsdMode === "host") {
             check.type = "httptrap";
-            // will setup daemon config to use statsd circonus backend (when check created successfully)
+            check.config = {
+                asynch_metrics: true,
+                secret: crypto.randomBytes(2048).toString("hex").substr(0, 16)
+            };
         }
 
         if (statsdMode === "broker") {

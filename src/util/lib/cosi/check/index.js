@@ -159,33 +159,56 @@ module.exports = class Check {
             return cb(new Error("Invalid configuration"));
         }
 
+        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
+
+        // for retrying on certain api errors
+        let attempts = 0;
+        const maxRetry = 3;
         const self = this;
 
-        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
-        api.post("/check_bundle", this, (code, errAPI, result) => {
-            if (errAPI) {
-                const apiError = new Error();
+        const apiRequest = () => {
+            api.post("/check_bundle", this, (code, errAPI, result) => { //eslint-disable-line consistent-return
+                if (errAPI) {
+                    let retry = false;
 
-                apiError.code = "CIRCONUS_API_ERROR";
-                apiError.message = errAPI;
-                apiError.details = result;
-                return cb(apiError);
-            }
+                    if (errAPI === "Could not update broker(s) with check") {
+                        retry = true;
+                    }
 
-            if (code !== 200) {
-                const errResp = new Error();
+                    attempts += 1;
 
-                errResp.code = code;
-                errResp.message = "UNEXPECTED_API_RETURN";
-                errResp.details = result;
-                return cb(errResp);
+                    if (retry && attempts < maxRetry) {
+                        console.warn(chalk.yellow("Retrying failed API call:"), errAPI, attempts);
+                        apiRequest();
+                    }
+                    else {
+                        const apiError = new Error();
 
-            }
+                        apiError.code = "CIRCONUS_API_ERROR";
+                        apiError.message = errAPI;
+                        apiError.details = result;
+                        return cb(apiError);
+                    }
+                }
+                else {
+                    if (code !== 200) {
+                        const errResp = new Error();
 
-            self._init(result);
+                        errResp.code = code;
+                        errResp.message = "UNEXPECTED_API_RETURN";
+                        errResp.details = result;
+                        return cb(errResp);
 
-            return cb(null, result);
-        });
+                    }
+
+                    self._init(result);
+
+                    return cb(null, result);
+                }
+            });
+        };
+
+        apiRequest();
     }
 
 

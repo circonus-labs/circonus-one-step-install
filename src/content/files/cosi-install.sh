@@ -115,15 +115,8 @@ __parse_parameters() {
                 fi
                 ;;
             (--statsd)
-                if [[ -n "${1:-}" ]]; then
-                    cosi_statsd_type="$1"
-                    shift
-                    if [[ ! "${cosi_statsd_type:-}" =~ ^(host|broker)$ ]]; then
-                        fail "--statsd must be followed by a valid type (host|broker)."
-                    fi
-                else
-                    fail "--statsd must be followed by a valid type (host|broker)."
-                fi
+                cosi_statsd_flag=1
+                cosi_statsd_type="host"
                 ;;
             (--regconf)
                 if [[ -n "${1:-}" ]]; then
@@ -636,6 +629,7 @@ cosi_initialize() {
     : ${cosi_api_key:=}
     : ${cosi_api_app:=cosi}
     : ${cosi_agent_mode:=pull}
+    : ${cosi_statsd_flag:=0}
     : ${cosi_statsd_type:=none}
     : ${cosi_install_agent:=1}
     : ${package_install_cmd:=}
@@ -778,6 +772,7 @@ cosi_register() {
     local cosi_register_cmd="register"
     local cosi_register_opt=""
     local install_nadpush="${cosi_dir}/bin/install_nadpush.sh"
+    local install_statsd="${cosi_dir}/bin/install_statsd.sh"
 
     echo
     __fetch_cosi_utils
@@ -806,6 +801,18 @@ cosi_register() {
             [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "Errors encountered during nadpush installation."
         else
             fail "Agent mode is push, nadpush installer not found."
+        fi
+    fi
+
+    if [[ ${cosi_statsd_flag:-0} -eq 1 ]]; then
+        echo
+        echo
+        log "Installing Circonus StatsD"
+        if [[ -x "$install_statsd" ]]; then
+            $install_statsd | tee -a $cosi_install_log
+            [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "Errors encountered during Circonus StatsD installation."
+        else
+            fail "StatsD flag set but, installer not found."
         fi
     fi
 

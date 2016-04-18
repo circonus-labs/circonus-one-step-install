@@ -8,12 +8,13 @@ UTILS 		:= cosi-util.tar.gz
 STATSD   	:= cosi-statsd.tar.gz
 
 
-build: $(BIN_SRC) $(LIB_SRC) package.json Makefile
+build: $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
 	test -d node_modules || npm install
 	install -d build
 	$(BABEL) bin/cosi*.js -d build
 	$(BABEL) bin/circonus-nadpush.js --out-file build/bin/circonus-nadpush.js
 	install -m 0700 bin/install_nadpush.sh build/bin/.
+	install -m 0700 bin/install_statsd.sh build/bin/.
 	echo '#!/usr/bin/env sh' > build/bin/circonus-nadpush && \
 	echo '":" //; exec /opt/circonus/embedded/bin/node --expose-gc --max-old-space-size=32 --max-executable-size=64 "$$0" "$$@"' >> build/bin/circonus-nadpush && \
 	tail -n +3 build/bin/circonus-nadpush.js >> build/bin/circonus-nadpush && \
@@ -36,6 +37,7 @@ build: $(BIN_SRC) $(LIB_SRC) package.json Makefile
 	# copy test data, if it exists
 	if [ -d etc ]; then cp -r etc build/. ; fi
 	if [ -d registration ]; then cp -r registration build/.; fi
+	cp cosi-statsd.tar.gz build/.
 
 
 .PHONY: check
@@ -51,11 +53,11 @@ clean:
 	-rm -rf build
 
 
-package: $(UTILS) $(STATSD)
+package: $(UTILS)
 
 
 $(UTILS): clean build
-	COPYFILE_DISABLE=true tar -v -C build -czf $@ bin lib service .modules package.json README.md LICENSE
+	COPYFILE_DISABLE=true tar -v -C build -czf $@ bin lib service .modules package.json README.md LICENSE $(STATSD)
 
 
 $(STATSD):
