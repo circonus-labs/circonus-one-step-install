@@ -183,9 +183,11 @@ class Register extends Registration {
                 port: 8125,
                 address: "127.0.0.1",
                 flushInterval: 60000,
+                keyNameSanitize: false,
                 backends: [ circonusBackend ],
                 circonus: {
-                    check_url: submitUrl
+                    check_url: submitUrl,
+                    forceGC: true
                 }
             };
 
