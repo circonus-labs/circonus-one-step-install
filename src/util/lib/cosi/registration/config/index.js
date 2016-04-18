@@ -418,14 +418,17 @@ class Config extends Registration {
             this.regConfig.broker._cid.replace("/broker/", "")
         ];
 
-        // add the default statsd metrics (don't know what any others will be...)
-        check.metrics = [
-            {
+        // add *ONLY* if there are no metrics defined in the template.
+        if (!check.hasOwnProperty("metrics") || !Array.isArray(check.metrics)) {
+            check.metrics = [];
+        }
+        if (check.metrics.length === 0) {
+            check.metrics.push({
                 name: "statsd`num_stats",
                 type: "numeric",
                 status: "active"
-            }
-        ];
+            });
+        }
 
         // set the notes with cosi signature
         check.notes = this.regConfig.cosiNotes;
