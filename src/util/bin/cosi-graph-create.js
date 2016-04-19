@@ -36,7 +36,12 @@ graph.create((err, result) => {
     if (err) {
         console.error(chalk.red(`Error: ${err.code} -- ${err.message}`));
         if (err.details) {
-            console.error(err.details.join("\n"));
+            if (Array.isArray(err.details)) {
+                console.error(err.details.join("\n"));
+            }
+            else {
+                console.error(err.details);
+            }
         }
         console.dir(err);
         process.exit(1); //eslint-disable-line no-process-exit
@@ -47,7 +52,10 @@ graph.create((err, result) => {
 
         fs.writeFileSync(app.output, JSON.stringify(result, null, 4), opts);
 
-    } else {
+        console.log("Graph created, saved:", app.output);
+
+    }
+    else {
         console.log(result);
     }
 });
