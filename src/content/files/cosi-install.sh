@@ -50,10 +50,14 @@ Options
 ## logging and messaging
 ##
 
+# ignore tput errors for terms that do not
+# support colors (colors will be blank strings)
+set +e
 RED=$(tput setaf 1)
 GREEN=$(tput setaf 2)
 NORMAL=$(tput sgr0)
 BOLD=$(tput bold)
+set -e
 
 log()  { [[ "$cosi_quiet_flag" == 1 ]] && log_only "$*" || printf "%b\n" "$*" | tee -a $cosi_install_log; }
 log_only() { printf "%b\n" "${FUNCNAME[1]}: $*" >> $cosi_install_log; }

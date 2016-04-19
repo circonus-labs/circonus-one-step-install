@@ -10,8 +10,6 @@ const path = require("path");
 
 const chalk = require("chalk");
 
-chalk.enabled = true;
-
 const cosi = require(path.resolve(path.join(__dirname, "..")));
 
 class Registration extends Events {
