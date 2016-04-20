@@ -1,6 +1,8 @@
 [Unit]
 Description=Circonus Node Agent Metrics sender
 Documentation=http://github.com/circonus-labs/circonus-one-step-install
+Wants=network-online.target
+After=network-online.target
 After=nad.service
 Requires=nad.service
 

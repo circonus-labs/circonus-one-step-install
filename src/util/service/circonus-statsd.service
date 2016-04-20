@@ -1,6 +1,8 @@
 [Unit]
 Description=Statsd with Circonus push backend
 Documentation=http://github.com/circonus-labs/cosi-util
+Wants=network-online.target
+After=network-online.target
 
 [Service]
 Type=simple
