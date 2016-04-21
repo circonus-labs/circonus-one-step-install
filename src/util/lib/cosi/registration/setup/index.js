@@ -167,7 +167,7 @@ class Setup extends Registration {
             fs.writeFile(
                 self.regConfig.metricsFile,
                 JSON.stringify(agentMetrics, null, 4),
-                { encoding: "utf8", mode: 0o644, flag: "w" },
+                { encoding: "utf8", mode: 0o600, flag: "w" },
                 (saveError) => {
                     if (saveError) {
                         self.emit("error", saveError);
