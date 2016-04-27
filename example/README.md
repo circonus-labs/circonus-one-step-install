@@ -16,14 +16,9 @@
 * [Virtualbox](https://www.virtualbox.org/wiki/Downloads)
 
 ```sh
-⁖ vagrant --version ; vboxmanage --version ; ansible --version
+⁖ vagrant --version ; vboxmanage --version
 Vagrant 1.8.1
 5.0.14r105127
-ansible 2.1.0 (devel 36aa89ac7e) last updated 2016/01/18 12:20:44 (GMT -400)
-  lib/ansible/modules/core: (detached HEAD fd59dccdd7) last updated 2016/01/18 12:20:44 (GMT -400)
-  lib/ansible/modules/extras: (detached HEAD 38dfe23336) last updated 2016/01/18 12:20:44 (GMT -400)
-  config file =
-  configured module search path = Default w/o overrides
 ```
 
 ## Use
@@ -32,8 +27,8 @@ ansible 2.1.0 (devel 36aa89ac7e) last updated 2016/01/18 12:20:44 (GMT -400)
 
 1. Install the software listed under the Environment section above.
 1. Link the Ansible Vagrantfile, `ln -s Vagrantfile.ansible Vagrantfile`.
-1. Install [Ansible](http://docs.ansible.com/ansible/intro_installation.html)
-1. Set up Ansible variables specific to the Circonus account `ansible/group_vars/all.yml`
+1. Install [Ansible](http://docs.ansible.com/ansible/intro_installation.html), v2.1.0 used to build examples.
+1. Set up Ansible variables specific to the Circonus account `ansible/group_vars/all.yml`.
    1. Copy `cd ansible/group_vars && cp all.yml.example all.yml`
    1. Open new `all.yml` in an editor
    1. Log into Circonus and navigate to the [API Tokens](https://login.circonus.com/user/tokens) page.
