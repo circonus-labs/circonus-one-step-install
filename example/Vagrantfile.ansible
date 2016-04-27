@@ -1,0 +1,65 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+#
+
+Vagrant.configure(2) do |config|
+    #
+    # client node(s)
+    #
+
+    host_sig = Digest::SHA1.hexdigest("#{`hostname`}-cosi-c72")[0..8]
+    config.vm.define 'centos7.2', primary: false, autostart: false do |bx|
+        bx.vm.box = 'maier/centos-7.2.1511-x86_64'
+        bx.vm.hostname = "cosi-c72-#{host_sig}"
+        bx.vm.network 'private_network', ip: "192.168.100.15"
+    end
+
+    # host_sig = Digest::SHA1.hexdigest("#{`hostname`}-cosi-c71")[0..8]
+    # config.vm.define 'centos7.1', primary: false, autostart: false do |bx|
+    #     bx.vm.box = 'maier/centos-7.1.1503-x86_64'
+    #     bx.vm.hostname = "cosi-c71-#{host_sig}"
+    #     bx.vm.network 'private_network', ip: "192.168.100.10"
+    # end
+
+    host_sig = Digest::SHA1.hexdigest("#{`hostname`}-cosi-c67")[0..8]
+    config.vm.define 'centos6.7', primary: false, autostart: false do |bx|
+        bx.vm.box = 'maier/centos-6.7-x86_64'
+        bx.vm.hostname = "cosi-c67-#{host_sig}"
+        bx.vm.network 'private_network', ip: "192.168.100.22"
+    end
+
+    # host_sig = Digest::SHA1.hexdigest("#{`hostname`}-cosi-c66")[0..8]
+    # config.vm.define 'centos6.6', primary: false, autostart: false do |bx|
+    #     bx.vm.box = 'maier/centos-6.6-x86_64'
+    #     bx.vm.hostname = "cosi-c66-#{host_sig}"
+    #     bx.vm.network 'private_network', ip: "192.168.100.21"
+    # end
+
+    # host_sig = Digest::SHA1.hexdigest("#{`hostname`}-cosi-c63")[0..8]
+    # config.vm.define 'centos6.3', primary: false, autostart: false do |bx|
+    #     bx.vm.box = 'maier/centos-6.3-x86_64'
+    #     bx.vm.hostname = "cosi-c63-#{host_sig}"
+    #     bx.vm.network 'private_network', ip: "192.168.100.20"
+    # end
+
+    host_sig = Digest::SHA1.hexdigest("#{`hostname`}-cosi-u14")[0..8]
+    config.vm.define 'ubuntu14', primary: false, autostart: false do |bx|
+        bx.vm.box = 'ubuntu/trusty64'
+        bx.vm.hostname = "cosi-u14-#{host_sig}"
+        bx.vm.network 'private_network', ip: "192.168.100.30"
+    end
+
+    host_sig = Digest::SHA1.hexdigest("#{`hostname`}-cosi-u12")[0..8]
+    config.vm.define 'ubuntu12', primary: false, autostart: false do |bx|
+        bx.vm.box = 'ubuntu/precise64'
+        bx.vm.hostname = "cosi-u12-#{host_sig}"
+        bx.vm.network 'private_network', ip: "192.168.100.40"
+    end
+
+    #
+    # common provisioner
+    #
+    config.vm.provision 'ansible' do |ansible|
+        ansible.playbook = 'ansible/client.yml'
+    end
+end
