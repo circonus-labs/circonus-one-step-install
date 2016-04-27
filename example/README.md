@@ -3,7 +3,7 @@
 - [x] CentOS 7.2.1511 x86_64
 - [x] ~~CentOS 7.1.1503 x86_64~~
 - [x] CentOS 6.7 x86_64
-- [x] ~~CentOS 6.6 x86_64~~
+- [x] CentOS 6.6 x86_64 (Vagrantfile.puppet uses Puppet v4.2.2)
 - [x] ~~CentOS 6.3 x86_64~~
 - [x] Ubuntu 14.04 x86_64 (trusty)
 - [x] Ubuntu 12.04 x86_64 (precise)
