@@ -176,7 +176,7 @@ class Register extends Registration {
             const statsdCfgFile = `${cosi.etc_dir}/statsd.json`;
             const circonusBackend = "./backends/circonus";
 
-            console.log(`\tSaving statsd configuration ${statsdCfgFile}`);
+            console.log(`\tCreating StatsD configuration ${statsdCfgFile}`);
 
             // default configuration
             let statsdConfig = {
