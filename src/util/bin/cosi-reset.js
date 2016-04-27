@@ -44,25 +44,22 @@ function deleteItem(item, keepTemplates, cb) { //eslint-disable-line consistent-
     const itemURL = cfg._cid;
     const itemName = cfg.display_name || cfg.title || cfg.description || cfg.regFile;
 
-    console.log(chalk.bold("Deleting"), `${itemName} ${itemURL}`);
-
-    api.delete(itemURL, (code, apiError, result) => {
-        if (apiError) {
-            console.error(chalk.red("API ERROR"), `API ${code}`, apiError, result);
-            console.error("Attempt to run the command again. Contact support if the error persists.");
-            process.exit(1);
+    const cleaner = function() {
+        try {
+            console.log(`\tremoving ${item.regFile}`);
+            fs.unlinkSync(item.regFile);
+        }
+        catch (err) {
+            return err;
         }
 
-        if (code < 200 || code > 299) { //eslint-disable-line no-magic-numbers
-            console.error(chalk.red("API RESULT CODE"), `API ${code}`, apiError, result);
-            return cb(apiError);
+        try {
+            console.log(`\tremoving ${item.cfgFile}`);
+            fs.unlinkSync(item.cfgFile);
         }
-
-        console.log(`\tremoving ${item.regFile}`);
-        fs.unlinkSync(item.regFile);
-
-        console.log(`\tremoving ${item.cfgFile}`);
-        fs.unlinkSync(item.cfgFile);
+        catch (err) {
+            return err;
+        }
 
         if (item.templateFile !== null) {
             if (keepTemplates) {
@@ -76,13 +73,42 @@ function deleteItem(item, keepTemplates, cb) { //eslint-disable-line consistent-
                 catch (err) {
                     // graph templates can have mulitple graphs, ignore any missing files
                     if (err.code !== "ENOENT") {
-                        return cb(err);
+                        return err;
                     }
                 }
             }
         }
+        return null;
+    };
 
-        return cb(null);
+    console.log(chalk.bold("Checking"), `${itemName} ${itemURL}`);
+    api.get(itemURL, null, (getCode, getError, getResult) => { //eslint-disable-line consistent-return
+        if (getCode === 404 && (getResult.code && getResult.code === "ObjectError.InstanceNotFound")) {
+            console.log(`\t${itemName}`, chalk.bold("not found"), "- cleaning up orphaned files.");
+            return cb(cleaner());
+        }
+
+        if (getCode < 200 || getCode > 299) { //eslint-disable-line no-magic-numbers
+            console.error(chalk.red("API RESULT CODE"), `API ${getCode}`, getError, getResult);
+            return cb(getError);
+        }
+
+        console.log(chalk.bold("\tDeleting"), itemName);
+
+        api.delete(itemURL, (code, apiError, result) => {
+            if (apiError) {
+                console.error(chalk.red("API ERROR"), `API ${code}`, apiError, result);
+                console.error("Attempt to run the command again. Contact support if the error persists.");
+                process.exit(1);
+            }
+
+            if (code < 200 || code > 299) { //eslint-disable-line no-magic-numbers
+                console.error(chalk.red("API RESULT CODE"), `API ${code}`, apiError, result);
+                return cb(apiError);
+            }
+
+            return cb(cleaner());
+        });
     });
 }
 
