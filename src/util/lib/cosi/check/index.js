@@ -163,7 +163,7 @@ module.exports = class Check {
 
         // for retrying on certain api errors
         let attempts = 0;
-        const maxRetry = 3;
+        const maxRetry = 5;
         const self = this;
 
         const apiRequest = () => {
@@ -179,7 +179,7 @@ module.exports = class Check {
 
                     if (retry && attempts < maxRetry) {
                         console.warn(chalk.yellow("Retrying failed API call:"), errAPI, attempts);
-                        apiRequest();
+                        setTimeout(apiRequest, 1000 * attempts);
                     }
                     else {
                         const apiError = new Error();
