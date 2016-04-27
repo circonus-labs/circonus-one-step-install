@@ -412,6 +412,9 @@ __install_agent() {
         "${agent_post_hook}"
         set -e
     fi
+
+    # give agent a couple seconds to start/restart
+    sleep 2
 }
 
 __is_nad_installed() {
