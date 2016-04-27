@@ -14,7 +14,6 @@
 
 * [Vagrant](https://www.vagrantup.com/downloads.html)
 * [Virtualbox](https://www.virtualbox.org/wiki/Downloads)
-* [Ansible](http://docs.ansible.com/ansible/intro_installation.html)
 
 ```sh
 ⁖ vagrant --version ; vboxmanage --version ; ansible --version
@@ -29,11 +28,13 @@ ansible 2.1.0 (devel 36aa89ac7e) last updated 2016/01/18 12:20:44 (GMT -400)
 
 ## Use
 
-### Initial setup
+### Initial setup -- Ansible provisioning
 
 1. Install the software listed under the Environment section above.
-1. Set up Ansible variables specific to the Circonus account `provision/group_vars/all.yml`
-   1. Copy `cd provision/group_vars && cp all.yml.example all.yml`
+1. Link the Ansible Vagrantfile, `ln -s Vagrantfile.ansible Vagrantfile`.
+1. Install [Ansible](http://docs.ansible.com/ansible/intro_installation.html)
+1. Set up Ansible variables specific to the Circonus account `ansible/group_vars/all.yml`
+   1. Copy `cd ansible/group_vars && cp all.yml.example all.yml`
    1. Open new `all.yml` in an editor
    1. Log into Circonus and navigate to the [API Tokens](https://login.circonus.com/user/tokens) page.
    1. If there are no API tokens, click the **New API Token+** button in upper right corner.
@@ -41,6 +42,19 @@ ansible 2.1.0 (devel 36aa89ac7e) last updated 2016/01/18 12:20:44 (GMT -400)
       1. Copy the `--key` value, paste into `all.yml` as the value for `cosi_api_token`
       1. Copy the `--app` value, paste into `all.yml` as the value for `cosi_api_app`
    1. Save changes to `all.yml`
+
+### Initial setup -- Puppet provisioning
+
+1. Install the software listed under the Environment section above.
+1. Link the Puppet Vagrantfile, `ln -s Vagrantfile.puppet Vagrantfile`.
+1. Set up variables specific to the Circonus account
+   1. Copy `example-config.rb` to `config.rb` and open in an editor.
+   1. Log into Circonus and navigate to the [API Tokens](https://login.circonus.com/user/tokens) page.
+   1. If there are no API tokens, click the **New API Token+** button in upper right corner.
+   1. Click the **(i)** next to the token to use, from the command displayed: ***
+      1. Copy the `--key` value, paste into `config.rb` as the value for `KEY`
+      1. Copy the `--app` value, paste into `config.rb` as the value for `APP`
+   1. Save changes to `config.rb`
 
 ### Starting
 
