@@ -1,8 +1,8 @@
 
 class circonus {
 
-    # NAD requires perl, since we're not using YUM to install it,
-    # it needs to be installed independently.
+    # NAD requires perl, since we're not using YUM or Apt to
+    # install it, perl needs to be installed independently.
     package { "perl":
         ensure => present,
     }
