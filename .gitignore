@@ -17,6 +17,7 @@ provision/cosi.hosts
 ## omnios specific, see node-builder
 provision/roles/node/files/node-v*-omnios-r*.tar.gz
 provision/roles/site/files/node_modules-v*-omnios-r*.tar.gz
+provision/*.retry
 
 ## this is built, cd src && make package
 provision/roles/site/files/cosi-site.tar.gz
