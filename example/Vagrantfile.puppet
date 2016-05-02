@@ -100,11 +100,14 @@ Vagrant.configure(2) do |config|
         end
         bx.vm.provision 'shell', inline: <<-SHELL
             echo "Need to install puppet to use puppet as a provisioner"
+            # remove the default installed puppet
+            aptitude purge -y puppet
             curl -sSL "https://apt.puppetlabs.com/puppetlabs-release-pc1-trusty.deb" -O
             dpkg -i puppetlabs-release-pc1-trusty.deb
             aptitude update -q -q
-            apt-get install -y --install-suggests puppet-agent=1.2.6-1trusty
-            apt-get autoremove -y
+            # install the newer puppetlabs version
+            apt-get install -y --install-suggests puppet-agent
+            # v4.2 apt-get install -y --install-suggests puppet-agent=1.2.6-1trusty
         SHELL
         bx.vm.provision 'puppet' do |puppet|
             puppet.facter = {
@@ -128,9 +131,13 @@ Vagrant.configure(2) do |config|
         end
         bx.vm.provision 'shell', inline: <<-SHELL
             echo "Need to install puppet to use puppet as a provisioner"
-            wget https://apt.puppetlabs.com/puppetlabs-release-pc1-precise.deb
+            # remove the default installed puppet
+            aptitude purge -y puppet
+            curl -sSL "https://apt.puppetlabs.com/puppetlabs-release-pc1-precise.deb" -O
             dpkg -i puppetlabs-release-pc1-precise.deb
-            apt-get update
+            aptitude update -q -q
+            # install the newer puppetlabs version
+            apt-get install -y --install-suggests puppet-agent
         SHELL
         bx.vm.provision 'puppet' do |puppet|
             puppet.facter = {
