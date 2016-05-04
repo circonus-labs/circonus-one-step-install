@@ -47,7 +47,8 @@ worksheet.create((err, result) => {
 
         fs.writeFileSync(app.output, JSON.stringify(result, null, 4), opts);
 
-    } else {
+    }
+    else {
         console.log(result);
     }
 });
