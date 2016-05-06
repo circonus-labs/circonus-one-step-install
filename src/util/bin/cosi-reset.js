@@ -42,7 +42,7 @@ function deleteItem(item, keepTemplates, cb) { //eslint-disable-line consistent-
     }
 
     const itemURL = cfg._cid;
-    const itemName = cfg.display_name || cfg.title || cfg.description || cfg.regFile;
+    const itemName = cfg.display_name || cfg.title || cfg.description || "";
 
     const cleaner = function() {
         try {
@@ -53,12 +53,14 @@ function deleteItem(item, keepTemplates, cb) { //eslint-disable-line consistent-
             return err;
         }
 
-        try {
-            console.log(`\tremoving ${item.cfgFile}`);
-            fs.unlinkSync(item.cfgFile);
-        }
-        catch (err) {
-            return err;
+        if (item.cfgFile !== null) {
+            try {
+                console.log(`\tremoving ${item.cfgFile}`);
+                fs.unlinkSync(item.cfgFile);
+            }
+            catch (err) {
+                return err;
+            }
         }
 
         if (item.templateFile !== null) {
@@ -84,7 +86,7 @@ function deleteItem(item, keepTemplates, cb) { //eslint-disable-line consistent-
     console.log(chalk.bold("Checking"), `${itemName} ${itemURL}`);
     api.get(itemURL, null, (getCode, getError, getResult) => { //eslint-disable-line consistent-return
         if (getCode === 404 && (getResult.code && getResult.code === "ObjectError.InstanceNotFound")) {
-            console.log(`\t${itemName}`, chalk.bold("not found"), "- cleaning up orphaned files.");
+            console.log(`\t${itemURL}`, chalk.bold("not found"), "- cleaning up orphaned files.");
             return cb(cleaner());
         }
 
@@ -93,7 +95,7 @@ function deleteItem(item, keepTemplates, cb) { //eslint-disable-line consistent-
             return cb(getError);
         }
 
-        console.log(chalk.bold("\tDeleting"), itemName);
+        console.log(chalk.bold("\tDeleting"), `${itemName} ${itemURL}`);
 
         api.delete(itemURL, (code, apiError, result) => {
             if (apiError) {
@@ -176,6 +178,7 @@ app.
     option("-c, --check [id]", "Delete COSI check with [id] or all checks for this host").
     option("-g, --graph [id]", "Delete COSI graph with [id] or all graphs for this host").
     option("-w, --worksheet [id]", "Delete COSI worksheet with [id] or all worksheets for this host").
+    option("-r, --ruleset [id]", "Delete COSI ruleset with [id] or all rulesets").
     option("--notemplate", "Keep template files, do not remove with registration and config files.").
     option("-q, --quiet", "Only error output").
     parse(process.argv);
@@ -199,6 +202,40 @@ if (app.all || app.graph) {
     items.push.apply(items, findItems(cosi.reg_dir, "graph", app.graph));
 }
 
+if (app.all || app.ruleset) {
+    let files = [];
+
+    try {
+        files = fs.readdirSync(cosi.ruleset_dir);
+    }
+    catch (err) {
+        console.error(chalk.yellow("WARN"), "reading ruleset directory", err);
+    }
+
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const cfgFile = null;
+        const templateFile = null;
+        let regFile = null;
+
+        if (file.indexOf("-cosi.json") !== -1) {
+            regFile = path.resolve(path.join(cosi.ruleset_dir, file));
+            if (app.ruleset && file.indexOf(app.ruleset) === -1) {
+                regFile = null;
+            }
+        }
+
+        if (regFile !== null) {
+            items.push({
+                regFile,
+                cfgFile,
+                templateFile
+            });
+        }
+    }
+}
+
+// always do checks last, remove everything dependent on the check(s) first
 if (app.all || app.check) {
     items.push.apply(items, findItems(cosi.reg_dir, "check", app.check));
 }
