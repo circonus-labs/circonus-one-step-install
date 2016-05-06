@@ -32,10 +32,9 @@ Vagrant.configure(2) do |config|
         c7.vm.provision 'shell', inline: <<-SHELL
             # add alias for setup.circonus.com, so it will "resolve"
             echo "#{site_ip} cosi.circonus.com" >> /etc/hosts
-            yum makecache fast && yum install -y perl
-            echo
-            echo
-            echo "Installed perl because NAD requires it."
+            echo "Installing perl for NAD"
+            yum -q -e 0 makecache fast
+            yum -q install -y perl
             echo
             echo "Installing Agent POST hook script for CentOS7"
             mkdir -pv /opt/circonus/cosi
