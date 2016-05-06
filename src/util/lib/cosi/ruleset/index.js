@@ -1,11 +1,12 @@
 "use strict";
 
 /*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers */
+/*eslint-disable no-magic-numbers, global-require */
 
 const assert = require("assert");
 const path = require("path");
 const fs = require("fs");
+const util = require("util");
 
 const api = require("circonusapi2");
 const chalk = require("chalk");
@@ -18,6 +19,11 @@ cosi_dir/rulesets/*.json (/opt/circonus/cosi/rulesets/*.json)
 template-ruleset.json - a ruleset configuration with the default fields blank.
                         can be used to copy and edit locally. it will
                         be skipped when processing the directory.
+
+set "check" field to one of:
+    null: will use cosi check id "check-system"
+    cosi check id: will use cid from check registration (e.g. "check-system", "check-statsd")
+    explicit check id: a valid circonus check cid (/^\/check\/[0-9]+$/)
 
 a rulset configuration which has been successfully created via the API will
 appear in the directory with a "-cosi" suffix added to the original file
@@ -40,7 +46,7 @@ module.exports = class RuleSet {
         const cfgFile = path.resolve(configFile);
 
         try {
-            const cfg = require(cfgFile); //eslint-disable-line global-require
+            const cfg = require(cfgFile);
 
             this._init(cfg);
         }
@@ -249,9 +255,38 @@ module.exports = class RuleSet {
         return true;
     }
 
+    _getCheckId(checkId) {
+        const regFile = path.resolve(path.join(cosi.reg_dir, `registration-${checkId}.json`));
+
+        try {
+            const check = require(regFile);
+
+            if (check.hasOwnProperty("_checks")) {
+                if (util.isArray(check._checks) && check._checks.length > 0) {
+                    return check._checks[0];
+                }
+            }
+        }
+        catch (err) {
+            console.error(chalk.yellow("WARN"), "unable to find check ID", checkId, "for ruleset.");
+        }
+
+        return null;
+    }
+
 
     _init(config) {
         const keys = Object.keys(config);
+
+        if (config.hasOwnProperty("check")) {
+            if (config.check === null) {
+                config.check = "check-system"; //eslint-disable-line no-param-reassign
+            }
+
+            if (config.check.match(/^check\-[a-z]+$/)) {
+                config.check = this._getCheckId(config.check); //eslint-disable-line no-param-reassign
+            }
+        }
 
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
