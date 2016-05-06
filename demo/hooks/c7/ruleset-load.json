@@ -1,0 +1,29 @@
+{
+    "check": null,
+    "contact_groups": {
+        "1": [],
+        "2": [],
+        "3": [],
+        "4": [],
+        "5": []
+    },
+    "derive": null,
+    "link": null,
+    "metric_name": "load`1min",
+    "metric_type": "numeric",
+    "notes": "run queue exceeds number of cpus on this 1 cpu system for last 5 consecutive minutes.",
+    "parent": null,
+    "rules": [
+        {
+            "criteria": "max value",
+            "severity": 1,
+            "transform": null,
+            "transform_options": {},
+            "transform_selection": null,
+            "value": "1",
+            "wait": 5,
+            "windowing_duration": null,
+            "windowing_function": null
+        }
+    ]
+}
