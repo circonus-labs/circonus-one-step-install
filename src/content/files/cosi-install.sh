@@ -824,6 +824,11 @@ cosi_register() {
     fi
 
     echo
+    log "Creating rulesets if any ruleset configurations were pre-installed."
+    log "running: '${cosi_dir}/bin/cosi rulesets create'"
+    "${cosi_dir}/bin/cosi" rulesets create
+
+    echo
     pass "--- Graphs created ---"
     log "running: '${cosi_dir}/bin/cosi graph list --long'"
     "${cosi_dir}/bin/cosi" graph list --long
