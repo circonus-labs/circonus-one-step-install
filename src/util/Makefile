@@ -29,6 +29,7 @@ build: $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
 	pac --production
 	cp -r .modules build/.
 	cp -r service build/.
+	cp -r rulesets build/.
 	install package.json build/.
 	install Makefile build/.
 	install README.md build/.
@@ -57,7 +58,7 @@ package: $(UTILS)
 
 
 $(UTILS): clean build
-	COPYFILE_DISABLE=true tar -v -C build -czf $@ bin lib service .modules package.json README.md LICENSE $(STATSD)
+	COPYFILE_DISABLE=true tar -v -C build -czf $@ bin lib service rulesets .modules package.json README.md LICENSE $(STATSD)
 
 
 $(STATSD):

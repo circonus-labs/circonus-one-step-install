@@ -1,0 +1,29 @@
+{
+    "check": "",
+    "contact_groups": {
+        "1": [],
+        "2": [],
+        "3": [],
+        "4": [],
+        "5": []
+    },
+    "derive": null,
+    "link": null,
+    "metric_name": "",
+    "metric_type": "",
+    "notes": null,
+    "parent": null,
+    "rules": [
+        {
+            "criteria": "",
+            "severity": 1,
+            "transform": null,
+            "transform_options": {},
+            "transform_selection": null,
+            "value": "",
+            "wait": 0,
+            "windowing_duration": null,
+            "windowing_function": null
+        }
+    ]
+}
