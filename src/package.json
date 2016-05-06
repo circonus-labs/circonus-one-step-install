@@ -19,7 +19,7 @@
   },
   "main": "cosi-site.js",
   "dependencies": {
-    "bunyan": "1.8.0",
+    "bunyan": "1.8.1",
     "commander": "^2.9.0",
     "node-statsd": "^0.1.1",
     "restify": "^4.0.4"
