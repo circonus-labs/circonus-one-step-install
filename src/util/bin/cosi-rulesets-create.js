@@ -76,7 +76,7 @@ else {
         }
 
         if (files.length === 0) {
-            console.log(chalk.yellow("WARN"), `no rulsets found in ${cosi.ruleset_dir}`);
+            console.log(chalk.yellow("WARN"), `no rulesets found in ${cosi.ruleset_dir}`);
             process.exit(0);
         }
 
