@@ -3,21 +3,21 @@
         "14.04": [
             {
                 "arch": "i386",
-                "package_file": "nad-omnibus-20150422T174727Z-1.ubuntu.14.04_i386.deb"
+                "package_file": "nad-omnibus-20160426T191301Z-1.ubuntu.14.04_i386.deb"
             },
             {
                 "arch": "x86_64",
-                "package_file": "nad-omnibus-20150422T174727Z-1.ubuntu.14.04_amd64.deb"
+                "package_file": "nad-omnibus-20160426T191301Z-1.ubuntu.14.04_amd64.deb"
             }
         ],
         "12.04": [
             {
                 "arch": "i386",
-                "package_file": "nad-omnibus-20150422T174727Z-1.ubuntu.12.04_i386.deb"
+                "package_file": "nad-omnibus-20160426T191301Z-1.ubuntu.12.04_i386.deb"
             },
             {
                 "arch": "x86_64",
-                "package_file": "nad-omnibus-20150422T174727Z-1.ubuntu.12.04_amd64.deb"
+                "package_file": "nad-omnibus-20160426T191301Z-1.ubuntu.12.04_amd64.deb"
             }
         ]
     },
@@ -25,27 +25,27 @@
         "5": [
             {
                 "arch": "x86_64",
-                "package_file": "nad-omnibus-20150422T174727Z-1.el5.x86_64.rpm"
+                "package_file": "nad-omnibus-20160426T191301Z-1.el5.x86_64.rpm"
             },
             {
                 "arch": "i386",
-                "package_file": "nad-omnibus-20150422T174727Z-1.el5.i386.rpm"
+                "package_file": "nad-omnibus-20160426T191301Z-1.el5.i386.rpm"
             }
         ],
         "6": [
             {
                 "arch": "x86_64",
-                "package_file": "nad-omnibus-20150422T174727Z-1.el6.x86_64.rpm"
+                "package_file": "nad-omnibus-20160426T191301Z-1.el6.x86_64.rpm"
             },
             {
                 "arch": "i686",
-                "package_file": "nad-omnibus-20150422T174727Z-1.el6.i686.rpm"
+                "package_file": "nad-omnibus-20160426T191301Z-1.el6.i686.rpm"
             }
         ],
         "7": [
             {
                 "arch": "x86_64",
-                "package_file": "nad-omnibus-20150422T174727Z-1.el7.x86_64.rpm"
+                "package_file": "nad-omnibus-20160426T191301Z-1.el7.x86_64.rpm"
             }
         ]
     }
