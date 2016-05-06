@@ -58,7 +58,7 @@ package: $(UTILS)
 
 
 $(UTILS): clean build
-	COPYFILE_DISABLE=true tar -v -C build -czf $@ bin lib service rulesets .modules package.json README.md LICENSE $(STATSD)
+	COPYFILE_DISABLE=true tar -C build -czf $@ bin lib service rulesets .modules package.json README.md LICENSE $(STATSD)
 
 
 $(STATSD):
