@@ -154,6 +154,20 @@ server.get(/^\/install\/conf(?:ig)?\/?$/, restify.serveStatic({
 
 
 //
+// handle /install/rpm
+//
+// return the cosi rpm to install cosi-install.sh script, designed to be used via:
+//      rpm -ivh "https://onestep.circonus.com/install/rpm"
+//      /opt/circonus/cosi/bin/cosi-install.sh --key ... --app ... ...
+//
+server.get(/^\/install\/rpm?$/, restify.serveStatic({
+    directory: "./content/files",
+    file: `cosi-${settings.app_version}-1.noarch.rpm`,
+    maxAge: 0
+}));
+
+
+//
 // handle /utils or /utils/
 //
 // return the cosi-utils (containing cosi-register script and nadpush script)
@@ -193,7 +207,8 @@ server.listen(settings.port, settings.listen, () => {
         log.info(`Changing "effective user" to "${settings.user}".`);
         try {
             process.seteuid(settings.user);
-        } catch (err) {
+        }
+        catch (err) {
             throw err;
         }
     }
