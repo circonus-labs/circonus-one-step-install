@@ -4,6 +4,9 @@ scratch/
 NOTES.md
 wiki/
 
+# rpms
+cosi*noarch.rpm
+
 # node modules
 node_modules/
 
