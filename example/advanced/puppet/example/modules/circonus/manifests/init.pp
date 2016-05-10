@@ -10,8 +10,9 @@ class circonus {
     # pre-install any templates, hooks, etc. needed to pre-seed the nad/cosi environment
 
     exec { "cosi":
-        command => "/usr/bin/curl -sSL https://onestep.circonus.com/install | bash -s -- --key ${facts['api_key']} --app ${facts['api_app']} ${facts['extra_options']}",
+        command => "/usr/bin/curl -sSL ${facts['cosi_install_url']} | bash -s -- ${facts['cosi_install_args']}",
         creates => "/opt/circonus/cosi",
+        logoutput => true,
     }
 
     # if there are any errors see: /opt/circonus/cosi/log/install.log

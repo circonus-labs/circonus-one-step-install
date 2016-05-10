@@ -1,0 +1,74 @@
+---
+#
+# example configuration for COSI Examples Vagrantfile
+#
+# follow instructions in README.md to setup
+
+# Paste value from API Token --key
+api_key: ""
+
+# Paste value from API Token --app
+api_app: ""
+
+# Use one of "ansible", "manual", "puppet", or "shell"
+provisioner: "manual"
+
+# COSI URL
+cosi_url: "https://onestep.circonus.com/"
+
+# API URL
+api_url: "https://api.circonus.com/"
+
+# agent mode
+agent_mode: "push"
+
+# Enable COSI StatsD
+statsd: false
+
+# Vagrant VMs
+# must be at least one enabled...
+vms:
+    "centos7.2":
+        enabled: true
+        id: "c72"
+        ip: "192.168.7.12"
+        box: "maier/centos-7.2.1511-x86_64"
+        puppet_package: "puppetlabs-release-pc1-el-7.noarch.rpm"
+    "centos7.1":
+        enabled: false
+        id: "c71"
+        ip: "192.168.7.11"
+        box: "maier/centos-7.1.1503-x86_64"
+        puppet_package: "puppetlabs-release-pc1-el-7.noarch.rpm"
+    "centos6.7":
+        enabled: false
+        id: "c67"
+        ip: "192.168.6.17"
+        box: "maier/centos-6.7-x86_64"
+        puppet_package: "puppetlabs-release-pc1-el-6.noarch.rpm"
+    "centos6.6":
+        enabled: false
+        id: "c66"
+        ip: "192.168.6.16"
+        box: "maier/centos-6.6-x86_64"
+        puppet_package: "puppetlabs-release-pc1-el-6.noarch.rpm"
+    "centos6.3":
+        enabled: false
+        id: "c63"
+        ip: "192.168.6.13"
+        box: "maier/centos-6.3-x86_64"
+        puppet_package: "puppetlabs-release-pc1-el-6.noarch.rpm"
+    "ubuntu14":
+        enabled: false
+        id: "u14"
+        ip: "192.168.14.14"
+        box: "ubuntu/trusty64"
+        puppet_package: "puppetlabs-release-pc1-trusty.deb"
+    "ubuntu12":
+        enabled: false
+        id: "u12"
+        ip: "192.168.12.14"
+        box: "ubuntu/precise64"
+        puppet_package: "puppetlabs-release-pc1-precise.deb"
+
+#END

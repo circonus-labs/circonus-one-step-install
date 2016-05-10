@@ -1,0 +1,21 @@
+---
+
+- name: Ensure perl is installed (NAD requires it)
+  become: true
+  package: name=perl state=latest
+
+- name: Run COSI installer
+  become: true
+  shell: curl -sSL {{ cosi_install_url }} | bash -s -- {{ cosi_install_args }}
+  args:
+    warn: no
+    creates: "/opt/circonus/cosi/registration/registration-check-system.json"
+  register: install
+  ignore_errors: true
+
+- debug: msg="{{ install.stdout_lines }}"
+  when: install.rc == 0
+
+- name: fail on installation issues
+  fail: msg="{{ install.stdout_lines }}\n\n{{ install.stderr }}"
+  when: install.rc != 0

@@ -1,0 +1,27 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+require '../examples'
+ex = Examples.new('config.yaml')
+
+Vagrant.configure(2) do |config|
+    ex.options['vms'].each do |vm_name, vm_def|
+        next unless vm_def['enabled']
+        config.vm.define vm_name, primary: false, autostart: true do |bx|
+            bx.vm.box = vm_def['box']
+            bx.vm.hostname = ex.vm_hostname(vm_def['id'])
+            bx.vm.network 'private_network', ip: vm_def['ip']
+
+            case ex.options['provisioner']
+            when 'puppet'
+                ex.provision_puppet(bx, vm_def['puppet_package'])
+            when 'ansible'
+                ex.provision_ansible(bx)
+            when 'shell'
+                ex.provision_shell(bx)
+            end
+        end
+    end
+end
+
+# END

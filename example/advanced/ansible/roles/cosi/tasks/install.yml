@@ -2,7 +2,7 @@
 
 - name: Download COSI installer script
   become: true
-  get_url: url="{{ cosi_url }}/install" dest="{{ cosi_installer }}"
+  get_url: url="{{ cosi_install_url }}" dest="{{ cosi_installer }}"
 
 - name: Check COSI installer script
   become: true
@@ -10,9 +10,9 @@
 
 - name: Run COSI installer
   become: true
-  shell: bash {{ cosi_installer }} --key {{ cosi_api_token | quote }} --app {{ cosi_api_app | quote }} --agent {{ cosi_mode }} --regconf {{ cosi_regconf }}
+  shell: bash {{ cosi_installer }} {{ cosi_install_args }} --regconf {{ cosi_regconf }}
   args:
-    creates: "{{ cosi_directory }}/registration/registration-check.json"
+    creates: "{{ cosi_directory }}/registration/registration-check-system.json"
   register: install
   ignore_errors: true
 
