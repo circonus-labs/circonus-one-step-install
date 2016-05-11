@@ -187,21 +187,30 @@ __detect_os() {
             (Linux)
                 if [[ -f /etc/redhat-release ]] ; then
                     log "\tAttempt RedHat(variant) detection"
-                    if [[ -f /etc/centos-release ]] ; then
-                        cosi_os_dist='CentOS'
-                        release_file="/etc/centos-release"
-                    elif [[ -f /etc/fedora-release ]] ; then
-                        cosi_os_dist='Fedora'
-                        release_file="/etc/fedora-release"
-                    else
-                        cosi_os_dist='RedHat'
-                        release_file="/etc/redhat-release"
-                    fi
-                    log_only "\t\tIdentified ${cosi_os_dist}"
-                    if [[ -n "${release_file:-}"  && -f "$release_file" ]]; then
-                        log_only "\t\tUsing ${release_file} for version"
-                        cosi_os_vers=$(cat $release_file | tee -a $cosi_install_log | sed s/.*release\ // | sed s/\ .*//)
-                    fi
+                    release_rpm=$(/bin/rpm -qf /etc/redhat-release)
+                    IFS='-' read -a distro_info <<< "$release_rpm"
+                    [[ ${#distro_info[@]} -ge 4 ]] || fail "Unable to derive distribution and version from $release_rpm, does not match known pattern."
+                    case ${distro_info[0]} in
+                    centos)
+                        # centos-release-5-4.el5.centos.1 - CentOS 5.4
+                        # centos-release-6-7.el6.centos.12.3.x86_64 - CentOS 6.7
+                        # centos-release-7-2.1511.el7.centos.2.10.x86_64 - CentOS 7.2.1511
+                        cosi_os_dist="CentOS"
+                        cosi_os_vers="${distro_info[2]}.${distro_info[3]%%\.el*}"
+                        ;;
+                    redhat)
+                        # redhat-release-server-6Server-6.5.0.1.el6.x86_64 - RedHat 6.5.0.1
+                        cosi_os_dist="RedHat"
+                        [[ ${#distro_info[@]} -ge 5 ]] && cosi_os_vers="${distro_info[4]%%\.el*}"
+                        ;;
+                    fedora)
+                        # fedora-release-23-1.noarch - Fedora 23.1
+                        cosi_os_dist="Fedora"
+                        cosi_os_vers="${distro_info[2]}.${distro_info[3]%%\.*}"
+                        ;;
+                    *) fail "Unknown RHEL variant '${distro_info[0]}' derived from '${release_rpm}'" ;;
+                    esac
+                    log "\tDerived ${cosi_os_dist} v${cosi_os_vers} from '${release_rpm}'"
                 elif [[ -f /etc/debian_version ]] ; then
                     log "\tAttempt Debian(variant) detection"
                     # /etc/debian_version is not consistent enough to be reliable
