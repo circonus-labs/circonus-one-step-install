@@ -487,17 +487,6 @@ __start_agent() {
         fi
         /etc/init.d/nad start
     fi
-
-    set +e
-    agent_pid=$(pgrep -f "sbin/nad")
-    ret=$?
-    set -e
-
-    if [[ ${ret:-0} -eq 0 && ${agent_pid:-0} -gt 0 ]]; then
-        pass "Agent running with PID ${agent_pid}"
-    else
-        fail "Unable to locate running agent, pgrep exited with exit code ${ret}"
-    fi
 }
 
 
@@ -777,6 +766,7 @@ cosi_check_agent() {
     if [[ $agent_state -ne 3 ]]; then
         __start_agent
         __check_agent
+        [[ $agent_state -eq 3 ]] || fail "Unable to locate running NAD Agent after attempting to start. (state:${agent_state})"
     else
         pass "Agent running and responding"
     fi
