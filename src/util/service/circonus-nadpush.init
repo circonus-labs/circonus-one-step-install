@@ -35,8 +35,7 @@ RETVAL=0
 
 start() {
     echo -n "Starting ${app_name}:"
-    #cd "$app_dir"
-    nohup -- $app_file --config=$conf_file &> $console_log &
+    nohup -- $app_bin --config=$conf_file &> $console_log &
     RETVAL=$?
     PID=$!
     if [[ "$RETVAL" == 0 ]]; then
