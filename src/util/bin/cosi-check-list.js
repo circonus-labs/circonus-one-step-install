@@ -49,7 +49,9 @@ function emitLong(check, status) {
     if (status) {
         console.log(chalk.bold("Check status   :"), status);
     }
-    console.log(chalk.bold("Check URL      :"), chalk.bold(`${cosi.ui_url}${check.config._cid}`));
+    for (let i = 0; i < check.config._checks.length; i++) {
+        console.log(chalk.bold("Check URL      :"), chalk.bold(`${cosi.ui_url}${check.config._checks[i].replace("check", "checks")}`));
+    }
 }
 
 app.

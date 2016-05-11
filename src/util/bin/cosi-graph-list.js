@@ -37,7 +37,7 @@ function emitLong(graph) {
     console.log(chalk.bold("Graph ID       :"), graph.id);
     console.log(chalk.bold("Graph Title    :"), graph.config.title);
     console.log(chalk.bold("Description    :"), graph.config.description);
-    console.log(chalk.bold("Graph URL      :"), chalk.bold(`${cosi.ui_url}${graph.config._cid}`));
+    console.log(chalk.bold("Graph URL      :"), chalk.bold(`${cosi.ui_url}trending/graphs/view/${graph.config._cid.replace("/graph/", "")}`));
 }
 
 app.

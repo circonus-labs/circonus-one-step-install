@@ -37,7 +37,7 @@ function emitLong(worksheet) {
     console.log(chalk.bold("Worksheet ID   :"), worksheet.id);
     console.log(chalk.bold("Worksheet Title:"), worksheet.config.title);
     console.log(chalk.bold("Description    :"), worksheet.config.description);
-    console.log(chalk.bold("Worksheet URL  :"), chalk.bold(`${cosi.ui_url}${worksheet.config._cid}`));
+    console.log(chalk.bold("Worksheet URL  :"), chalk.bold(`${cosi.ui_url}trending/worksheets/${worksheet.config._cid.replace("/worksheet/", "")}`));
 }
 
 app.
