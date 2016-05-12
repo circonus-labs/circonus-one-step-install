@@ -1,55 +1,98 @@
-# COSI examples
+# Circonus One Step Install (COSI) examples
 
-Demonstrate leveraging COSI through shell commands, Ansible, and Puppet.
+Demonstrate running COSI on various operating systems using several different types of automation/orchestration methods. There are two sets of examples *basic* and *advanced*. The basic examples demonstrate the COSI process using the default options. The advanced examples illustrate customizing the COSI process with installing a hook, updating NAD plugins, using a custom registration configuration, etc.
 
-## Environment
+#### OS Options
+
+* CentOS (6.3, 6.6, 6.7, 7.1.1503, 7.2.1511)
+* Ubuntu (12.04-trusty, 14.04-precise)
+* **coming soon**: OmniOS (r151014), CentOS 5.4
+
+#### Automation Options (provisioner)
+
+* Manual 
+* Shell
+* Ansible
+* Puppet
+* **coming soon**: Chef
+
+> Note on **manual** provisioner:
+> 
+> Simply spins up the VM and **does not** attempt to run COSI. The main purpose of this provisioner is to provide a set of pre-defined platforms for testing the cut-n-paste COSI command from the [API Tokens](https://login.circonus.com/user/tokens) page. 
+> 
+> Since the resulting *system* will be a VM leveraging the host's network connection, adding the `--agent push` option to the COSI command line is **strongly encouraged**.
+
+## Prerequisites
 
 * [Vagrant](https://www.vagrantup.com/downloads.html) (v1.8.1)
 * [Virtualbox](https://www.virtualbox.org/wiki/Downloads) (v5.0.20r106931)
 * Optional, [Ansible](http://docs.ansible.com/ansible/intro_installation.html) (v2.1.0)
 
-## Use
 
-There are two sets of examples *basic* and *advanced*. The basic examples demonstrate the COSI process with the default options. The advanced examples illustrate customizing the installation process with installing a hook, updating NAD plugins, using a custom registration configuration, etc.
+## Configuration
 
-### Preparation
-
-Setup environment and create a configuration file for Vagrant so, it can correctly configure and run each type of provisioner.
-
-1. Install the software listed under the Environment section above.
-1. Select either basic or advanced and change to that directory.
-1. Set up variables specific to the Circonus account
-   1. From the basic or advanced subdirectory, `cp ../example-config.yaml config.yaml` and open in an editor.
-   1. Log into Circonus and navigate to the [API Tokens](https://login.circonus.com/user/tokens) page.
-   1. If there are no API tokens, click the **New API Token+** button in upper right corner.
-   1. Click the **(i)** next to the token to use, from the command displayed:
+1. Copy `example-config.yaml` to `config.yaml`.
+1. Open `config.yaml` in an editor.
+1. Set up variables specific to the Circonus account:
+   1. Log into the [Circonus API Tokens](https://login.circonus.com/user/tokens) page. If there are no API tokens, click **New API Token** in upper right corner.
+   1. Click the **(i)** next to the token to use and from the COSI command displayed in the overlay:
       1. Copy the `--key` value, paste into `config.yaml` as the value for `api_key`
       1. Copy the `--app` value, paste into `config.yaml` as the value for `api_app`
-   1. Set `provisioner` to be one of "ansible", "manual", "puppet", or "shell". The default is "manual". (Note: Ansible must be installed locally if the provisioner is set to "ansible". Puppet will be installed on the VM as it is created.)
-   1. Enable at least *one* of the VMs.
-   1. Save changes to `config.yaml`
+1. Set `provisioner` to be one of "ansible", "manual", "puppet", or "shell". The default is "manual". (Note: Ansible must be installed locally if the provisioner is set to "ansible". Puppet will be installed on the VM as it is created.)
+1. Enable at least *one* of the VMs.
+1. Save all of the changes to `config.yaml`.
 
-### Starting
 
-Run `vagrant up`, or, if more than one VM has been enabled, `vagrant up <vm name>`. To see a list of the enabled VMs run, `vagrant status`. Vagrant will download the box (if needed), import the box, start the VM, and run the applicable provisioner. If the provisioner is set to "manual", nothing automatic will occur. In this case, `vagrant ssh` into the VM, become root `sudo -i`, and run the COSI command from the Tokens page in the UI directly.
+## Using
 
-### Troubleshooting
+1. Select either *basic* or *advanced*.
+2. Change to that directory `cd basic` or `cd advanced`.
+3. Copy config.yaml created in Configuration section above, `cp ../config.yaml .` or create a symlink to use the same configuration in both basic and advanced directories `ln -s ../config.yaml`
+4. If necessary, make any changes to config.yaml, e.g. enable/disable VMs, etc.
+5. Run `vagrant up` to start. If more than one VM has been enabled, optionally, run `vagrant up <vm name>` to start a specific VM.
 
-Details for inspecting/troubleshooting the installation can be found on the running VM (`vagrant ssh <vm name>`) in:
+#### List available VMs
+
+`vagrant status`
+
+#### Log into VM
+
+`vagrant ssh` or `vagrant ssh <vm name>`
+
+
+#### Halting a VM
+
+This will **stop** the VM, it can be restarted using `vagrant up`.
+
+`vagrant halt` or `vagrant halt <vm name>`
+
+#### Destroying a VM
+
+There is a script named `destroy.sh` in the root example directory. Using this to destroy/remove VMs, whether started in basic or advanced directories, will make cleanup much easier. Although Vagrant has a *destroy* command, it does not know about the checks, graphs, worksheets, etc. that COSI created in Circonus. The destroy script will run a command (`/opt/circonus/cosi/bin/cosi reset --all`) on the VM which will remove these artifacts so that they do not have to be manually deleted in the Circonus UI.
+
+`../destroy.sh <vm name>` note, in this case the specific VM to be destroyed is required. 
+
+## Example
+
+```sh
+# after setting up config.yaml ('centos7.2' was only vm enabled)
+
+cd basic
+ln -s ../config.yaml
+
+vagrant up
+# vagrant brings up the 'centos7.2' vm based upon settings in config.yaml
+
+../destroy.sh centos7.2
+
+# 1. 'centos7.2' is verified to be running.
+# 2. cosi reset command is run on the vm to remove all artifacts created in Circonus.
+# 3. the vagrant destroy command is run to remove the vm.
+```
+
+## Troubleshooting
+
+Details for inspecting/troubleshooting the COSI process can be found on the running VM (`vagrant ssh <vm name>`) in:
 
 * `/opt/circonus/cosi/log/install.log`
 
-### Destroy
-
-There is a script named `destroy.sh` in the root example directory. Using this to remove VMs, whether started in basic or advanced directories, will make cleanup much easier.
-
-```sh
-../destroy.sh <vm name>
-
-# e.g.
-../destroy.sh centos7.2
-```
-
-**Q:** Why is there a script to perform this when `vagrant destroy` will work?
-
-**A:** Using the script will also run `/opt/circonus/cosi/bin/cosi reset --all`. This utility will remove any items COSI created (graphs, worksheet, checks, rulesets, etc.) for the VM that will no longer be sending metrics. To avoid having to remove all of the items manually in the Circonus UI, it is a convenience script.
