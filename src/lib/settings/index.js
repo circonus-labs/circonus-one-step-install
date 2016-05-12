@@ -129,25 +129,30 @@ class Settings {
             try {
                 cfg = require(cfg_file); //eslint-disable-line global-require
                 this.config_file = cfg_file;
-            } catch (err) {
+            }
+            catch (err) {
                 if (err.code !== "MODULE_NOT_FOUND") {
                     config_error(`Loading configuration file ${cfg_file}: ${err}`);
                 }
             }
-        } else {
+        }
+        else {
             if (options.config.substr(0, 1) === "/") { //eslint-disable-line no-magic-numbers
                 cfg_file = path.resolve(options.config);
-            } else {
+            }
+            else {
                 cfg_file = path.resolve(this.base_dir, options.config);
             }
 
             try {
                 cfg = require(cfg_file); //eslint-disable-line global-require
                 this.config_file = cfg_file;
-            } catch (err) {
+            }
+            catch (err) {
                 if (err.code === "MODULE_NOT_FOUND") {
                     config_error(`Config file ${cfg_file} not found.`);
-                } else {
+                }
+                else {
                     config_error(`Loading configuration file ${cfg_file}: ${err}`);
                 }
             }
@@ -165,7 +170,8 @@ class Settings {
         this.template_dir = path.resolve(this.base_dir, "content", "templates");
         try {
             fs.accessSync(this.template_dir, fs.R_OK);
-        } catch (err) {
+        }
+        catch (err) {
             config_error(`Templates directory:\n${err}`);
         }
         this.cache_templates = options.cache_templates || cfg.cache_templates || defaults.cache_templates;
@@ -174,16 +180,19 @@ class Settings {
         // resolve the log_dir path if it is not set to stdout (for Docker or manual runs)
         if (log_dir === this.CONSOLE_LOG) {
             this.log_dir = log_dir;
-        } else {
+        }
+        else {
             if (log_dir.substr(0, 1) === "/") { //eslint-disable-line no-magic-numbers
                 this.log_dir = path.resolve(log_dir);
-            } else {
+            }
+            else {
                 this.log_dir = path.resolve(this.base_dir, log_dir);
             }
             // verify access to the designated directory or switch back to stdout
             try {
                 fs.accessSync(this.log_dir, fs.W_OK);
-            } catch (err) {
+            }
+            catch (err) {
                 config_error(`Log directory '${this.log_dir}' ${err}`);
             }
         }
@@ -209,7 +218,8 @@ class Settings {
         pkg_list_file = options.package_list || cfg.package_list || defaults.package_list;
         if (pkg_list_file.substr(0, 1) === "/") { //eslint-disable-line no-magic-numbers
             this.package_list_file = path.resolve(pkg_list_file);
-        } else {
+        }
+        else {
             this.package_list_file = path.resolve(this.base_dir, pkg_list_file);
         }
 
@@ -225,18 +235,35 @@ class Settings {
         if (this.ssl_cert_file !== null && this.ssl_key_file !== null) {
             if (this.ssl_cert_file.substr(0, 1) === "/") { //eslint-disable-line no-magic-numbers
                 this.ssl_cert_file = path.resolve(this.ssl_cert_file);
-            } else {
+            }
+            else {
                 this.ssl_cert_file = path.resolve(this.base_dir, this.ssl_cert_file);
             }
             if (this.ssl_cert_file.substr(0, 1) === "/") { //eslint-disable-line no-magic-numbers
                 this.ssl_cert_file = path.resolve(this.ssl_cert_file);
-            } else {
+            }
+            else {
                 this.ssl_cert_file = path.resolve(this.base_dir, this.ssl_cert_file);
             }
 
             // switch to 443 if default [http]port is still set.
             if (this.port === defaults.port) {
                 this.port = defaults.ssl_port;
+            }
+        }
+
+        //
+        // installer rpm
+        //
+        this.installer_rpm_file = cfg.installer_rpm_file || null;
+        if (this.installer_rpm_file !== null) {
+            const rpm_file = path.resolve(path.join(this.base_dir, "content", "files", this.installer_rpm_file));
+
+            try {
+                fs.accessSync(rpm_file, fs.R_OK);
+            }
+            catch (err) {
+                config_error(`with file specified in 'installer_rpm_file': ${err}`);
             }
         }
 

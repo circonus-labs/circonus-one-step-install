@@ -2,6 +2,10 @@
 - hosts: all
   vars:
     node_version: "4.4.4"
+    # note, **just** the file name, not a "path"
+    # the specified file is expected to be in
+    # ./content/files relative to cosi-site.js
+    installer_rpm_file: "cosi-0.3.1-1.noarch.rpm"
   roles:
     - os
     - node

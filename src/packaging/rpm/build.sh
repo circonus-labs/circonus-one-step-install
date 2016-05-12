@@ -2,13 +2,11 @@
 
 set -eu
 
-cd ~
+cp -v ../../content/files/cosi-install.sh .
 
-[[ -d rpmbuild ]] || rpmdev-setuptree
+vagrant up
+vagrant ssh -c "bash /vagrant/genrpm.sh"
+vagrant destroy --force
 
-cd ~/rpmbuild/SPECS
-cp -v /vagrant/cosi.spec .
-rpmbuild -ba cosi.spec
+rm cosi-install.sh
 
-cd ~/rpmbuild/RPMS/noarch
-mv -v cosi*.rpm /vagrant

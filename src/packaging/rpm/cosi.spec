@@ -28,8 +28,9 @@ exit 0
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/opt/circonus/cosi/bin
-curl -sSL "https://raw.githubusercontent.com/circonus-labs/circonus-one-step-install/master/src/content/files/cosi-install.sh" \
-    -o %{buildroot}/opt/circonus/cosi/bin/cosi-install.sh
+cp /vagrant/cosi-install.sh %{buildroot}/opt/circonus/cosi/bin/cosi-install.sh
+#curl -sSL "https://raw.githubusercontent.com/circonus-labs/circonus-one-step-install/master/src/content/files/cosi-install.sh" \
+#    -o %{buildroot}/opt/circonus/cosi/bin/cosi-install.sh
 
 %clean
 exit 0

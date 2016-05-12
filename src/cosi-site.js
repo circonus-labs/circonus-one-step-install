@@ -153,18 +153,22 @@ server.get(/^\/install\/conf(?:ig)?\/?$/, restify.serveStatic({
 }));
 
 
-//
-// handle /install/rpm
-//
-// return the cosi rpm to install cosi-install.sh script, designed to be used via:
-//      rpm -ivh "https://onestep.circonus.com/install/rpm"
-//      /opt/circonus/cosi/bin/cosi-install.sh --key ... --app ... ...
-//
-server.get(/^\/install\/rpm?$/, restify.serveStatic({
-    directory: "./content/files",
-    file: `cosi-${settings.app_version}-1.noarch.rpm`,
-    maxAge: 0
-}));
+if (settings.installer_rpm_file !== null) {
+    //
+    // handle /install/rpm
+    //
+    // optional, will 404 if no rpm file is provided (or it's not accessible)
+    //
+    // return the cosi rpm to install cosi-install.sh script, designed to be used via:
+    //      rpm -ivh "https://onestep.circonus.com/install/rpm"
+    //      /opt/circonus/cosi/bin/cosi-install.sh --key ... --app ... ...
+    //
+    server.get(/^\/install\/rpm?$/, restify.serveStatic({
+        directory: "./content/files",
+        file: settings.installer_rpm_file,
+        maxAge: 0
+    }));
+}
 
 
 //
