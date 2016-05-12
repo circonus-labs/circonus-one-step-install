@@ -338,7 +338,7 @@ __download_package() {
 
     package_name=$(echo "$package_url" | awk -F"/" '{ print $NF }')
 
-    log "Downloading Agent package ${package_url}"
+    log "Downloading NAD agent package ${package_url}"
 
     package_file="${cosi_cache_dir}/${package_name}"
 
@@ -384,7 +384,7 @@ __install_agent() {
 
     if [[ "${cosi_confirm_flag:-1}" == "1" ]]; then
         while true ; do
-            printf "\n%b\n" "Agent installation will use the following command:\n\n\t${pkg_cmd} ${pkg_cmd_args} \"${package_file}\"\n"
+            printf "\n%b\n" "NAD agent installation will use the following command:\n\n\t${pkg_cmd} ${pkg_cmd_args} \"${package_file}\"\n"
             read -p "Confirm executing this command now? (yes|no) " do_install < /dev/tty
             case $do_install in
                 ([Yy]*)
@@ -422,7 +422,7 @@ __install_agent() {
         set -e
     fi
 
-    # give agent a couple seconds to start/restart
+    # give nad time to start/restart
     sleep 2
 }
 
@@ -460,32 +460,38 @@ __check_nad_url() {
         ret=$?
         set -e
         if [[ $ret -ne 0 ]]; then
-            fail "Agent installed and running but not reachable\nCurl exit code: ${ret}\nCurl err msg: ${err}"
+            fail "NAD agent installed and running but not reachable\nCurl exit code: ${ret}\nCurl err msg: ${err}"
         fi
-        pass "NAD URL reachable"
+        pass "NAD agent URL reachable"
         agent_state=3
     fi
 }
 
 __check_agent() {
-    if [[ $agent_state -eq 0 ]]; then
-        __is_nad_installed  #state 1
-        __is_nad_running    #state 2
-        __check_nad_url     #state 3
+    if [[ ${agent_state:-0} -eq 0 ]]; then
+        __is_nad_installed  #state 0 -> 1
     fi
+    if [[ $agent_state -eq 1 ]]; then
+        __is_nad_running    #state 1 -> 2
+    fi
+    if [[ $agent_state -eq 2 ]]; then
+        __check_nad_url     #state 2 -> 3
+    fi
+    # agent_state 3, all good.
 }
 
 __start_agent() {
     local agent_pid
     local ret
 
-    log "Starting installed agent (if not already running)"
-
-    if [[ ${agent_installed:-0} -gt 0 ]]; then
+    if [[ ${agent_state:-0} -eq 1 ]]; then
         if [[ ! -x "/etc/init.d/nad" ]]; then
-            fail "Agent init script /etc/init.d/nad not found!"
+            fail "NAD agent init script /etc/init.d/nad not found!"
         fi
+        log "Starting installed NAD agent"
         /etc/init.d/nad start
+        # give nad time to start/restart
+        sleep 2
     fi
 }
 
@@ -599,7 +605,6 @@ cosi_initialize() {
     etc_dir="${cosi_dir}/etc"
     reg_dir="${cosi_dir}/registration"
 
-    agent_installed=0
     agent_state=0
     agent_ip="127.0.0.1"
     agent_port="2609"
@@ -751,24 +756,22 @@ cosi_verify_os() {
 
 
 cosi_check_agent() {
-    log "Checking Agent state"
+    log "Checking NAD agent state"
     __check_agent
 
     if [[ $agent_state -eq 0 ]]; then
-        log "Agent not found, installing Agent"
+        log "NAD agent not found, installing..."
         __install_agent
-        log "Verify Agent install state"
+        log "Verify NAD agent install state"
         __check_agent
-    else
-        pass "Existing agent installation detected."
     fi
 
     if [[ $agent_state -ne 3 ]]; then
         __start_agent
         __check_agent
-        [[ $agent_state -eq 3 ]] || fail "Unable to locate running NAD Agent after attempting to start. (state:${agent_state})"
+        [[ $agent_state -eq 3 ]] || fail "Unable to locate running NAD agent after attempting to start. (state:${agent_state})"
     else
-        pass "Agent running and responding"
+        pass "NAD agent running and responding"
     fi
 }
 
