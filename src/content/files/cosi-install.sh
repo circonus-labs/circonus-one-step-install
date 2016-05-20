@@ -383,11 +383,11 @@ __install_agent() {
             case "$cosi_os_dist" in
             (Ubuntu)
                 pkg_cmd="dpkg"
-                pkg_cmd_args="--install \"${package_file}\""
+                pkg_cmd_args="--install ${package_file}"
                 ;;
             (CentOS|RedHat)
                 pkg_cmd="rpm"
-                pkg_cmd_args="-v --install \"${package_file}\""
+                pkg_cmd_args="-v --install ${package_file}"
                 ;;
             (*)
                 fail "Unable to determine package installation command for ${cosi_os_dist}. Please set package_install_cmd in config file to continue."
@@ -582,7 +582,7 @@ __fetch_cosi_utils() {
 
     log "Fixing shebangs..." # oh FFS!
     node_bin=""     # omnibus packages              omnios packages
-    for node_bin in /opt/circonus/embedded/bin/node /opt/circonus/bin/node; do
+    for f in /opt/circonus/embedded/bin/node /opt/circonus/bin/node; do
         if [[ -x $f ]]; then
             node_bin=$f
             break
