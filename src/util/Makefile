@@ -8,7 +8,9 @@ UTILS 		:= cosi-util.tar.gz
 STATSD   	:= cosi-statsd.tar.gz
 
 
-build: $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
+$(UTILS): $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
+	-rm -rf .modules
+	-rm -rf build
 	test -d node_modules || npm install
 	install -d build
 	$(BABEL) bin/cosi*.js -d build
@@ -39,6 +41,7 @@ build: $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
 	if [ -d etc ]; then cp -r etc build/. ; fi
 	if [ -d registration ]; then cp -r registration build/.; fi
 	cp cosi-statsd.tar.gz build/.
+	COPYFILE_DISABLE=true tar -C build -czf $@ bin lib service rulesets .modules package.json README.md LICENSE $(STATSD)
 
 
 .PHONY: check
@@ -52,14 +55,11 @@ check:
 clean:
 	-rm -rf .modules
 	-rm -rf build
+	-rm $(UTILS)
+	-rm $(STATSD)
 
 
 package: $(UTILS)
-
-
-$(UTILS): clean build
-	COPYFILE_DISABLE=true tar -C build -czf $@ bin lib service rulesets .modules package.json README.md LICENSE $(STATSD)
-
 
 $(STATSD):
 	[ -d tmp ] || mkdir tmp
