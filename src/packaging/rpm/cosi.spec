@@ -1,5 +1,5 @@
 %define name    cosi
-%define version 0.3.1
+%define version 0.4.0
 %define release 1
 
 Summary: Circonus One Step Installer install
