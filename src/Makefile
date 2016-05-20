@@ -1,9 +1,8 @@
 DEST ?= ..
 
-ALL_SRC := $(shell git ls-files | grep -vE "(util/|statsd|\.eslintrc)")
-UTIL_SRC := $(shell git ls-files | grep "util/")
+ALL_SRC := $(shell git ls-files Makefile cosi-site.js install.sh package.json etc content lib service)
 
-BIN_SRC = cosi-site.js bin/osi-package-list.js
+BIN_SRC = cosi-site.js
 LIB_SRC = $(shell git ls-files lib)
 ETC_SRC = etc/circonus-packages.json
 MOD_SRC = .modules
@@ -53,9 +52,8 @@ package: $(SITE_PKG)
 	@echo
 
 
-   	#$(UTIL_SRC)
-.PHONY: $(UTIL_PKG)
 $(UTIL_PKG):
+	@echo "Create cosi-util package"
 	make -C util package
 
 
