@@ -16,12 +16,12 @@ build: $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
 	install -m 0700 bin/install_nadpush.sh build/bin/.
 	install -m 0700 bin/install_statsd.sh build/bin/.
 	echo '#!/usr/bin/env sh' > build/bin/circonus-nadpush && \
-	echo '":" //; exec /opt/circonus/embedded/bin/node --expose-gc --max-old-space-size=32 --max-executable-size=64 "$$0" "$$@"' >> build/bin/circonus-nadpush && \
+	echo '":" //; exec %%NODE_BIN%% --expose-gc --max-old-space-size=32 --max-executable-size=64 "$$0" "$$@"' >> build/bin/circonus-nadpush && \
 	tail -n +3 build/bin/circonus-nadpush.js >> build/bin/circonus-nadpush && \
 	chmod 0755 build/bin/circonus-nadpush && \
 	rm build/bin/circonus-nadpush.js
 	for f in ./build/bin/*.js; do \
-		sed -e 's#/usr/bin/env node#/opt/circonus/embedded/bin/node#' -i '' "$$f"; \
+		sed -e 's#/usr/bin/env node#%%NODE_BIN%%#' -i '' "$$f"; \
 		chmod 0755 "$$f"; \
 		mv "$$f" "$${f%.js}"; \
 	done

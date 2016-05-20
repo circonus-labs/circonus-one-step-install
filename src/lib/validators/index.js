@@ -1,4 +1,5 @@
 /*eslint-env node, es6 */
+/*eslint-disable no-param-reassign, no-magic-numbers */
 
 "use strict";
 
@@ -37,7 +38,8 @@ class Validators {
                 if (req.params[paramName] === null || req.params[paramName].length === 0) { //eslint-disable-line no-magic-numbers
                     errors.push(`A value for '${paramName}' is required`);
                 }
-            } else {
+            }
+            else {
                 errors.push(`'${paramName}' is required`);
             }
         }
@@ -64,7 +66,26 @@ class Validators {
             errors.push(`Invalid OS distribution name '${osDist}'`);
         }
 
-        if (!osVers.match(/^[0-9\.]+$/)) {
+        // validate semver (e.g. 14.04, 7.2.1511) and omnios releases (e.g. r151014)
+        if (osVers.match(/^[rv]?\d+(\.\d+){0,2}$/)) {
+            req.params.ver_info = {
+                "clean": osVers.replace(/^[rv]/, ""),
+                "major": null,
+                "minor": null,
+                "patch": null
+            };
+
+            const ver_tmp = req.params.ver_info.clean.split(".");
+
+            req.params.ver_info.major = ver_tmp[0];
+            if (ver_tmp.length > 1) {
+                req.params.ver_info.minor = ver_tmp[1];
+            }
+            if (ver_tmp.length > 2) {
+                req.params.ver_info.patch = ver_tmp[2];
+            }
+        }
+        else {
             errors.push(`Invalid OS distribution version '${osVers}'`);
         }
 
@@ -78,45 +99,12 @@ class Validators {
             return next(new restify.InvalidArgumentError(errors.join(", ")));
         }
 
-        if (!packages.isSupported(req.params.dist, req.params.vers, req.params.arch)) {
-            return next(new restify.NotFoundError(`${packages.getError(req.params.dist, req.params.vers, req.params.arch)}, ref id: ${req_id}`));
+        if (!packages.isSupported(req.params.dist, req.params.ver_info.clean, req.params.arch)) {
+            return next(new restify.NotFoundError(`${packages.getError(req.params.dist, req.params.ver_info.clean, req.params.arch)}, ref id: ${req_id}`));
         }
 
         return next();
     }
-
-
-    // statsdFlavor(req, res, next) {
-    //     const reqId = req.id();
-    //     const errors = [];
-    //     const paramName = "statsd";
-    //
-    //     if (req.params.hasOwnProperty(paramName)) {
-    //         if (req.params[paramName].length === 0) { //eslint-disable-line no-magic-numbers
-    //             errors.push(`A value for '${paramName}' is required`);
-    //         }
-    //     } else {
-    //         errors.push(`'${paramName}' is required`);
-    //     }
-    //
-    //     // short-circuit and send back missing required parameters
-    //     if (errors.length) {
-    //         errors.push(`ref id: ${reqId}`);
-    //         return next(new restify.MissingParameterError(errors.join(", ")));
-    //     }
-    //
-    //     if (!req.params.mode.match(/^(local|remote)$/)) {
-    //         errors.push(`Invalid StatsD type '${req.params.statsd}'`);
-    //     }
-    //
-    //     // short-circuit and send back invalid required parameters
-    //     if (errors.length) {
-    //         errors.push(`ref id: ${reqId}`);
-    //         return next(new restify.InvalidArgumentError(errors.join(", ")));
-    //     }
-    //
-    //     return next();
-    // }
 
 
     agentMode(req, res, next) {
@@ -128,7 +116,8 @@ class Validators {
             if (req.params[paramName].length === 0) { //eslint-disable-line no-magic-numbers
                 errors.push(`A value for '${paramName}' is required`);
             }
-        } else {
+        }
+        else {
             errors.push(`'${paramName}' is required`);
         }
 

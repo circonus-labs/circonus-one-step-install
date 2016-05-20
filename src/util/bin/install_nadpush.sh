@@ -65,7 +65,7 @@ elif [[ -f /etc/default/nad ]]; then
     pass "Found $nad_opts_file"
 else
     nad_opts_file=""
-    warn "No NAD configuration file found, assuming $nadpush_conf has correct settings."
+    log "No NAD configuration file found, assuming $nadpush_conf has correct settings."
 fi
 
 if [[ -n "${nad_opts_file:-}" ]]; then
@@ -110,7 +110,25 @@ elif [[ -d /etc/init && -x /sbin/initctl ]]; then
     log "Start ${service_name} service"
     /sbin/initctl start ${service_name}
 
-else
+elif [[ -d /var/svc/manifest && -x /usr/sbin/svccfg ]]; then
+
+    log "Installing ${service_name} smf config"
+    manifest_dir="/var/svc/manifest/application/circonus"
+
+    [[ ! -d $manifest_dir ]] && mkdir -p $manifest_dir
+
+    init_conf="${service_conf_dir}/${service_name}.smf"
+    [[ ! -f "$init_conf" ]] && fail "Unable to find ${service_name}.smf file"
+
+    svc_conf="${manifest_dir}/${service_name}.xml"
+    cp $init_conf $svc_conf
+    chown root:sys $svc_conf
+    chmod 0644 $svc_conf
+
+    log "Import ${service_name} service"
+    /usr/sbin/svccfg -v import $svc_conf
+
+elif [[ -d /etc/init.d && -x /sbin/chkconfig ]]; then
 
     # fallback "ye olde SysV init"
     log "Installing ${service_name} init script"
@@ -138,6 +156,8 @@ else
 
     log "Start ${service_name} service"
     /sbin/service $service_name start
+else
+    fail "Unknown system type '$(uname -s)', unable to determine init type to use."
 fi
 
 pass "${service_name} installed"

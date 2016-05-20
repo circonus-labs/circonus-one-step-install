@@ -53,7 +53,9 @@ package: $(SITE_PKG)
 	@echo
 
 
-$(UTIL_PKG): $(UTIL_SRC)
+   	#$(UTIL_SRC)
+.PHONY: $(UTIL_PKG)
+$(UTIL_PKG):
 	make -C util package
 
 

@@ -3,21 +3,45 @@
         "14.04": [
             {
                 "arch": "i386",
-                "package_file": "nad-omnibus-20160426T191301Z-1.ubuntu.14.04_i386.deb"
+                "package_info": {
+                    "package_url": null,
+                    "package_file": "nad-omnibus-20160426T191301Z-1.ubuntu.14.04_i386.deb",
+                    "publisher_url": null,
+                    "publisher_name": null,
+                    "package_name": null
+                }
             },
             {
                 "arch": "x86_64",
-                "package_file": "nad-omnibus-20160426T191301Z-1.ubuntu.14.04_amd64.deb"
+                "package_info": {
+                    "package_url": null,
+                    "package_file": "nad-omnibus-20160426T191301Z-1.ubuntu.14.04_amd64.deb",
+                    "publisher_url": null,
+                    "publisher_name": null,
+                    "package_name": null
+                }
             }
         ],
         "12.04": [
             {
                 "arch": "i386",
-                "package_file": "nad-omnibus-20160426T191301Z-1.ubuntu.12.04_i386.deb"
+                "package_info": {
+                    "package_url": null,
+                    "package_file": "nad-omnibus-20160426T191301Z-1.ubuntu.12.04_i386.deb",
+                    "publisher_url": null,
+                    "publisher_name": null,
+                    "package_name": null
+                }
             },
             {
                 "arch": "x86_64",
-                "package_file": "nad-omnibus-20160426T191301Z-1.ubuntu.12.04_amd64.deb"
+                "package_info": {
+                    "package_url": null,
+                    "package_file": "nad-omnibus-20160426T191301Z-1.ubuntu.12.04_amd64.deb",
+                    "publisher_url": null,
+                    "publisher_name": null,
+                    "package_name": null
+                }
             }
         ]
     },
@@ -25,27 +49,71 @@
         "5": [
             {
                 "arch": "x86_64",
-                "package_file": "nad-omnibus-20160426T191301Z-1.el5.x86_64.rpm"
+                "package_info": {
+                    "package_url": null,
+                    "package_file": "nad-omnibus-20160426T191301Z-1.el5.x86_64.rpm",
+                    "publisher_url": null,
+                    "publisher_name": null,
+                    "package_name": null
+                }
             },
             {
                 "arch": "i386",
-                "package_file": "nad-omnibus-20160426T191301Z-1.el5.i386.rpm"
+                "package_info": {
+                    "package_url": null,
+                    "package_file": "nad-omnibus-20160426T191301Z-1.el5.i386.rpm",
+                    "publisher_url": null,
+                    "publisher_name": null,
+                    "package_name": null
+                }
             }
         ],
         "6": [
             {
                 "arch": "x86_64",
-                "package_file": "nad-omnibus-20160426T191301Z-1.el6.x86_64.rpm"
+                "package_info": {
+                    "package_url": null,
+                    "package_file": "nad-omnibus-20160426T191301Z-1.el6.x86_64.rpm",
+                    "publisher_url": null,
+                    "publisher_name": null,
+                    "package_name": null
+                }
             },
             {
                 "arch": "i686",
-                "package_file": "nad-omnibus-20160426T191301Z-1.el6.i686.rpm"
+                "package_info": {
+                    "package_url": null,
+                    "package_file": "nad-omnibus-20160426T191301Z-1.el6.i686.rpm",
+                    "publisher_url": null,
+                    "publisher_name": null,
+                    "package_name": null
+                }
             }
         ],
         "7": [
             {
                 "arch": "x86_64",
-                "package_file": "nad-omnibus-20160426T191301Z-1.el7.x86_64.rpm"
+                "package_info": {
+                    "package_url": null,
+                    "package_file": "nad-omnibus-20160426T191301Z-1.el7.x86_64.rpm",
+                    "publisher_url": null,
+                    "publisher_name": null,
+                    "package_name": null
+                }
+            }
+        ]
+    },
+    "OmniOS": {
+        "151014": [
+            {
+                "arch": "amd64",
+                "package_info": {
+                    "package_url": null,
+                    "package_file": null,
+                    "publisher_url": "http://updates.circonus.net/omnios/r151014/",
+                    "publisher_name": "circonus",
+                    "package_name": "field/nad"
+                }
             }
         ]
     }

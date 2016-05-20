@@ -1,0 +1,88 @@
+{
+    "type": "graph",
+    "id": "zpool",
+    "description": "zpool errors.",
+    "version": "0.1.0",
+    "notes": [
+        "Graphs with variable metrics use regular expressions for the datapoint",
+        "metric_name. The regular expression should include a grouping ().",
+        "What is matched by the first matched group will be available for use",
+        "in interpolated fields as '{{=cosi.graph_item}}'.",
+        "",
+        "Filters (include/exclude) work by matching the value used as graph_item",
+        "this is an equality test not a regular expression. The strings in filter",
+        "lists are evaluated using '==='."
+    ],
+    "variable_metrics": true,
+    "filter": {
+        "exclude": null,
+        "include": null
+    },
+    "graphs": [
+        {
+            "access_keys": [],
+            "composites": [],
+            "datapoints": [
+                {
+                    "legend_formula": null,
+                    "caql": null,
+                    "check_id": null,
+                    "metric_type": "numeric",
+                    "stack": null,
+                    "name": "read errors",
+                    "axis": "l",
+                    "data_formula": null,
+                    "color": "#4fa18e",
+                    "metric_name": "zpool`(.+)`errors_read",
+                    "alpha": "0.3",
+                    "derive": "gauge",
+                    "hidden": false
+                },
+                {
+                    "legend_formula": null,
+                    "caql": null,
+                    "check_id": null,
+                    "metric_type": "numeric",
+                    "stack": null,
+                    "name": "write errors",
+                    "axis": "l",
+                    "data_formula": "=-1 * VAL",
+                    "color": "#657aa6",
+                    "metric_name": "zpool`(.+)`errors_write",
+                    "alpha": "0.3",
+                    "derive": "gauge",
+                    "hidden": false
+                },
+                {
+                    "legend_formula": null,
+                    "caql": null,
+                    "check_id": null,
+                    "metric_type": "numeric",
+                    "stack": null,
+                    "name": "checksum errors",
+                    "axis": "r",
+                    "data_formula": null,
+                    "color": "#af5779",
+                    "metric_name": "zpool`(.+)`errors_cksum",
+                    "alpha": "0.3",
+                    "derive": "gauge",
+                    "hidden": false
+                }
+            ],
+            "description": "zpool read/write/checksum errors",
+            "guides": [],
+            "line_style": "stepped",
+            "logarithmic_left_y": null,
+            "logarithmic_right_y": null,
+            "max_left_y": null,
+            "max_right_y": null,
+            "metric_clusters": [],
+            "min_left_y": null,
+            "min_right_y": null,
+            "notes": null,
+            "style": "area",
+            "tags": [],
+            "title": "{{=cosi.host_name}} {{=cosi.graph_item}} errors"
+        }
+    ]
+}

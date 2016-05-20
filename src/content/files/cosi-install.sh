@@ -75,80 +75,80 @@ __parse_parameters() {
         token="$1"
         shift
         case "$token" in
-            (--key)
-                if [[ -n "${1:-}" ]]; then
-                    cosi_api_key="$1"
-                    shift
-                else
-                    fail "--key must be followed by an api key."
+        (--key)
+            if [[ -n "${1:-}" ]]; then
+                cosi_api_key="$1"
+                shift
+            else
+                fail "--key must be followed by an api key."
+            fi
+            ;;
+        (--app)
+            if [[ -n "${1:-}" ]]; then
+                cosi_api_app="$1"
+                shift
+            else
+                fail "--app must be followed by an api app."
+            fi
+            ;;
+        (--cosiurl)
+            if [[ -n "${1:-}" ]]; then
+                cosi_url="$1"
+                shift
+            else
+                fail "--cosiurl must be followed by a URL."
+            fi
+            ;;
+        (--apiurl)
+            if [[ -n "${1:-}" ]]; then
+                cosi_api_url="$1"
+                shift
+            else
+                fail "--apiurl must be followed by a URL."
+            fi
+            ;;
+        (--agent)
+            if [[ -n "${1:-}" ]]; then
+                cosi_agent_mode="$1"
+                shift
+                if [[ ! "${cosi_agent_mode:-}" =~ ^(pull|push)$ ]]; then
+                    fail "--agent must be followed by a valid agent mode (pull|push)."
                 fi
-                ;;
-            (--app)
-                if [[ -n "${1:-}" ]]; then
-                    cosi_api_app="$1"
-                    shift
-                else
-                    fail "--app must be followed by an api app."
-                fi
-                ;;
-            (--cosiurl)
-                if [[ -n "${1:-}" ]]; then
-                    cosi_url="$1"
-                    shift
-                else
-                    fail "--cosiurl must be followed by a URL."
-                fi
-                ;;
-            (--apiurl)
-                if [[ -n "${1:-}" ]]; then
-                    cosi_api_url="$1"
-                    shift
-                else
-                    fail "--apiurl must be followed by a URL."
-                fi
-                ;;
-            (--agent)
-                if [[ -n "${1:-}" ]]; then
-                    cosi_agent_mode="$1"
-                    shift
-                    if [[ ! "${cosi_agent_mode:-}" =~ ^(pull|push)$ ]]; then
-                        fail "--agent must be followed by a valid agent mode (pull|push)."
-                    fi
-                else
-                    fail "--agent must be followed by an agent mode (pull|push)."
-                fi
-                ;;
-            (--statsd)
-                cosi_statsd_flag=1
-                cosi_statsd_type="host"
-                ;;
-            (--regconf)
-                if [[ -n "${1:-}" ]]; then
-                    cosi_regopts_conf="$1"
-                    shift
-                else
-                    fail "--regconf must be followed by a filespec."
-                fi
-                ;;
-            (--noreg)
-                cosi_register_flag=0
-                ;;
-            (--save)
-                cosi_save_config_flag=1
-                ;;
-            (--trace)
-                set -o xtrace
-                cosi_trace_flag=1
-                ;;
-            (--help)
-                usage
-                exit 0
-                ;;
-            (*)
-                printf "\n${RED}Unknown command line option '${token}'.${NORMAL}\n"
-                usage
-                exit 1
-                ;;
+            else
+                fail "--agent must be followed by an agent mode (pull|push)."
+            fi
+            ;;
+        (--statsd)
+            cosi_statsd_flag=1
+            cosi_statsd_type="host"
+            ;;
+        (--regconf)
+            if [[ -n "${1:-}" ]]; then
+                cosi_regopts_conf="$1"
+                shift
+            else
+                fail "--regconf must be followed by a filespec."
+            fi
+            ;;
+        (--noreg)
+            cosi_register_flag=0
+            ;;
+        (--save)
+            cosi_save_config_flag=1
+            ;;
+        (--trace)
+            set -o xtrace
+            cosi_trace_flag=1
+            ;;
+        (--help)
+            usage
+            exit 0
+            ;;
+        (*)
+            printf "\n${RED}Unknown command line option '${token}'.${NORMAL}\n"
+            usage
+            exit 1
+            ;;
         esac
     done
 }
@@ -184,87 +184,96 @@ __detect_os() {
         # attempt detection the hard way, thre are way to many methods
         # to "detect" this information and none of them are ubiquitous...
         case "${cosi_os_type}" in
-            (Linux)
-                if [[ -f /etc/redhat-release ]] ; then
-                    log "\tAttempt RedHat(variant) detection"
-                    release_rpm=$(/bin/rpm -qf /etc/redhat-release)
-                    IFS='-' read -a distro_info <<< "$release_rpm"
-                    [[ ${#distro_info[@]} -ge 4 ]] || fail "Unable to derive distribution and version from $release_rpm, does not match known pattern."
-                    case ${distro_info[0]} in
-                    centos)
-                        # centos-release-5-4.el5.centos.1 - CentOS 5.4
-                        # centos-release-6-7.el6.centos.12.3.x86_64 - CentOS 6.7
-                        # centos-release-7-2.1511.el7.centos.2.10.x86_64 - CentOS 7.2.1511
-                        cosi_os_dist="CentOS"
-                        cosi_os_vers="${distro_info[2]}.${distro_info[3]%%\.el*}"
-                        ;;
-                    redhat)
-                        # redhat-release-server-6Server-6.5.0.1.el6.x86_64 - RedHat 6.5.0.1
-                        cosi_os_dist="RedHat"
-                        [[ ${#distro_info[@]} -ge 5 ]] && cosi_os_vers="${distro_info[4]%%\.el*}"
-                        ;;
-                    fedora)
-                        # fedora-release-23-1.noarch - Fedora 23.1
-                        cosi_os_dist="Fedora"
-                        cosi_os_vers="${distro_info[2]}.${distro_info[3]%%\.*}"
-                        ;;
-                    *) fail "Unknown RHEL variant '${distro_info[0]}' derived from '${release_rpm}'" ;;
-                    esac
-                    log "\tDerived ${cosi_os_dist} v${cosi_os_vers} from '${release_rpm}'"
-                elif [[ -f /etc/debian_version ]] ; then
-                    log "\tAttempt Debian(variant) detection"
-                    # /etc/debian_version is not consistent enough to be reliable
-                    # as anything other than a signal. use /etc/os-release or forfeit
-                    if [[ -f /etc/os-release ]] ; then
-                        log_only "\t\tUsing os-release"
-                        cat /etc/os-release >> $cosi_install_log
-                        source /etc/os-release
-                        cosi_os_dist="${ID:-Unsupported}"
-                        cosi_os_vers="${VERSION_ID:-}"
-                    else
-                        log_only "\t\tUsing debian_version"
-                        cosi_os_dist="Debian"
-                        cosi_os_vers="$(head -1 /etc/debian_version)"
-                    fi
+        (Linux)
+            if [[ -f /etc/redhat-release ]] ; then
+                log "\tAttempt RedHat(variant) detection"
+                release_rpm=$(/bin/rpm -qf /etc/redhat-release)
+                IFS='-' read -a distro_info <<< "$release_rpm"
+                [[ ${#distro_info[@]} -ge 4 ]] || fail "Unable to derive distribution and version from $release_rpm, does not match known pattern."
+                case ${distro_info[0]} in
+                (centos)
+                    # centos-release-5-4.el5.centos.1 - CentOS 5.4
+                    # centos-release-6-7.el6.centos.12.3.x86_64 - CentOS 6.7
+                    # centos-release-7-2.1511.el7.centos.2.10.x86_64 - CentOS 7.2.1511
+                    cosi_os_dist="CentOS"
+                    cosi_os_vers="${distro_info[2]}.${distro_info[3]%%\.el*}"
+                    ;;
+                (redhat)
+                    # redhat-release-server-6Server-6.5.0.1.el6.x86_64 - RedHat 6.5.0.1
+                    cosi_os_dist="RedHat"
+                    [[ ${#distro_info[@]} -ge 5 ]] && cosi_os_vers="${distro_info[4]%%\.el*}"
+                    ;;
+                (fedora)
+                    # fedora-release-23-1.noarch - Fedora 23.1
+                    cosi_os_dist="Fedora"
+                    cosi_os_vers="${distro_info[2]}.${distro_info[3]%%\.*}"
+                    ;;
+                (*) fail "Unknown RHEL variant '${distro_info[0]}' derived from '${release_rpm}'" ;;
+                esac
+                log "\tDerived ${cosi_os_dist} v${cosi_os_vers} from '${release_rpm}'"
+            elif [[ -f /etc/debian_version ]] ; then
+                log "\tAttempt Debian(variant) detection"
+                # /etc/debian_version is not consistent enough to be reliable
+                # as anything other than a signal. use /etc/os-release or forfeit
+                if [[ -f /etc/os-release ]] ; then
+                    log_only "\t\tUsing os-release"
+                    cat /etc/os-release >> $cosi_install_log
+                    source /etc/os-release
+                    cosi_os_dist="${ID:-Unsupported}"
+                    cosi_os_vers="${VERSION_ID:-}"
                 else
-                    ### add more as needed/supported
-                    cosi_os_dist="unsup"
+                    log_only "\t\tUsing debian_version"
+                    cosi_os_dist="Debian"
+                    cosi_os_vers="$(head -1 /etc/debian_version)"
                 fi
-                ;;
-            (Darwin)
-                cosi_os_dist="OSX"
-                ;;
-            (FreeBSD|BSD)
-                cosi_os_dist="BSD"
-                ;;
-            (AIX)
-                cosi_os_dist="AIX"
-                ;;
-            (SunOS|Solaris)
-                cosi_os_dist="Solaris"
-                ;;
-            (*)
-                cosi_os_arch="${HOSTTYPE:-}"
-                ;;
+            else
+                ### add more as needed/supported
+                cosi_os_dist="unsup"
+            fi
+            ;;
+        (Darwin)
+            cosi_os_dist="OSX"
+            ;;
+        (FreeBSD|BSD)
+            cosi_os_dist="BSD"
+            ;;
+        (AIX)
+            cosi_os_dist="AIX"
+            ;;
+        (SunOS|Solaris)
+            log "\tAttempt ${cosi_os_type}(variant) detection"
+            cosi_os_dist="Solaris"
+            cosi_os_arch=$(isainfo -n)
+            if [[ -f /etc/release ]]; then
+                # dist/version/release signature hopefully on first line...KISSerate
+                release_info=$(echo $(head -1 /etc/release))
+                log "\tFound /etc/release - using '${release_info}'"
+                read -a distro_info <<< "$release_info"
+                [[ ${#distro_info[@]} -eq 3 ]] || fail "Unable to derive distribution and version from $release_info, does not match known pattern."
+                cosi_os_dist="${distro_info[0]}"
+                case "$cosi_os_dist" in
+                (OmniOS)
+                    cosi_os_vers="${distro_info[2]}"
+                    ;;
+                (*)
+                    cosi_os_vers="${distro_info[1]}.${distro_info[2]}"
+                    ;;
+                esac
+            fi
+            ;;
+        (*)
+            cosi_os_arch="${HOSTTYPE:-}"
+            ;;
         esac
     fi
-}
-
-
-__parse_request_result() {
-    local old_ifs="$IFS"
-    if [[ -z "$1" ]]; then
-        fail "No curl result from COSI request to parse!"
-    fi
-    IFS='|'
-    cosi_package_info=(${1:-})
-    IFS="$old_ifs"
 }
 
 
 __lookup_os() {
     local request_url
     local request_result
+    local curl_result
+    local cmd_result
 
     log "\tLooking up $cosi_os_type $cosi_os_dist v$cosi_os_vers $cosi_os_arch."
 
@@ -281,127 +290,130 @@ __lookup_os() {
     #
     set +o errexit
 
-    # -m --max-time
-    # -s --silent
-    # -S --show-error
-    # -w --write-out
-    # -H --header
-    request_result=$(\curl -m 15 -H 'Accept: text/plain' -sS -w '|%{http_code}' "$request_url" 2>&1)
-    request_result+="|$?"
+    curl_result=$(\curl -m 15 -H 'Accept: text/plain' -sS -w '|%{http_code}' "$request_url" 2>&1)
+    cmd_result=$?
 
     set -o errexit
 
-    log_only "\tResult: \"${request_result}\""
+    log_only "\tResult: \"${curl_result}\" ec=${cmd_result}"
 
-    # *MUST* quote cosi_request_result below, strangeness happens with parsing if it isn't
-    __parse_request_result "$request_result"
-
-    if [[ "${#cosi_package_info[@]}" != "3" ]]; then
-        fail "Invalid result received from COSI request. Try curl -v '${request_result}' to see full transaction details."
+    if [[ $cmd_result -ne 0 ]]; then
+        fail "curl command encountered an error (exit code=${cmd_result}) - ${curl_result}\n\tTry curl -v '${request_url}' to see full transaction details."
     fi
 
-    # cosi_package_info[0] is the package url or error messsage
-    # cosi_package_info[1] is the http response code (e.g. 200)
-    # cosi_package_info[2] is the exit code from curl command
-    if [[ "${cosi_package_info[2]}" != "0" ]]; then
-        fail "curl command encountered an error (exit code=${cosi_package_info[2]}) - ${cosi_package_info[0]}\n\tTry curl -v '${request_url}' to see full transaction details."
-    fi
+    IFS='|' read -a request_result <<< "$curl_result"
+    if [[ ${#request_result[@]} -ne 2 ]]; then
+        fail "Unexpected response received from COSI request '${curl_result}'. Try curl -v '${request_url}' to see full transaction details."
+	fi
 
-    if [[ "${cosi_package_info[1]}" == "200" ]]; then
+    case ${request_result[1]} in
+    (200)
         pass "\t$cosi_os_dist $cosi_os_vers $cosi_os_arch supported!"
-        cosi_agent_package_url="${cosi_package_info[0]}"
-    elif [[ "${cosi_package_info[1]}" == "000" ]]; then
+        IFS='|' read -a cosi_agent_package_info <<< "${request_result[0]//%%/|}"
+    	;;
+    (000)
         # outlier but, made it happen by trying to get curl to timeout
         # pointed cosi_url at a port being listened to and the daemon responded...doh!
         # (good to know i suppose, that if curl gets a non-http response '000' is the result code)
-        fail "Unknown/invalid http result code: ${cosi_package_info[1]}\nmessage: ${cosi_package_info[0]}"
-    else
+        fail "Unknown/invalid http result code: ${request_result[1]}\nmessage: ${request_result[0]}"
+        ;;
+	(*)
         # unsupported distribution|version|architecture
-        fail "API result - ${cosi_package_info[1]}: ${cosi_package_info[0]}"
-    fi
+        fail "API result - http result code: ${request_result[1]}\nmessage: ${request_result[0]}"
+		;;
+	esac
 }
 
 
 __download_package() {
     local curl_err=""
-    local package_url=${cosi_agent_package_url:-}
-    local package_name=""
+    local package_url=""
+    local package_file=""
+    local local_package_file=""
+
+    package_url=${cosi_agent_package_info[0]}
+    package_file=${cosi_agent_package_info[1]}
+
+    if [[ "${package_url: -1}" != "/" ]]; then
+        package_url+="/"
+    fi
+    package_url+=$package_file
 
     #
     # do what we can to validate agent package url
     #
-    if [[ -n "${cosi_agent_package_url:-}" ]]; then
-        [[ "$cosi_agent_package_url" =~ ^http[s]?://[^/]+/.*\.(rpm|deb)$ ]] || fail "COSI agent package url does not match URL pattern (^http[s]?://[^/]+/.*\.(rpm|deb)$)"
+    if [[ -n "${package_url:-}" ]]; then
+        [[ "$package_url" =~ ^http[s]?://[^/]+/.*\.(rpm|deb)$ ]] || fail "COSI agent package url does not match URL pattern (^http[s]?://[^/]+/.*\.(rpm|deb)$)"
     else
         fail "Invalid COSI agent package url"
     fi
 
-    package_name=$(echo "$package_url" | awk -F"/" '{ print $NF }')
+    log "Downloading Agent package ${package_url}"
 
-    log "Downloading NAD agent package ${package_url}"
+    local_package_file="${cosi_cache_dir}/${package_file}"
 
-    package_file="${cosi_cache_dir}/${package_name}"
-
-    if [[ -f "${package_file}" ]] ; then
-        pass "\tFound existing ${package_file}, using it for the installation."
+    if [[ -f "${local_package_file}" ]] ; then
+        pass "\tFound existing ${local_package_file}, using it for the installation."
     else
         set +o errexit
-        \curl -m 120 -f "${package_url}" -o "${package_file}"
+        \curl -m 120 -f "${package_url}" -o "${local_package_file}"
         curl_err=$?
         set -o errexit
-        [[ "$curl_err" == "0" && -f "${package_file}" ]] || fail "Unable to download '${package_url}' (curl exit code=${curl_err})."
+        [[ "$curl_err" == "0" && -f "${local_package_file}" ]] || fail "Unable to download '${package_url}' (curl exit code=${curl_err})."
     fi
 }
 
 __install_agent() {
+    local pub_cmd=""
     local pkg_cmd="${package_install_cmd:-}"
     local pkg_cmd_args="${package_install_args:-}"
     local do_install=""
+    local package_file
 
-    __download_package
-
-    log "Installing agent package ${package_file}"
-
-    [[ ! -f "$package_file" ]] && fail "Unable to find package '$package_file'"
-
-    if [[ -z "${pkg_cmd:-}" ]]; then
-        case "$cosi_os_dist" in
+    case "$cosi_os_dist" in
+    (Ubuntu|CentOS|RedHat)
+        if [[ ${#cosi_agent_package_info[@]} -ne 2 ]]; then
+            fail "Invalid Agent package information ${cosi_agent_package_info[@]}, expected 'url file_name'"
+        fi
+        __download_package
+        package_file="${cosi_cache_dir}/${cosi_agent_package_info[1]}"
+        log "Installing agent package ${package_file}"
+        [[ ! -f "$package_file" ]] && fail "Unable to find package '$package_file'"
+        if [[ -z "${pkg_cmd:-}" ]]; then
+            case "$cosi_os_dist" in
             (Ubuntu)
                 pkg_cmd="dpkg"
-                pkg_cmd_args="--install"
+                pkg_cmd_args="--install \"${package_file}\""
                 ;;
             (CentOS|RedHat)
                 pkg_cmd="rpm"
-                pkg_cmd_args="-v --install"
+                pkg_cmd_args="-v --install \"${package_file}\""
                 ;;
             (*)
                 fail "Unable to determine package installation command for ${cosi_os_dist}. Please set package_install_cmd in config file to continue."
                 ;;
-        esac
-    fi
+            esac
+        fi
+        ;;
+    (OmniOS)
+        if [[ ${#cosi_agent_package_info[@]} -ne 3 ]]; then
+            fail "Invalid Agent package information ${cosi_agent_package_info[@]}, expected 'publisher_url publisher_name package_name'"
+        fi
+        set +e
+        pkg publisher ${cosi_agent_package_info[1]} &>/dev/null
+        if [[ $? -ne 0 ]]; then
+            pub_cmd="pkg set-publisher -g ${cosi_agent_package_info[0]} ${cosi_agent_package_info[1]}"
+        fi
+        set -e
+        pkg_cmd="pkg"
+        pkg_cmd_args="install ${cosi_agent_package_info[2]}"
+        ;;
+    (*)
+        fail "Unrecognized distribution for installation ${cosi_os_dist}"
+        ;;
+    esac
 
     type -P $pkg_cmd >> $cosi_install_log 2>&1 || fail "Unable to find '${pkg_cmd}' command. Ensure it is in the PATH before continuing."
-
-    if [[ "${cosi_confirm_flag:-1}" == "1" ]]; then
-        while true ; do
-            printf "\n%b\n" "NAD agent installation will use the following command:\n\n\t${pkg_cmd} ${pkg_cmd_args} \"${package_file}\"\n"
-            read -p "Confirm executing this command now? (yes|no) " do_install < /dev/tty
-            case $do_install in
-                ([Yy]*)
-                    break
-                    ;;
-                ([Nn]*)
-                    printf "%b\n" "${RED}"
-                    log "Exiting, installation aborted by user -- package *NOT* installed."
-                    printf "%b\n" "${NORMAL}"
-                    exit 1
-                    ;;
-                (*)
-                    printf "\n%b\n" "${RED}*** Answer 'yes' or 'no'. ***${NORMAL}"
-                    ;;
-            esac
-        done
-    fi
 
     # callout hook placeholder (PRE)
     if [[ -n "${agent_pre_hook:-}" && -x "${agent_pre_hook}" ]]; then
@@ -411,8 +423,14 @@ __install_agent() {
         set -e
     fi
 
-    $pkg_cmd $pkg_cmd_args "${package_file}" 2>&1 | tee -a $cosi_install_log
-    [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "installing ${package_file}"
+    if [[ "${pub_cmd:-}" != "" ]]; then
+
+        $pub_cmd 2>&1 | tee -a $cosi_install_log
+        [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "adding publisher '${pub_cmd}'"
+    fi
+
+    $pkg_cmd $pkg_cmd_args 2>&1 | tee -a $cosi_install_log
+    [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "installing ${package_file} '${pkg_cmd} ${pkg_cmd_args}'"
 
     # callout hook placeholder (POST)
     if [[ -n "${agent_post_hook:-}" && -x "${agent_post_hook}" ]]; then
@@ -422,7 +440,7 @@ __install_agent() {
         set -e
     fi
 
-    # give nad time to start/restart
+    # give agent a couple seconds to start/restart
     sleep 2
 }
 
@@ -460,38 +478,43 @@ __check_nad_url() {
         ret=$?
         set -e
         if [[ $ret -ne 0 ]]; then
-            fail "NAD agent installed and running but not reachable\nCurl exit code: ${ret}\nCurl err msg: ${err}"
+            fail "Agent installed and running but not reachable\nCurl exit code: ${ret}\nCurl err msg: ${err}"
         fi
-        pass "NAD agent URL reachable"
+        pass "NAD URL reachable"
         agent_state=3
     fi
 }
 
 __check_agent() {
-    if [[ ${agent_state:-0} -eq 0 ]]; then
-        __is_nad_installed  #state 0 -> 1
+    if [[ $agent_state -eq 0 ]]; then
+        __is_nad_installed  #state 1
+        __is_nad_running    #state 2
+        __check_nad_url     #state 3
     fi
-    if [[ $agent_state -eq 1 ]]; then
-        __is_nad_running    #state 1 -> 2
-    fi
-    if [[ $agent_state -eq 2 ]]; then
-        __check_nad_url     #state 2 -> 3
-    fi
-    # agent_state 3, all good.
 }
 
 __start_agent() {
     local agent_pid
     local ret
 
-    if [[ ${agent_state:-0} -eq 1 ]]; then
+    log "Starting installed agent (if not already running)"
+
+    if [[ ${agent_installed:-0} -gt 0 ]]; then
         if [[ ! -x "/etc/init.d/nad" ]]; then
-            fail "NAD agent init script /etc/init.d/nad not found!"
+            fail "Agent init script /etc/init.d/nad not found!"
         fi
-        log "Starting installed NAD agent"
         /etc/init.d/nad start
-        # give nad time to start/restart
-        sleep 2
+    fi
+
+    set +e
+    agent_pid=$(pgrep -f "sbin/nad")
+    ret=$?
+    set -e
+
+    if [[ ${ret:-0} -eq 0 && ${agent_pid:-0} -gt 0 ]]; then
+        pass "Agent running with PID ${agent_pid}"
+    else
+        fail "Unable to locate running agent, pgrep exited with exit code ${ret}"
     fi
 }
 
@@ -526,6 +549,7 @@ __fetch_cosi_utils() {
     local cosi_register_url="${cosi_url}utils"
     local cosi_utils_file="${cosi_cache_dir}/cosi-util.tz"
     local curl_err
+    local node_bin
 
     log "Retrieving COSI utilities ${cosi_register_url}"
     log_only "\tReg utils URL: $cosi_register_url"
@@ -542,7 +566,7 @@ __fetch_cosi_utils() {
 
     cd "$cosi_dir"
     log "Unpacking COSI utilities into $(pwd)"
-    tar --no-same-owner -xzf "$cosi_utils_file"
+    tar -oxzf "$cosi_utils_file"
     [[ $? -eq 0 ]] || fail "Unable to unpack COSI utiltities"
 
     log "Installing required node modules for COSI utilities"
@@ -555,6 +579,21 @@ __fetch_cosi_utils() {
 
     log "Cleaning up after node module installation"
     rm -rf .modules
+
+    log "Fixing shebangs..." # oh FFS!
+    node_bin=""     # omnibus packages              omnios packages
+    for node_bin in /opt/circonus/embedded/bin/node /opt/circonus/bin/node; do
+        if [[ -x $f ]]; then
+            node_bin=$f
+            break
+        fi
+    done
+    if [[ "${node_bin:-}" == "" ]]; then
+        fail "Unable to find the NAD embedded NodeJS binary in the two locations of which this script is aware..."
+    fi
+    for f in $(ls -1 /opt/circonus/cosi/bin/{cosi,circonus}*); do
+        sed -e "s#%%NODE_BIN%%#$node_bin#" -i"" $f
+    done
 }
 
 
@@ -605,6 +644,7 @@ cosi_initialize() {
     etc_dir="${cosi_dir}/etc"
     reg_dir="${cosi_dir}/registration"
 
+    agent_installed=0
     agent_state=0
     agent_ip="127.0.0.1"
     agent_port="2609"
@@ -612,7 +652,7 @@ cosi_initialize() {
     agent_url="http://${agent_ip}:${agent_port}/"
     agent_pre_hook="${cosi_dir}/agent_pre_hook.sh"
     agent_post_hook="${cosi_dir}/agent_post_hook.sh"
-    cosi_agent_package_url=""
+    cosi_agent_package_info=()
     cosi_cache_dir="${cosi_dir}/cache"
     cosi_register_config="${etc_dir}/cosi.json"
     cosi_register_id_file="${etc_dir}/.cosi_id"
@@ -622,7 +662,6 @@ cosi_initialize() {
     cosi_os_dist=""
     cosi_os_type=""
     cosi_os_vers=""
-    package_file=""
     cosi_id=""
 
     #
@@ -630,11 +669,10 @@ cosi_initialize() {
     #
     : ${cosi_trace_flag:=0}
     : ${cosi_quiet_flag:=0}
-    : ${cosi_confirm_flag:=0}
     : ${cosi_register_flag:=1}
     : ${cosi_regopts_conf:=}
     : ${cosi_save_config_flag:=0}
-    : ${cosi_url:=https://setup.circonus.com/}
+    : ${cosi_url:=https://onestep.circonus.com/}
     : ${cosi_api_url:=https://api.circonus.com/}
     : ${cosi_api_key:=}
     : ${cosi_api_app:=cosi}
@@ -654,7 +692,6 @@ cosi_initialize() {
     cosi_agent_mode \
     cosi_install_agent \
     cosi_statsd_type \
-    cosi_confirm_flag \
     cosi_register_flag \
     cosi_register_config \
     cosi_quiet_flag \
@@ -756,22 +793,23 @@ cosi_verify_os() {
 
 
 cosi_check_agent() {
-    log "Checking NAD agent state"
+    log "Checking Agent state"
     __check_agent
 
     if [[ $agent_state -eq 0 ]]; then
-        log "NAD agent not found, installing..."
+        log "Agent not found, installing Agent"
         __install_agent
-        log "Verify NAD agent install state"
+        log "Verify Agent install state"
         __check_agent
+    else
+        pass "Existing agent installation detected."
     fi
 
     if [[ $agent_state -ne 3 ]]; then
         __start_agent
         __check_agent
-        [[ $agent_state -eq 3 ]] || fail "Unable to locate running NAD agent after attempting to start. (state:${agent_state})"
     else
-        pass "NAD agent running and responding"
+        pass "Agent running and responding"
     fi
 }
 
@@ -863,12 +901,21 @@ cosi_install() {
 ####
 
 #
-# short-circuit a request for help or if no arguments are passed
+# short-circuit a request for help
 #
-if [[ "$*" == *--help* || $# -eq 0 ]]; then
+if [[ "$*" == *--help* ]]; then
     usage
     exit 0
 fi
+
+#
+# no arguments are passed and no conf file
+#
+if [[ $# -eq 0 && ! -f "$cosi_config_file" ]]; then
+    usage
+    exit 0
+fi
+
 
 #
 # NOTE Ensure sufficient rights to do the install
