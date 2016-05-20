@@ -31,6 +31,7 @@ cd ../src && make package && cd -
 	1. Bring up client(s) [at least one]:
 		* CentOS 7: `vagrant up c7`
     	* Ubuntu 14: `vagrant up u14`
+    	* OmniOS r151014: `vagrant up omnios`
 1. SSH into client `vagrant ssh c7` or `vagrant ssh u14` and become root `sudo -i`.
 
 
