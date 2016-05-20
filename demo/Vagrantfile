@@ -75,4 +75,28 @@ Vagrant.configure(2) do |config|
             echo " "
         SHELL
     end
+
+    host_sig = Digest::SHA1.hexdigest("#{`hostname`}-cosi-r151014")[0..8]
+    config.vm.define 'omnios', autostart: false do |omnios|
+        omnios.vm.box = 'maier/omnios-r151014-x86_64'
+        omnios.vm.hostname = "cosi-omnios-#{host_sig}"
+        omnios.vm.network 'private_network', ip: '192.168.100.13'
+        omnios.vm.provision 'shell', inline: <<-SHELL
+            # add alias for cosi.circonus.com, so it will "resolve"
+            echo "#{site_ip} cosi.circonus.com" >> /etc/hosts
+            echo " "
+            echo "Installing Agent POST hook script"
+            mkdir -pv /opt/circonus/cosi
+            cp -v /vagrant/hooks/omnios/agent_post_hook.sh /opt/circonus/cosi
+            chmod -v 755 /opt/circonus/cosi/agent_post_hook.sh
+            echo " "
+            echo "run: [ curl 'http://cosi.circonus.com/install' | bash -s -- --key ... --app ... --cosiurl 'http://cosi.circonus.com/' --agent push ]"
+            echo ">>>>> -----------------------------------------------------------  ^ +++++++ ^ API KEY & APP REQUIRED!!!"
+            echo ">>>>> --cosiurl points to the 'site' VM created above, elide to use the default (https://setup.circonus.com)"
+            echo ">>>>> --agent 'push' because this is a VM and the Circonus Broker cannot directly connect to NAD to *pull* metrics"
+            echo "Obtain valid API key and app values from https://login.circonus.com/user/tokens -- click (i) next to the token to use"
+            echo " "
+            echo " "
+        SHELL
+    end
 end
