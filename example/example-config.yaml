@@ -11,6 +11,7 @@ api_key: ""
 api_app: ""
 
 # Use one of "ansible", "manual", "puppet", or "shell"
+# this is the default, per vm override optional
 provisioner: "manual"
 
 # COSI URL
@@ -75,6 +76,6 @@ vms:
         id: "o14"
         ip: "192.168.151.14"
         box: "maier/omnios-r151014-x86_64"
-        puppet_package: ""
+        provisioner: "shell"
 
 #END
