@@ -7,16 +7,16 @@ ex = Examples.new('config.yaml')
 Vagrant.configure(2) do |config|
     ex.options['vms'].each do |vm_name, vm_def|
         next unless vm_def['enabled']
-        if ex.options['provisioner'] == 'puppet' && vm_def['puppet_package'] == ''
-            p "Unable to lauch #{vm_name}, puppet package not set."
-            next
+        vm_provisioner = vm_def.key?('provisioner') ? vm_def['provisioner'] : ex.options['provisioner']
+        if vm_provisioner == 'puppet' && vm_def['puppet_package'] == ''
+            raise Vagrant::Errors::VagrantError.new, "Unable to lauch #{vm_name}, puppet package not set."
         end
         config.vm.define vm_name, primary: false, autostart: true do |bx|
             bx.vm.box = vm_def['box']
             bx.vm.hostname = ex.vm_hostname(vm_def['id'])
             bx.vm.network 'private_network', ip: vm_def['ip']
 
-            case ex.options['provisioner']
+            case vm_provisioner
             when 'puppet'
                 ex.provision_puppet(bx, vm_def['puppet_package'])
             when 'ansible'
