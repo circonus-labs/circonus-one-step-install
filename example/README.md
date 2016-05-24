@@ -6,7 +6,7 @@ Demonstrate running COSI on various operating systems using several different ty
 
 * CentOS (6.3, 6.6, 6.7, 7.1.1503, 7.2.1511)
 * Ubuntu (12.04-trusty, 14.04-precise)
-* **coming soon**: OmniOS (r151014), CentOS 5.4
+* OmniOS (r151014)
 
 #### Automation Options (provisioner)
 
