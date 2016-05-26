@@ -240,7 +240,7 @@ class Broker extends Events {
                 for (let i = 0; i < brokers.length; i++) {
                     if (brokers[i]._type === "enterprise") {
                         for (let j = 0; j < brokers[i]._details.length; j++) {
-                            if (brokers[i]._details[j].status === "provisioned") {
+                            if (brokers[i]._details[j].status === "active") {
                                 const brokerId = brokers[i]._cid.replace("/broker/", "");
 
                                 log(`Identified enterprise broker ID ${brokerId}`);
