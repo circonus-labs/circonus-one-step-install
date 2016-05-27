@@ -9,6 +9,17 @@
       mode="0755"
       state="directory"
 
+
+- name: Check COSI bin directory
+  become: true
+  file:
+      path="{{ cosi_directory }}/bin"
+      owner="{{ cosi_owner }}"
+      group="{{ cosi_group }}"
+      mode="0755"
+      state="directory"
+
+
 - name: Check log directory
   become: true
   file:
