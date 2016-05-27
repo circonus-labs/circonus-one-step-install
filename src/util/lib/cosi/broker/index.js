@@ -88,7 +88,7 @@ class Broker extends Events {
         this.once("gdb.done", (broker) => {
             self.defaultBroker = broker;
             if (self.verbose) {
-                console.log(`${chalk.green("Default broker identified")}, using: ${self.defaultBroker._name} ID:${self.defaultBrokerId}`);
+                console.log(`${chalk.green("Broker identified")}, using: ${self.defaultBroker._name} ID:${self.defaultBrokerId}`);
             }
             return cb(null, self.defaultBroker);
         });
@@ -131,8 +131,9 @@ class Broker extends Events {
         const self = this;
 
         // 1. custom
-        //    a) options broker.id
-        //    b) options broker.list[broker.default]
+        //    a) cosi-install command line --broker argument
+        //    b) options broker.id
+        //    c) options broker.list[broker.default]
         // 2. first "enterprise" broker in brokerList
         // 3. punt, use COSI default "circonus" broker
 
@@ -184,7 +185,15 @@ class Broker extends Events {
 
         let brokerId = null;
 
-        if (this.defaultBrokerId === null && cosi.custom_options.hasOwnProperty("broker")) {
+        if (this.defaultBrokerId === null && cosi.hasOwnProperty("cosi_broker_id")) {
+            log(`Using broker from command line: ${cosi.cosi_broker_id}`);
+            if (!cosi.cosi_broker_id.match(/^\d+$/)) {
+                console.error(chalk.red("Invalid broker specified on command line", cosi.cosi_broker_id, "should be a number."));
+                process.exit(1); //eslint-disable-line no-process-exit
+            }
+            brokerId = cosi.cosi_broker_id;
+        }
+        else if (this.defaultBrokerId === null && cosi.custom_options.hasOwnProperty("broker")) {
             const customBroker = cosi.custom_options.broker;
 
             if (customBroker.id) {
@@ -331,7 +340,7 @@ class Broker extends Events {
         });
     }
 
-    // verify default broker
+    // verify broker
     _gdbv(brokerId) {
         const self = this;
 
@@ -341,7 +350,7 @@ class Broker extends Events {
             }
         }
 
-        log(`Verifying default broker ID ${brokerId}`);
+        log(`Verifying broker ID ${brokerId}`);
 
         if (!brokerId) {
             this.emit("gdb.error", new Error("Unable to verify unset broker id"));
@@ -358,7 +367,6 @@ class Broker extends Events {
 
             for (let i = 0; i < brokers.length; i++) {
                 if (brokers[i]._cid === cid) {
-                    log(`${chalk.green("Verified")} broker ID ${brokerId}`);
                     self.emit("gdb.valid", brokers[i]);
                     return;
                 }

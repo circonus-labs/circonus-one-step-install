@@ -36,6 +36,10 @@ Options
 
   [--regconf]   Configuration file with custom options to use during registration.
 
+  [--target]    Host IP/hostname to use as check target.
+
+  [--broker]    Broker to use ('Group ID' from a Broker on the Brokers page in Circonus UI).
+
   [--noreg]     Do not attempt to register this system. Using this option
                 will *${BOLD}require${NORMAL}* that the system be manually registered.
                 Default: register system (creating check, graphs, and worksheet)
@@ -130,6 +134,22 @@ __parse_parameters() {
                 fail "--regconf must be followed by a filespec."
             fi
             ;;
+        (--target)
+            if [[ -n "${1:-}" ]]; then
+                cosi_host_target="$1"
+                shift
+            else
+                fail "--target must be followed by an IP or hostname."
+            fi
+            ;;
+        (--broker)
+            if [[ -n "${1:-}" ]]; then
+                cosi_broker_id="$1"
+                shift
+            else
+                fail "--broker must be followed by Broker Group ID."
+            fi
+            ;;
         (--noreg)
             cosi_register_flag=0
             ;;
@@ -167,6 +187,14 @@ __detect_os() {
     cosi_os_dist=""
     cosi_os_vers="$(uname -r)"
     cosi_os_arch="$(uname -p)"
+
+    set +e
+    dmi=$(type -P dmidecode)
+    if [[ $? -eq 0 ]]; then
+        result=$($dmi -s bios-version 2>/dev/null)
+        [[ $? -eq 0 ]] && cosi_os_dmi=$result
+    fi
+    set -e
 
     #
     # preference lsb if it is available
@@ -534,10 +562,13 @@ __save_cosi_register_config() {
     "agent_url": "${agent_url}",
     "statsd_type": "${cosi_statsd_type}",
     "custom_options_file": "${cosi_regopts_conf}",
+    "cosi_host_target": "${cosi_host_target}",
+    "cosi_broker_id": "${cosi_broker_id}",
     "cosi_os_dist": "${cosi_os_dist}",
     "cosi_os_vers": "${cosi_os_vers}",
     "cosi_os_arch": "${cosi_os_arch}",
-    "cosi_os_type": "${cosi_os_type}"
+    "cosi_os_type": "${cosi_os_type}",
+    "cosi_os_dmi": "${cosi_os_dmi}"
 }
 EOF
     [[ $? -eq 0 ]] || fail "Unable to save COSI registration configuration '${cosi_register_config}'"
@@ -662,6 +693,7 @@ cosi_initialize() {
     cosi_os_dist=""
     cosi_os_type=""
     cosi_os_vers=""
+    cosi_os_dmi=""
     cosi_id=""
 
     #
@@ -671,6 +703,8 @@ cosi_initialize() {
     : ${cosi_quiet_flag:=0}
     : ${cosi_register_flag:=1}
     : ${cosi_regopts_conf:=}
+    : ${cosi_host_target:=}
+    : ${cosi_broker_id:=}
     : ${cosi_save_config_flag:=0}
     : ${cosi_url:=https://onestep.circonus.com/}
     : ${cosi_api_url:=https://api.circonus.com/}
@@ -690,6 +724,8 @@ cosi_initialize() {
     cosi_api_url \
     cosi_url \
     cosi_agent_mode \
+    cosi_host_target \
+    cosi_broker_id \
     cosi_install_agent \
     cosi_statsd_type \
     cosi_register_flag \

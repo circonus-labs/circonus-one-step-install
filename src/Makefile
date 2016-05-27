@@ -45,14 +45,15 @@ install:
 	@exit 2
 
 
-package: $(SITE_PKG)
+package: utils $(SITE_PKG)
 	@echo "Copy cosi-site package to provisioning directory"
 	install -d $(DEST_DIR)
 	install -vC $(SITE_PKG) $(DEST_DIR)
 	@echo
 
 
-$(UTIL_PKG):
+.PHONY: utils
+utils:
 	@echo "Create cosi-util package"
 	make -C util package
 

@@ -178,7 +178,7 @@ module.exports = class Check {
                     attempts += 1;
 
                     if (retry && attempts < maxRetry) {
-                        console.warn(chalk.yellow("Retrying failed API call:"), errAPI, attempts);
+                        console.warn(chalk.yellow("Retrying failed API call:"), errAPI, `- Broker's Group ID: ${self.brokers[0].replace("/broker/", "")}`, `attempt ${attempts}.`);
                         setTimeout(apiRequest, 1000 * attempts);
                     }
                     else {

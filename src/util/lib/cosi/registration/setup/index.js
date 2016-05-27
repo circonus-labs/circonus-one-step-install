@@ -8,6 +8,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const url = require("url");
+const http = require("http");
 
 const api = require("circonusapi2");
 const chalk = require("chalk");
@@ -36,7 +37,7 @@ class Setup extends Registration {
             cosiNotes: `cosi:register,cosi_id:${this.cosiId}`,
             templateData: {
                 host_name: this.customOptions.host_name ? this.customOptions.host_name : os.hostname(),
-                host_target: this.customOptions.host_target ? this.customOptions.host_target : this._getDefaultHostIp(),
+                host_target: null,
                 host_vars: this.customOptions.host_vars ? this.customOptions.host_vars : {},
                 host_tags: this.customOptions.host_tags ? this.customOptions.host_tags : []
             }
@@ -55,6 +56,11 @@ class Setup extends Registration {
 
         this.once("verify.api", this.verifyCirconusAPI);
         this.once("verify.api.done", () => {
+            self.emit("default.target");
+        });
+
+        this.once("default.target", this.setTarget);
+        this.once("default.target.done", () => {
             self.emit("metrics.fetch");
         });
 
@@ -243,24 +249,98 @@ class Setup extends Registration {
     }
 
 
-    _getDefaultHostIp() {
-        const networkInterfaces = os.networkInterfaces();
+    setTarget() {
+        const self = this;
 
-        for (const iface in networkInterfaces) {
-            if (networkInterfaces.hasOwnProperty(iface)) {
-                // for (const addr of networkInterfaces[iface]) {
-                for (let i = 0; i < networkInterfaces[iface].length; i++) {
-                    const addr = networkInterfaces[iface][i];
+        console.log(chalk.blue(this.marker));
+        console.log("Setting check target");
 
-                    if (!addr.internal && addr.family === "IPv4") {
-                        return addr.address;
+        if (cosi.hasOwnProperty("cosi_host_target") && cosi.cosi_host_target !== "") {
+            console.log(chalk.green("Using target from command line:"), cosi.cosi_host_target);
+            this.regConfig.templateData.host_target = cosi.cosi_host_target;
+            this.emit("default.target.done");
+        }
+        else if (this.customOptions.hasOwnProperty("host_target") && this.customOptions.host_target) {
+            console.log(chalk.green("Found custom host_target:"), this.customOptions.host_target);
+            this.regConfig.templateData.host_target = this.customOptions.host_target;
+            this.emit("default.target.done");
+        }
+        else if (this.agentMode.toLowerCase() === "reverse") {
+             // this is what NAD will use to find the check to get reverse url
+            console.log(chalk.green("Reverse agent"), "using", os.hostname());
+            this.regConfig.templateData.host_target = os.hostname();
+            this.emit("default.target.done");
+        }
+        else {
+            this._getDefaultHostIp((target) => {
+                console.log(chalk.green("Target ip/host:"), target);
+                self.regConfig.templateData.host_target = target;
+                self.emit("default.target.done");
+            });
+        }
+    }
+
+
+    _getDefaultHostIp(cb) {
+        this._checkAWS((awsHostname) => {
+            if (awsHostname !== null) {
+                return cb(awsHostname);
+            }
+
+            console.log("Obtaining target IP/Host from local information");
+
+            const networkInterfaces = os.networkInterfaces();
+
+            for (const iface in networkInterfaces) {
+                if (networkInterfaces.hasOwnProperty(iface)) {
+                    // for (const addr of networkInterfaces[iface]) {
+                    for (let i = 0; i < networkInterfaces[iface].length; i++) {
+                        const addr = networkInterfaces[iface][i];
+
+                        if (!addr.internal && addr.family === "IPv4") {
+                            return cb(addr.address);
+                        }
                     }
                 }
-
             }
+
+            return cb("0.0.0.0");
+        });
+    }
+
+    _checkAWS(cb) { //eslint-disable-line consistent-return
+
+        // ONLY make this request if dmiinfo contains 'amazon'
+        // no reason to wait for a timeout otherwise
+        if (!cosi.hasOwnProperty("dmi_bios_ver") || !cosi.dmi_bios_ver.match(/amazon/i)) {
+            return cb(null);
         }
 
-        return "0.0.0.0";
+        console.log("Checking AWS for target (public ip/hostname for host)");
+
+        // from aws docs: http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html
+        http.get("http://169.254.169.254/latest/meta-data/public-hostname", (res) => {
+            let data = "";
+
+            res.on("data", (chunk) => {
+                data += chunk;
+            });
+
+            res.on("end", () => {
+                if (res.statusCode === 200) {
+                    const hostnames = data.split(/\r?\n/); // or os.EOL but it's a web response not a file
+
+                    if (hostnames.length > 0) {
+                        return cb(hostnames[0]);
+                    }
+                    return cb(null);
+                }
+                return cb(null);
+            });
+        }).on("error", () => {
+            // just punt, use the default "dumb" logic
+            return cb(null);
+        });
     }
 
 }

@@ -75,6 +75,24 @@ class COSI {
             }
         }
 
+        const optionalSettings = [
+            "cosi_host_target",
+            "cosi_broker_id"
+        ];
+
+        for (let i = 0; i < optionalSettings.length; i++) {
+            const prop = optionalSettings[i];
+
+            if (cfg.hasOwnProperty(prop) && cfg[prop] !== "") {
+                instance[prop] = cfg[prop];
+            }
+        }
+
+        // used for aws public hostname detection for check target
+        if (cfg.hasOwnProperty("cosi_os_dmi") && cfg.cosi_os_dmi !== "") {
+            instance.dmi_bios_ver = cfg.cosi_os_dmi;
+        }
+
         const idFile = path.resolve(path.join(instance.etc_dir, ".cosi_id"));
 
         try {
