@@ -23,7 +23,7 @@ provision/roles/site/files/node_modules-v*-omnios-r*.tar.gz
 provision/*.retry
 
 ## this is built, cd src && make package
-provision/roles/site/files/cosi-site.tar.gz
+provision/roles/site/files/cosi-site-*.tar.gz
 
 # artifacts from dev runs
 src/log
