@@ -42,7 +42,7 @@
 - name: Unpack COSI Site package
   become: true
   unarchive:
-      src="cosi-site.tar.gz"
+      src="cosi-site-{{ cosi_site_version }}.tar.gz"
       dest="{{ cosi_directory }}"
       copy="yes"
       owner="{{ cosi_owner }}"
