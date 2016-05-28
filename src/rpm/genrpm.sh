@@ -4,6 +4,8 @@ set -eu
 
 cd ~
 
+cp /vagrant/build.rpmmacros ~/.rpmmacros
+
 [[ -d rpmbuild ]] || rpmdev-setuptree
 
 cd ~/rpmbuild/SPECS

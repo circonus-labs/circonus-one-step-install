@@ -1,10 +1,9 @@
 %define name    cosi
-%define version 0.4.0
 %define release 1
 
 Summary: Circonus One Step Installer install
 Name: %{name}
-Version: %{version}
+Version: %{cosi_version}
 Release: %{release}
 License: GPL
 Group: Applications/System
