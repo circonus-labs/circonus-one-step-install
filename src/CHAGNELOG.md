@@ -1,3 +1,19 @@
+### 0.5.0 2016-05-28
+
+* new: add redhat 7.2 x86_64
+* -: add versioned cosi-site deployments (for rollback)
+* -: ignore versioned cosi-site tgz files
+* -: make rpm building part of main package build
+* new: re-add --target and --broker command line options.
+* -: verify osi-site bin directory
+* fix: limit enterprise brokers to "active" only, do not include "provisioned"
+
+### 0.4.0 2016-05-20
+
+* new: add omnios
+* new: add vm specific provisioner override (e.g. omnios using shell while others using puppet)
+* new: annotate vm specific provisioner setting in example config
+
 ### 0.3.0 2016-05-11
 
  * fix: os detection fix for centos 5
