@@ -228,8 +228,10 @@ __detect_os() {
                     ;;
                 (redhat)
                     # redhat-release-server-6Server-6.5.0.1.el6.x86_64 - RedHat 6.5.0.1
+                    # redhat-release-server-7.2-9.el7.x86_64 - RedHat 7.2
                     cosi_os_dist="RedHat"
-                    [[ ${#distro_info[@]} -ge 5 ]] && cosi_os_vers="${distro_info[4]%%\.el*}"
+                    cosi_os_vers=$(echo $release_rpm | sed -r 's/^.*-([0-9\.]+)(\.el6|-[0-9]).*$/\1/')
+                    #[[ ${#distro_info[@]} -ge 5 ]] && cosi_os_vers="${distro_info[4]%%\.el*}"
                     ;;
                 (fedora)
                     # fedora-release-23-1.noarch - Fedora 23.1
