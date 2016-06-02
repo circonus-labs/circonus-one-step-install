@@ -12,14 +12,10 @@ const app = require("commander");
 const chalk = require("chalk");
 
 const cosi = require(path.resolve(path.join(__dirname, "..", "lib", "cosi")));
-
-const Settings = require(path.join(cosi.libDir, "settings"));
-const Fetch = require(path.join(cosi.libDir, "template", "fetch"));
-
-const settings = new Settings(app.config);
+const Fetch = require(path.join(cosi.lib_dir, "template", "fetch"));
 
 app.
-    version(cosi.version).
+    version(cosi.app_version).
     option("--id <type-id>", "template id, format type-id (e.g. check-system, graph-cpu, graph-vm, etc.)").
     option("--all", "fetch all templates specific to this host configuration").
     option("--force", "overwrite, if template already exists", false).
@@ -54,20 +50,20 @@ if (app.config) {
 }
 
 const fetch = new Fetch(
-    settings.cosi_url,
-    settings.agent_url,
-    settings.reg_dir,
-    settings.cosi_os_type,
-    settings.cosi_os_dist,
-    settings.cosi_os_vers,
-    settings.cosi_os_arch,
-    settings.statsd_type,
+    cosi.cosi_url,
+    cosi.agent_url,
+    cosi.reg_dir,
+    cosi.cosi_os_type,
+    cosi.cosi_os_dist,
+    cosi.cosi_os_vers,
+    cosi.cosi_os_arch,
+    cosi.statsd_type,
     app.force
 );
 
 if (app.id) {
     // fetch specific template
-    const templateFile = path.resolve(path.join(settings.reg_dir, `template-${app.id}.json`));
+    const templateFile = path.resolve(path.join(cosi.reg_dir, `template-${app.id}.json`));
 
     try {
         const stat = fs.statSync(templateFile);
@@ -76,7 +72,8 @@ if (app.id) {
             console.log(chalk.yellow("Template exits"), `- use --force to overwrite. '${templateFile}'`);
             process.exit(0); //eslint-disable-line no-process-exit
         }
-    } catch (err) {
+    }
+    catch (err) {
         if (err.code !== "ENOENT") {
             throw err;
         }
@@ -89,7 +86,7 @@ if (app.id) {
                 throw fetchError;
             }
 
-            if (template.saveFile(templateFile, app.force)) {
+            if (template.save(templateFile, app.force)) {
                 if (!app.quiet) {
                     console.log("Saved template:", templateFile);
                 }

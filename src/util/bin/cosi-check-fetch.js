@@ -10,9 +10,9 @@ const fs = require("fs");
 
 const app = require("commander");
 const chalk = require("chalk");
-const api = require("circonusapi2");
 
 const cosi = require(path.resolve(path.join(__dirname, "..", "lib", "cosi")));
+const api = require(path.resolve(cosi.lib_dir, "api"));
 
 const Check = require(path.resolve(path.join(cosi.lib_dir, "check")));
 
@@ -39,7 +39,8 @@ let checkType = app.check;
 
 if (checkType) {
     checkType = app.check.toLowerCase();
-} else {
+}
+else {
     checkType = "system";
 }
 
@@ -74,7 +75,8 @@ if (!app.display_name && !app.target_host) {
 if (app.id) {
     if (app.id.match(/^[0-9]+$/)) {
         urlPath += `/${app.id}`;
-    } else {
+    }
+    else {
         urlPath = getCid(app.id);
     }
     query = null;
@@ -101,14 +103,16 @@ api.get(urlPath, query, (code, err, result) => {
 
         fs.writeFileSync(file, JSON.stringify(result, null, 4));
         console.log(chalk.green("Saved"), `check configuration to ${file}`);
-    } else {
+    }
+    else {
         if (Array.isArray(result)) { //eslint-disable-line no-lonely-if
             for (let i = 0; i < result.length; i++) {
                 if (result[i].type === circonusCheckType) {
                     console.dir(result[i]);
                 }
             }
-        } else {
+        }
+        else {
             console.dir(result);
         }
     }

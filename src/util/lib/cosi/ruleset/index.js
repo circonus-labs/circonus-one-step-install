@@ -8,10 +8,10 @@ const path = require("path");
 const fs = require("fs");
 const util = require("util");
 
-const api = require("circonusapi2");
 const chalk = require("chalk");
 
 const cosi = require(path.resolve(path.join(__dirname, "..")));
+const api = require(path.resolve(cosi.lib_dir, "api"));
 
 /*
 cosi_dir/rulesets/*.json (/opt/circonus/cosi/rulesets/*.json)

@@ -9,6 +9,8 @@ const fs = require("fs");
 const path = require("path");
 const qs = require("querystring");
 const url = require("url");
+const https = require("https");
+const http = require("http");
 
 const chalk = require("chalk");
 
@@ -28,14 +30,7 @@ class Fetch extends Events {
             arch: cosi.cosi_os_arch
         };
 
-        this.url = url.parse(`${cosi.cosi_url}?${qs.stringify(query)}`);
-
-        if (this.url.protocol === "https:") {
-            this.client = require("https"); //eslint-disable-line global-require
-        }
-        else {
-            this.client = require("http"); //eslint-disable-line global-require
-        }
+        this.cosiUrl = url.parse(`${cosi.cosi_url}?${qs.stringify(query)}`);
 
         this.agentUrl = cosi.agent_url;
         this.dir = cosi.reg_dir;
@@ -49,8 +44,20 @@ class Fetch extends Events {
     list(cb) {
         assert.strictEqual(typeof cb, "function", "cb must be a callback function");
 
-        this.url.pathname = "/templates";
-        this.client.get(this.url.format(), (res) => {
+        this.cosiUrl.pathname = "/templates";
+
+        const reqOptions = cosi.getProxySettings(url.format(this.cosiUrl));
+        let client = null;
+
+        if (reqOptions.protocol === "https:") {
+            client = https;
+        }
+        else {
+            client = http;
+        }
+
+
+        client.get(reqOptions, (res) => {
             let data = "";
 
             res.on("data", (chunk) => {
@@ -75,7 +82,7 @@ class Fetch extends Events {
             });
         }).on("error", (err) => {
             if (err.code === "ECONNREFUSED") {
-                console.error(chalk.red("Fetch template list - unable to connect to COSI"), this.url.href, err.toString());
+                console.error(chalk.red("Fetch template list - unable to connect to COSI"), reqOptions, err.toString());
                 process.exit(1); //eslint-disable-line no-process-exit
             }
             return cb(err);
@@ -169,15 +176,23 @@ class Fetch extends Events {
         const parts = id.split("-");
 
         if (parts && parts.length === 2) {
-            this.url.pathname = `/template/${parts[0]}/${parts[1]}`;
+            this.cosiUrl.pathname = `/template/${parts[0]}/${parts[1]}`;
         }
         else {
             return cb(new Error(`invalid template id ${id}`));
         }
 
-        //console.log(this.url.format());
+        const reqOptions = cosi.getProxySettings(url.format(this.cosiUrl));
+        let client = null;
 
-        this.client.get(this.url.format(), (res) => {
+        if (reqOptions.protocol === "https:") {
+            client = https;
+        }
+        else {
+            client = http;
+        }
+
+        client.get(reqOptions, (res) => {
             let data = "";
 
             res.on("data", (chunk) => {
@@ -192,7 +207,6 @@ class Fetch extends Events {
                     resErr.message = res.statusMessage;
                     resErr.details = JSON.parse(data);
                     return cb(resErr);
-                    //return cb(new Error(`${res.statusCode} ${res.statusMessage} ${data}`));
                 }
 
                 let template = {};
@@ -208,7 +222,7 @@ class Fetch extends Events {
             });
         }).on("error", (err) => {
             if (err.code === "ECONNREFUSED") {
-                console.error(chalk.red(`Fetch template ${id} - unable to connect to COSI`), this.url.href, err.toString());
+                console.error(chalk.red(`Fetch template ${id} - unable to connect to COSI`), reqOptions, err.toString());
                 process.exit(1); //eslint-disable-line no-process-exit
             }
             return cb(err);
@@ -238,7 +252,7 @@ class Fetch extends Events {
             self.removeAllListeners("fetch.next");
             self.removeAllListeners("fetch.done");
             console.error(chalk.red("Template Fetch Error"), err);
-            return cb(err);
+            return cb(err, { attempts, warnings, errors, fetched });
         });
 
         this.on("fetch.next", () => {

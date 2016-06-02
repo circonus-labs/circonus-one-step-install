@@ -6,9 +6,8 @@
 const assert = require("assert");
 const path = require("path");
 
-const api = require("circonusapi2");
-
 const cosi = require(path.resolve(path.join(__dirname, "..", "..")));
+const api = require(path.resolve(cosi.lib_dir, "api"));
 const Check = require(path.resolve(path.join(cosi.lib_dir, "check")));
 
 function verify(localCheck, cb) {

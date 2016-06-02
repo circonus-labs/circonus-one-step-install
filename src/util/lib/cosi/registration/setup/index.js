@@ -7,14 +7,12 @@ const assert = require("assert");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const url = require("url");
 const http = require("http");
 
-const api = require("circonusapi2");
 const chalk = require("chalk");
 
 const cosi = require(path.resolve(path.resolve(__dirname, "..", "..", "..", "cosi")));
-
+const api = require(path.resolve(cosi.lib_dir, "api"));
 const Broker = require(path.join(cosi.lib_dir, "broker"));
 const Metrics = require(path.join(cosi.lib_dir, "metrics"));
 const Registration = require(path.resolve(cosi.lib_dir, "registration"));
@@ -90,11 +88,8 @@ class Setup extends Registration {
         console.log("Verify Circonus API access");
 
         const self = this;
-        const apiKey = this.circonusAPI.key;
-        const apiApp = this.circonusAPI.app;
-        const apiURL = url.parse(this.circonusAPI.url);
 
-        api.setup(apiKey, apiApp, apiURL);
+        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
         api.get("/account/current", null, (code, err, account) => {
             if (err) {
                 self.emit("error", err);
@@ -197,11 +192,11 @@ class Setup extends Registration {
         const templateFetch = new TemplateFetcher(false);
 
         templateFetch.all(this.quiet, (err, result) => {
-            console.log(`Checked ${result.attempts}, fetched ${result.fetched}, errors ${result.error}`);
             if (err) {
                 self.emit("error", err);
                 return;
             }
+            console.log(`Checked ${result.attempts}, fetched ${result.fetched}, errors ${result.error}`);
             self.emit("templates.fetch.done");
         });
     }

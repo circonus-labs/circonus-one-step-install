@@ -7,12 +7,11 @@
 const assert = require("assert");
 const fs = require("fs");
 const path = require("path");
-const url = require("url");
 
-const api = require("circonusapi2");
 const chalk = require("chalk");
 
 const cosi = require(path.resolve(path.join(__dirname, "..")));
+const api = require(path.resolve(cosi.lib_dir, "api"));
 
 module.exports = class Graph {
 
@@ -295,7 +294,7 @@ module.exports = class Graph {
 
         const self = this;
 
-        api.setup(cosi.api_key, cosi.api_app, url.parse(cosi.api_url));
+        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
         api.post("/graph", this, (code, errAPI, result) => {
             if (errAPI) {
                 const apiError = new Error();
@@ -332,7 +331,7 @@ module.exports = class Graph {
 
         const self = this;
 
-        api.setup(cosi.api_key, cosi.api_app, url.parse(cosi.api_url));
+        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
         api.put(this._cid, this, (code, errAPI, result) => {
             if (errAPI) {
                 return cb(errAPI, result);

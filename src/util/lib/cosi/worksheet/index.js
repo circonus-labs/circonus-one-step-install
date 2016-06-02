@@ -8,10 +8,10 @@ const assert = require("assert");
 const fs = require("fs");
 const path = require("path");
 
-const api = require("circonusapi2");
 const chalk = require("chalk");
 
 const cosi = require(path.resolve(path.join(__dirname, "..")));
+const api = require(path.resolve(cosi.lib_dir, "api"));
 
 module.exports = class Worksheet {
 

@@ -7,12 +7,13 @@ const assert = require("assert");
 const Events = require("events").EventEmitter;
 const path = require("path");
 const qs = require("querystring");
-const url = require("url");
+const https = require("https");
+const http = require("http");
 
-const api = require("circonusapi2");
 const chalk = require("chalk");
 
 const cosi = require(path.resolve(path.join(__dirname, "..")));
+const api = require(path.resolve(cosi.lib_dir, "api"));
 
 let brokerList = null;
 
@@ -40,7 +41,7 @@ class Broker extends Events {
         this.once("fbl.start", this._fbl);
 
         this.once("fbl.error", (err) => {
-            self.removeAllListenrs("fbl.done");
+            self.removeAllListeners("fbl.done");
             return cb(err);
         });
 
@@ -143,11 +144,11 @@ class Broker extends Events {
             }
 
             self.once("gdb.error", () => {
-                self.removeAllListenrs("gdb.custom");
-                self.removeAllListenrs("gdb.enterprise");
-                self.removeAllListenrs("gdb.cosi");
-                self.removeAllListenrs("gdb.verify");
-                self.removeAllListenrs("gdb.valid");
+                self.removeAllListeners("gdb.custom");
+                self.removeAllListeners("gdb.enterprise");
+                self.removeAllListeners("gdb.cosi");
+                self.removeAllListeners("gdb.verify");
+                self.removeAllListeners("gdb.valid");
             });
 
             if (self.defaultBrokerId === null) {
@@ -284,17 +285,17 @@ class Broker extends Events {
             mode: cosi.agent_mode
         };
 
-        const cosiUrl = url.parse(`${cosi.cosi_url}broker?${qs.stringify(query)}`);
+        const reqOptions = cosi.getProxySettings(`${cosi.cosi_url}broker?${qs.stringify(query)}`);
         let client = null;
 
-        if (cosiUrl.protocol === "https:") {
-            client = require("https"); //eslint-disable-line global-require
+        if (reqOptions.protocol === "https:") {
+            client = https;
         }
         else {
-            client = require("http"); //eslint-disable-line global-require
+            client = http;
         }
 
-        client.get(cosiUrl.format(), (res) => {
+        client.get(reqOptions, (res) => {
             let data = "";
 
             res.on("data", (chunk) => {
@@ -334,7 +335,7 @@ class Broker extends Events {
             });
         }).on("error", (err) => {
             if (err.code === "ECONNREFUSED") {
-                console.error(chalk.red("Fetch default broker - unable to connect to COSI"), self.cosiUrl.href, err.toString());
+                console.error(chalk.red("Fetch default broker - unable to connect to COSI"), reqOptions, err.toString());
                 process.exit(1); //eslint-disable-line no-process-exit
             }
         });

@@ -22,10 +22,10 @@ const fs = require("fs");
 const Events = require("events").EventEmitter;
 
 const app = require("commander");
-const api = require("circonusapi2");
 const chalk = require("chalk");
 
 const cosi = require(path.resolve(path.join(__dirname, "..", "lib", "cosi")));
+const api = require(path.resolve(cosi.lib_dir, "api"));
 
 function deleteItem(item, keepTemplates, cb) { //eslint-disable-line consistent-return
     let cfg = {};

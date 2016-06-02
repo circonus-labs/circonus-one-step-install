@@ -51,72 +51,9 @@ git clone https://github.com/maier/cosi-cli \
     && vagrant ssh
 ```
 
-```sh
-🐵 npm run showenv
-
-> cosi-cli@0.1.0 showenv /Users/mgm/src/cosi-cli
-> echo "Host system $(uname -srv)" ; vagrant --version ; echo "Virtualbox $(vboxmanage --version)" ; ansible --version ; echo "Node $(node --version)" ; echo 'Global npm modules'; npm ls -g --depth=0; echo 'Local npm modules' ; npm ls --depth=0
-
-Host system Darwin 15.3.0 Darwin Kernel Version 15.3.0: Thu Dec 10 18:40:58 PST 2015; root:xnu-3248.30.4~1/RELEASE_X86_64
-Vagrant 1.8.1
-Virtualbox 5.0.14r105127
-ansible 2.1.0 (devel 36aa89ac7e) last updated 2016/01/18 12:20:44 (GMT -400)
-  lib/ansible/modules/core: (detached HEAD fd59dccdd7) last updated 2016/01/18 12:20:44 (GMT -400)
-  lib/ansible/modules/extras: (detached HEAD 38dfe23336) last updated 2016/01/18 12:20:44 (GMT -400)
-  config file =
-  configured module search path = Default w/o overrides
-Node v4.3.2
-Global npm modules
-/Users/mgm/.nvm/versions/node/v4.3.2/lib
-├── eslint@2.3.0
-├── npm@2.14.12
-├── npm-check-updates@2.5.8
-└── pac@1.0.0
-
-Local npm modules
-cosi-cli@0.1.0 /Users/mgm/src/cosi-cli
-├── babel-cli@6.6.5
-├── babel-preset-es2015@6.6.0
-├── chalk@1.1.1
-├── circonusapi2@0.1.7
-├── commander@2.9.0
-├── dot@1.0.3
-├── sprintf-js@1.0.3
-├── tape@4.5.1
-└── vasync@1.6.3
-```
-
 ## Custom options
 
-See `example-options.json`.
-
-```sh
-{
-    "broker": {},
-    "checks": {
-        "default": {},
-        "system": {}
-    },
-    "graphs": {
-        "id": {},
-        "default": {}
-    }
-}
-```
-
-* [**broker**] id or list & default
-   * id - a specific broker id
-   * list - an array of broker ids
-   * default - an offset into the broker.list or -1 for random element from the list
-
-* [**checks**] check specific options
-  * default - options for all checks
-  * check id - options for a specifc check id, currently (system|statsd)
-
-* [**graphs**] graph specific options
-  * default - options for all graphs
-  * graph id - options for a specifc graph id, currently depends on which metric groups NAD exposes that have COSI templates
-
+See [COSI user documentation](https://github.com/circonus-labs/circonus-one-step-install/wiki/Installer-Registration) regrading installer options.
 
 
 ---

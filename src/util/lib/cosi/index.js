@@ -1,10 +1,11 @@
 /*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers, camelcase, no-process-exit, global-require */
+/*eslint-disable no-magic-numbers, camelcase, no-process-exit, global-require, no-process-env */
 "use strict";
 
 const path = require("path");
 const crypto = require("crypto");
 const fs = require("fs");
+const url = require("url");
 
 const chalk = require("chalk");
 
@@ -140,6 +141,54 @@ class COSI {
         }
 
         return instance;
+    }
+
+    getProxySettings(reqUrl) {
+        const reqOptions = url.parse(reqUrl);
+
+        if (reqOptions.protocol === "https:") {
+            // check for https proxy environment variable
+            let httpsProxy = null;
+            let proxyServer = null;
+
+            if (process.env.hasOwnProperty("https_proxy")) {
+                proxyServer = process.env.https_proxy;
+
+            }
+            else if (process.env.hasOwnProperty("HTTPS_PROXY")) {
+                proxyServer = process.env.HTTPS_PROXY;
+            }
+
+            if (proxyServer !== null && proxyServer !== "") {
+                if (!proxyServer.match(/^http[s]?:\/\//)) {
+                    proxyServer = `http://${proxyServer}`;
+                }
+                httpsProxy = url.parse(proxyServer);
+            }
+
+            if (httpsProxy !== null) {
+                // setup for https proxy
+
+                const proxyOptions = reqOptions;
+
+                proxyOptions.path = url.format(reqOptions);
+                proxyOptions.pathname = proxyOptions.path;
+                proxyOptions.headers = reqOptions.headers || {};
+                proxyOptions.headers.Host = reqOptions.host || url.format({
+                    hostname: reqOptions.hostname,
+                    port: reqOptions.port
+                });
+                proxyOptions.protocol = httpsProxy.protocol;
+                proxyOptions.hostname = httpsProxy.hostname;
+                proxyOptions.port = httpsProxy.port;
+                proxyOptions.href = null;
+                proxyOptions.host = null;
+
+                return proxyOptions;
+            }
+        }
+
+        return reqOptions;
     }
 }
 

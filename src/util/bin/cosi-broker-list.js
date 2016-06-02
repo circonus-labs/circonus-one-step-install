@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers */
+/*eslint-disable no-magic-numbers, no-process-exit */
 
 "use strict";
 
@@ -46,8 +46,7 @@ const broker = new Broker(app.quiet);
 
 broker.getBrokerList((err, list) => {
     if (err) {
-        console.dir(err);
-        throw err;
+        process.exit(1);
     }
 
     emitLine(app.quiet);
