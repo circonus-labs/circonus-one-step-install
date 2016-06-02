@@ -504,7 +504,7 @@ __check_nad_url() {
 
     if [[ $agent_state -eq 2 ]]; then
         set +e
-        err=$(\curl -sSf "$url" -o /dev/null 2>&1)
+        err=$(\curl --noproxy localhost,127.0.0.1 -sSf "$url" -o /dev/null 2>&1)
         ret=$?
         set -e
         if [[ $ret -ne 0 ]]; then
