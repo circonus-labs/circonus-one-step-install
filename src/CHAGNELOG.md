@@ -1,3 +1,7 @@
+### 0.6.0 2016-06-02
+
+* new: honor https_proxy environment setting
+
 ### 0.5.0 2016-05-28
 
 * new: add redhat 7.2 x86_64
