@@ -152,7 +152,7 @@ class Register extends Registration {
             if (self.agentMode === "push") {
                 this.checkSubmissionUrl = check.config.submission_url;
             }
-            console.log(chalk.green("\tCheck created:"), `${self.regConfig.account.uiUrl}${check._checks[0]}`);
+            console.log(chalk.green("\tCheck created:"), `${self.regConfig.account.uiUrl}${check._checks[0].replace("check", "checks")}`);
 
             self.emit("check.done");
         });
@@ -267,7 +267,7 @@ class Register extends Registration {
             console.log(`\tSaving registration ${regFile}`);
             check.save(regFile);
 
-            console.log(chalk.green("\tCheck created:"), `${self.regConfig.account.uiUrl}${check._checks[0]}`);
+            console.log(chalk.green("\tCheck created:"), `${self.regConfig.account.uiUrl}${check._checks[0].replace("/check/", "/checks/")}`);
 
             saveStatsdConfig(check.config.submission_url);
 
@@ -370,7 +370,7 @@ class Register extends Registration {
             console.log(`\tSaving registration ${regFile}`);
             graph.save(regFile);
 
-            console.log(chalk.green("\tGraph created:"), `${self.regConfig.account.uiUrl}${graph._cid}`);
+            console.log(chalk.green("\tGraph created:"), `${self.regConfig.account.uiUrl}/trending/graphs/view/${graph._cid.replace("/graph/", "")}`);
             self.emit("create.graph.next");
         });
     }
@@ -412,7 +412,7 @@ class Register extends Registration {
             console.log(`\tSaving registration ${regFile}`);
             worksheet.save(regFile, true);
 
-            console.log(chalk.green("\tWorksheet created:"), `${self.regConfig.account.uiUrl}${worksheet._cid}`);
+            console.log(chalk.green("\tWorksheet created:"), `${self.regConfig.account.uiUrl}/trending/worksheets/${worksheet._cid.replace("/worksheet/", "")}`);
             self.emit("worksheet.done");
         });
 
