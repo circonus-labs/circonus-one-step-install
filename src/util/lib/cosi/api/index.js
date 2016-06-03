@@ -180,23 +180,45 @@ Api.prototype.do_request = function(options, callback) {
  * Hands back an options object suitable to use with the HTTPS class
  */
 Api.prototype.get_request_options = function(method, endpoint, data) {
-    const options = {
-        protocol: this.protocol,
-        host: this.apihost,
-        port: this.apiport,
-        path: this.apipath,
-        method: method.toUpperCase(),
-        agent: false,
-        headers: {
-            "X-Circonus-Auth-Token": this.authtoken,
-            "X-Circonus-App-Name": this.appname,
-            "Accept": "application/json"
-        },
-        circapi: {
-            retry: 0,
-            data: null
+    // ensure valid url object with all required variables initialized
+
+    const options = url.parse(url.format(
+        {
+            protocol: this.protocol,
+            host: this.apihost,
+            port: this.apiport,
+            path: this.apipath
         }
+    ));
+
+    options.method = method.toUpperCase();
+    options.agent = false;
+    options.headers = {
+        "X-Circonus-Auth-Token": this.authtoken,
+        "X-Circonus-App-Name": this.appname,
+        "Accept": "application/json" };
+    options.circapi = {
+        retry: 0,
+        data: null
     };
+
+    // const options = {
+    //     protocol: this.protocol,
+    //     host: this.apihost,
+    //     port: this.apiport,
+    //     path: this.apipath,
+    //     method: method.toUpperCase(),
+    //     agent: false,
+    //     headers: {
+    //         "X-Circonus-Auth-Token": this.authtoken,
+    //         "X-Circonus-App-Name": this.appname,
+    //         "Accept": "application/json"
+    //     },
+    //     circapi: {
+    //         retry: 0,
+    //         data: null
+    //     }
+    // };
 
     options.circapi.data = data;
     if (options.method === "POST" || options.method === "PUT" && data ) {
