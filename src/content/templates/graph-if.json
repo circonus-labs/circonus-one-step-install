@@ -34,7 +34,7 @@
                     "legend_formula": "=round(auto(VAL * 8),2)",
                     "metric_name": "if`([^`]+)`in_bytes",
                     "metric_type": "numeric",
-                    "name": "%rx bps",
+                    "name": "rx bps",
                     "stack": null
                 },
                 {
