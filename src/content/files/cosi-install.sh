@@ -29,7 +29,9 @@ Options
 
   [--apiurl]    Circonus API URL Default: https://api.circonus.com/
 
-  [--agent]     Agent mode (pull|push) Default: pull
+  [--agent]     Agent mode (reverse|pull|push) Default: reverse
+                reverse = Install NAD, NAD will open connection to broker.
+                          broker will request metrics through reverse connection.
                 pull = Install NAD, broker will connect to system and request metrics
                 push = Install NAD, metrics will be sent to broker at an interval
                 Note: If NAD is already installed, installation will be skipped
@@ -115,11 +117,11 @@ __parse_parameters() {
             if [[ -n "${1:-}" ]]; then
                 cosi_agent_mode="$1"
                 shift
-                if [[ ! "${cosi_agent_mode:-}" =~ ^(pull|push)$ ]]; then
-                    fail "--agent must be followed by a valid agent mode (pull|push)."
+                if [[ ! "${cosi_agent_mode:-}" =~ ^(reverse|pull|push)$ ]]; then
+                    fail "--agent must be followed by a valid agent mode (reverse|pull|push)."
                 fi
             else
-                fail "--agent must be followed by an agent mode (pull|push)."
+                fail "--agent must be followed by an agent mode (reverse|pull|push)."
             fi
             ;;
         (--statsd)
@@ -712,7 +714,7 @@ cosi_initialize() {
     : ${cosi_api_url:=https://api.circonus.com/}
     : ${cosi_api_key:=}
     : ${cosi_api_app:=cosi}
-    : ${cosi_agent_mode:=pull}
+    : ${cosi_agent_mode:=reverse}
     : ${cosi_statsd_flag:=0}
     : ${cosi_statsd_type:=none}
     : ${cosi_install_agent:=1}
