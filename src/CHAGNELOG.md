@@ -1,3 +1,9 @@
+### 0.7.0 2016-06-14
+
+* new: NAD reverse support (--agent reverse)
+* new: Ubuntu 16.04 support
+* fix: typo '%' removed from metric name in graph-if
+
 ### 0.6.0 2016-06-02
 
 * new: honor https_proxy environment setting
