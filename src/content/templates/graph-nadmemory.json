@@ -1,0 +1,74 @@
+{
+    "type": "graph",
+    "id": "nadmemory",
+    "description": "NAD Memory utilization",
+    "version": "0.1.0",
+    "notes": [],
+    "graphs": [
+        {
+            "access_keys": [],
+            "composites": [],
+            "datapoints": [
+                {
+                    "legend_formula": null,
+                    "caql": null,
+                    "check_id": null,
+                    "metric_type": "numeric",
+                    "stack": null,
+                    "name": "RSS",
+                    "axis": "l",
+                    "data_formula": null,
+                    "color": "#4fa18e",
+                    "metric_name": "nadmemory`rss",
+                    "alpha": "0.3",
+                    "derive": "gauge",
+                    "hidden": false
+                },
+                {
+                    "legend_formula": null,
+                    "caql": null,
+                    "check_id": null,
+                    "metric_type": "numeric",
+                    "stack": null,
+                    "name": "Heap total",
+                    "axis": "l",
+                    "data_formula": null,
+                    "color": "#657aa6",
+                    "metric_name": "nadmemory`heapTotal",
+                    "alpha": "0.3",
+                    "derive": "gauge",
+                    "hidden": false
+                },
+                {
+                    "legend_formula": null,
+                    "caql": null,
+                    "check_id": null,
+                    "metric_type": "numeric",
+                    "stack": null,
+                    "name": "Heap used",
+                    "axis": "l",
+                    "data_formula": null,
+                    "color": "#b5c52d",
+                    "metric_name": "nadmemory`heapUsed",
+                    "alpha": "0.3",
+                    "derive": "gauge",
+                    "hidden": false
+                }
+            ],
+            "description": "NAD Memory Utilization",
+            "guides": [],
+            "line_style": "stepped",
+            "logarithmic_left_y": null,
+            "logarithmic_right_y": null,
+            "max_left_y": null,
+            "max_right_y": null,
+            "metric_clusters": [],
+            "min_left_y": null,
+            "min_right_y": null,
+            "notes": null,
+            "style": "area",
+            "tags": [],
+            "title": "{{=cosi.host_name}} NAD Memory Utilization"
+        }
+    ]
+}
