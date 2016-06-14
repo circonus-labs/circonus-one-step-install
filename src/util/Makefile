@@ -16,6 +16,7 @@ $(UTILS): $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
 	$(BABEL) bin/cosi*.js -d build
 	$(BABEL) bin/circonus-nadpush.js --out-file build/bin/circonus-nadpush.js
 	install -m 0700 bin/install_nadpush.sh build/bin/.
+	install -m 0700 bin/install_nadreverse.sh build/bin/.
 	install -m 0700 bin/install_statsd.sh build/bin/.
 	echo '#!/usr/bin/env sh' > build/bin/circonus-nadpush && \
 	echo '":" //; exec %%NODE_BIN%% --expose-gc --max-old-space-size=32 --max-executable-size=64 "$$0" "$$@"' >> build/bin/circonus-nadpush && \

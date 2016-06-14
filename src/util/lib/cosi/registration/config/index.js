@@ -322,7 +322,11 @@ class Config extends Registration {
         // set check type (check module) and type specific config options
         const agentMode = this.agentMode.toLowerCase();
 
-        if ( agentMode === "pull") {
+        if ( agentMode === "reverse" ) {
+            check.type = "json:nad";
+            check.config.url = this.agentUrl;
+        }
+        else if ( agentMode === "pull") {
             check.type = "json:nad";
             check.config.url = this.agentUrl;
         }

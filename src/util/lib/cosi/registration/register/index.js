@@ -25,6 +25,7 @@ class Register extends Registration {
 
         this.regConfig = null;
         this.checkId = null;
+        this.checkBundleId = null;
         this.checkSubmissionUrl = null;
     }
 
@@ -61,6 +62,30 @@ class Register extends Registration {
                 }
                 catch (nadpushConfigErr) {
                     self.emit("error", nadpushConfigErr);
+                    return;
+                }
+            }
+            else if (self.agentMode === "reverse") {
+                const nadCfgFile = path.resolve(path.join(self.regDir, "..", "etc", "circonus-nadreversesh"));
+                const nadOpts = [
+                    `nadrev_plugin_dir="${path.resolve(path.join(self.regDir, "..", "..", "etc", "node-agent.d"))}"`,
+                    "nadrev_listen_address=\"127.0.0.1:2609\"",
+                    "nadrev_enable=1",
+                    `nadrev_check_id="${self.checkBundleId}"`,
+                    `nadrev_key="${self.circonusAPI.key}"`
+                ];
+
+                console.log(`\tSaving NAD Reverse configuration ${nadCfgFile}`);
+
+                try {
+                    fs.writeFileSync(
+                        nadCfgFile,
+                        nadOpts.join("\n"),
+                        { encoding: "utf8", mode: 0o640, flag: "w" }
+                    );
+                }
+                catch (nadCfgErr) {
+                    self.emit("error", nadCfgErr);
                     return;
                 }
             }
@@ -119,6 +144,7 @@ class Register extends Registration {
             const check = new Check(regFile);
 
             this.checkId = check._checks[0].replace("/check/", "");
+            self.checkBundleId = check._cid.replace("/check_bundle/", "");
             if (self.agentMode === "push") {
                 this.checkSubmissionUrl = check.config.submission_url;
             }
@@ -149,6 +175,7 @@ class Register extends Registration {
             check.save(regFile, true);
 
             self.checkId = check._checks[0].replace("/check/", "");
+            self.checkBundleId = check._cid.replace("/check_bundle/", "");
             if (self.agentMode === "push") {
                 this.checkSubmissionUrl = check.config.submission_url;
             }
