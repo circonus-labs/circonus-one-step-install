@@ -21,7 +21,7 @@ cosi_url: "https://onestep.circonus.com/"
 api_url: "https://api.circonus.com/"
 
 # agent mode
-agent_mode: "push"
+agent_mode: "reverse"
 
 # Enable COSI StatsD
 statsd: false

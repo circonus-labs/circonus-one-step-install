@@ -8,7 +8,7 @@ require 'digest'
 class Examples
     DEFAULT_COSI_URL = 'https://onestep.circonus.com/'
     DEFAULT_API_URL = 'https://api.circonus.com/'
-    DEFAULT_AGENT_MODE = 'push'
+    DEFAULT_AGENT_MODE = 'reverse'
     HOSTNAME = `hostname`
 
     def initialize(config_file)
