@@ -80,9 +80,10 @@ class Templates {
 
                 return template;
 
-            } catch (err) {
+            }
+            catch (err) {
                 if (err.code !== "MODULE_NOT_FOUND") {
-                    throw err;
+                    log.warn(`Template found but, unable to load: ${templateDefinition.file} ${err}`);
                 }
             }
         }
@@ -140,7 +141,8 @@ class Templates {
             for (const file of files) {
                 result[file.replace(".json", "")] = path.resolve(dir, file);
             }
-        } catch (err) {
+        }
+        catch (err) {
             if (err.code !== "ENOENT") {
                 log.info(err.message);
             }
@@ -166,8 +168,10 @@ class Templates {
 
                 try {
                     template = require(path.resolve(path.join(this.dir, file)));
-                } catch (err) {
-                    throw err;
+                }
+                catch (err) {
+                    log.error(`Unable to load template ${file} ${err}`);
+                    continue;
                 }
 
                 const templateKey = this._templateKey(templateCategory, templateName);
