@@ -11,6 +11,7 @@ cosi-statsd.tar.gz
 bin/*
 !bin/install_nadpush.sh
 !bin/install_statsd.sh
+!bin/install_nadreverse.sh
 !bin/*.js
 bin/test.js
 
