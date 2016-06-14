@@ -2,26 +2,26 @@
 
 set -eu
 
-dst_dir="/opt/circonus/etc/node-agent.d/linux"
-[[ ! -d "$dst_dir" ]] && { echo "Unable to find DEST directory '${dst_dir}'"; exit 1; }
+plugin_dir="/opt/circonus/etc/node-agent.d"
+[[ ! -d "$plugin_dir" ]] && { echo "Unable to find NAD plugin directory '${plugin_dir}'"; exit 1; }
+
+linux_dir="${plugin_dir}/linux"
+[[ ! -d "$linux_dir" ]] && { echo "Unable to find NAD Linux plugin directory '${linux_dir}'"; exit 1; }
 
 # install additional nad plugins
 
-cd $dst_dir
+cd $plugin_dir
 
-echo "Install meminfo.sh (instead of vm.sh which reports incorrectly for CentOS 7)"
-curl -sSL "https://raw.githubusercontent.com/maier/circonus-nad-plugins/master/linux/meminfo.sh" -o "${dst_dir}/meminfo.sh"
-chmod 755 "${dst_dir}/meminfo.sh"
-vm_link="/opt/circonus/etc/node-agent.d/vm.sh"
-[[ -h $vm_link ]] && rm $vm_link
+# install nad memory plugin
+echo "Install NAD memory usage metrics plugin"
+mkdir -v nadmemory
+cp -v /vagrant/hooks/c7/nadmemory.js "${plugin_dir}/nadmemory/nadmemory.js"
+ln -s nadmemory/nadmemory.js .
 
 echo "Install load.sh for CentOS 7"
-curl -sSL "https://raw.githubusercontent.com/maier/circonus-nad-plugins/master/linux/load.sh" -o "${dst_dir}/load.sh"
-chmod 755 "${dst_dir}/load.sh"
-
-cd ..
+curl -sSL "https://raw.githubusercontent.com/maier/circonus-nad-plugins/master/linux/load.sh" -o "${linux_dir}/load.sh"
+chmod 755 "${linux_dir}/load.sh"
 ln -s linux/load.sh .
-ln -s linux/meminfo.sh .
 
 set +e
 service nad restart
