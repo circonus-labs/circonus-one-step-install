@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers */
+/*eslint-disable no-magic-numbers, no-process-exit */
 
 "use strict";
 
@@ -82,8 +82,14 @@ if (app.id) {
     fetch.template(app.id,
         (fetchError, template) => {
             if (fetchError) {
-                console.error(fetchError);
-                throw fetchError;
+                if (fetchError.code === 404) {
+                    console.error(chalk.red("Unknown Template ID"), app.id, "not found.");
+                    process.exit(1);
+                }
+                else {
+                    console.error(fetchError);
+                    throw fetchError;
+                }
             }
 
             if (template.save(templateFile, app.force)) {
