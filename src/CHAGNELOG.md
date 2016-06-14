@@ -3,6 +3,7 @@
 * new: NAD reverse support (--agent reverse)
 * new: Ubuntu 16.04 support
 * fix: typo '%' removed from metric name in graph-if
+* new: upstream NAD version release 20160607T194451Z-1
 
 ### 0.6.0 2016-06-02
 
