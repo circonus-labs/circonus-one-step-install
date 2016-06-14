@@ -29,7 +29,7 @@ Options
 
   [--apiurl]    Circonus API URL Default: https://api.circonus.com/
 
-  [--agent]     Agent mode (reverse|pull|push) Default: reverse
+  [--agent]     Agent mode (reverse|pull|push) Default: pull
                 reverse = Install NAD, NAD will open connection to broker.
                           broker will request metrics through reverse connection.
                 pull = Install NAD, broker will connect to system and request metrics
@@ -714,7 +714,7 @@ cosi_initialize() {
     : ${cosi_api_url:=https://api.circonus.com/}
     : ${cosi_api_key:=}
     : ${cosi_api_app:=cosi}
-    : ${cosi_agent_mode:=reverse}
+    : ${cosi_agent_mode:=pull}
     : ${cosi_statsd_flag:=0}
     : ${cosi_statsd_type:=none}
     : ${cosi_install_agent:=1}
@@ -859,6 +859,7 @@ cosi_register() {
     local cosi_register_cmd="register"
     local cosi_register_opt=""
     local install_nadpush="${cosi_dir}/bin/install_nadpush.sh"
+    local install_nadreverse="${cosi_dir}/bin/install_nadreverse.sh"
     local install_statsd="${cosi_dir}/bin/install_statsd.sh"
 
     echo
@@ -888,6 +889,16 @@ cosi_register() {
             [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "Errors encountered during nadpush installation."
         else
             fail "Agent mode is push, nadpush installer not found."
+        fi
+    elif [[ "${cosi_agent_mode}" == "reverse" ]]; then
+        echo
+        echo
+        log "Enabling reverse mode for agent"
+        if [[ -x "$install_nadreverse" ]]; then
+            $install_nadreverse | tee -a $cosi_install_log
+            [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "Errors encountered during NAD reverse configuration."
+        else
+            fail "Agent mode is reverse, nadreverse installer not found."
         fi
     fi
 

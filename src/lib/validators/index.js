@@ -127,7 +127,7 @@ class Validators {
             return next(new restify.MissingParameterError(errors.join(", ")));
         }
 
-        if (!req.params.mode.match(/^(push|pull)$/)) {
+        if (!req.params.mode.match(/^(push|pull|reverse)$/)) {
             errors.push(`Invalid Agent mode '${req.params.mode}'`);
         }
 
@@ -176,73 +176,6 @@ class Validators {
 
         return next();
     }
-
-    // configParameters(req, res, next) {
-    //     const reqId = req.id();
-    //     const errors = [];
-    //     let paramName = "id";
-    //
-    //     if (req.params.hasOwnProperty(paramName)) {
-    //         if (req.params[paramName].length === 0) { //eslint-disable-line no-magic-numbers
-    //             errors.push("A config ID is required");
-    //         }
-    //     } else {
-    //         errors.push("A config ID is required");
-    //     }
-    //
-    //     // short-circuit and send back missing required parameters
-    //     if (errors.length) {
-    //         errors.push(`ref id: ${reqId}`);
-    //         return next(new restify.MissingParameterError(errors.join(", ")));
-    //     }
-    //
-    //     if (!req.params.id.match(/^(system|statsd)$/i)) {
-    //         errors.push(`Invalid config ID '${req.params.id}'`);
-    //     }
-    //
-    //     // short-circuit and send back invalid required parameters
-    //     if (errors.length) {
-    //         errors.push(`ref id: ${reqId}`);
-    //         return next(new restify.InvalidArgumentError(errors.join(", ")));
-    //     }
-    //
-    //     paramName = "mode";
-    //     const configId = req.params.id.toLowerCase();
-    //
-    //     if (req.params.hasOwnProperty(paramName)) {
-    //         if (req.params[paramName].length === 0) { //eslint-disable-line no-magic-numbers
-    //             errors.push(`A mode is required for config ID ${configId}`);
-    //         }
-    //     } else {
-    //         errors.push(`A mode is required for config ID ${configId}`);
-    //     }
-    //
-    //     // short-circuit and send back missing required parameters
-    //     if (errors.length) {
-    //         errors.push(`ref id: ${reqId}`);
-    //         return next(new restify.MissingParameterError(errors.join(", ")));
-    //     }
-    //
-    //     if (configId === "system") {
-    //         if (!req.params.mode.match(/^(push|pull)$/i)) {
-    //             errors.push(`Invalid mode '${req.params.mode}' for config ID '${configId}'`);
-    //         }
-    //     } else if (configId === "statsd") {
-    //         if (!req.params.mode.match(/^(local|remote)$/i)) {
-    //             errors.push(`Invalid mode '${req.params.mode}' for config ID '${configId}'`);
-    //         }
-    //     } else {
-    //         errors.push(`No known modes for config ID ${configId} `);
-    //     }
-    //
-    //     // short-circuit and send back invalid required parameters
-    //     if (errors.length) {
-    //         errors.push(`ref id: ${reqId}`);
-    //         return next(new restify.InvalidArgumentError(errors.join(", ")));
-    //     }
-    //
-    //     return next();
-    // }
 }
 
 

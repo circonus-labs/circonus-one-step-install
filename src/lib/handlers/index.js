@@ -140,6 +140,13 @@ class Handlers {
             }
             broker.broker_id = settings.default_broker_list.pull[defaultId];
         }
+        else if (req.params.mode.toLowerCase() === "reverse") {
+            defaultId = settings.default_broker_list.reverse_default;
+            if (defaultId === -1) { //eslint-disable-line no-magic-numbers
+                defaultId = Math.floor(Math.random() * settings.default_broker_list.reverse.length);
+            }
+            broker.broker_id = settings.default_broker_list.reverse[defaultId];
+        }
         else {
             return next(new restify.InvalidArgumentError(`Invalid agent mode specified '${mode}'`));
         }
