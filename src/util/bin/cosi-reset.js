@@ -180,6 +180,7 @@ app.
     option("-w, --worksheet [id]", "Delete COSI worksheet with [id] or all worksheets for this host").
     option("-r, --ruleset [id]", "Delete COSI ruleset with [id] or all rulesets").
     option("--notemplate", "Keep template files, do not remove with registration and config files.").
+    option("--configs", "Remove the COSI configuration files. Combine with --all for a re-install.").
     option("-q, --quiet", "Only error output").
     parse(process.argv);
 
@@ -265,6 +266,33 @@ if (items.length > 0) {
     });
 
     events.emit("next");
+}
+
+if (app.configs) {
+    const configFiles = [
+        path.resolve(path.join(cosi.etc_dir, "cosi.json")),
+        path.resolve(path.join(cosi.etc_dir, "circonus-nadreversesh")),
+        path.resolve(path.join(cosi.cosi_dir, "..", "etc", "circonus-nadpush.json")),
+        path.resolve(path.join(cosi.reg_dir, "setup-config.json")),
+        path.resolve(path.join(cosi.reg_dir, "setup-metrics.json"))
+    ];
+
+    console.log("Removing COSI configuration files");
+
+    for (let i = 0; i < configFiles.length; i++) {
+        const file = configFiles[i];
+
+        try {
+            console.log(`\tremoving ${file}`);
+            fs.unlinkSync(file);
+        }
+        catch (err) {
+            // ignore any files which are missing (some are --agent type dependent)
+            if (err.code !== "ENOENT") {
+                console.error(chalk("red"), err);
+            }
+        }
+    }
 }
 
 // END
