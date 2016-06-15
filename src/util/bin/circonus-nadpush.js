@@ -57,7 +57,9 @@ function sendMetrics(metricJson) {
         return;
     }
 
-    const req = https.request(settings.send_req_opts);
+    const client = settings.send_req_opts.protocol === "https:" ? https : http;
+
+    const req = client.request(settings.send_req_opts);
 
     req.on("response", (res) => {
         let data = "";
@@ -140,18 +142,23 @@ function fetchMetrics() {
 }
 
 
-cert.load(settings.cert_file, settings.cert_url, (err, brokerCert) => {
-    if (err) {
-        // unable to load the cert, no point in continuing
-        log.error(`Unable to load Broker CA cert ${err}`);
-        process.exit(1);
-    }
+if (settings.send_via_proxy) {
+    fetchMetrics();
+}
+else {
+    cert.load(settings.cert_file, settings.cert_url, (err, brokerCert) => {
+        if (err) {
+            // unable to load the cert, no point in continuing
+            log.error(`Unable to load Broker CA cert ${err}`);
+            process.exit(1);
+        }
 
-    if (brokerCert) {
-        settings.send_req_opts.ca.push(brokerCert);
-        fetchMetrics();
-    }
-});
+        if (brokerCert) {
+            settings.send_req_opts.ca.push(brokerCert);
+            fetchMetrics();
+        }
+    });
+}
 
 
 //
