@@ -520,7 +520,11 @@ __check_nad_url() {
 __check_agent() {
     if [[ $agent_state -eq 0 ]]; then
         __is_nad_installed  #state 1
+    fi
+    if [[ $agent_state -eq 1 ]]; then
         __is_nad_running    #state 2
+    fi
+    if [[ $agent_state -eq 2 ]]; then
         __check_nad_url     #state 3
     fi
 }
@@ -529,9 +533,9 @@ __start_agent() {
     local agent_pid
     local ret
 
-    log "Starting installed agent (if not already running)"
+    log "Starting agent (if not already running)"
 
-    if [[ ${agent_installed:-0} -gt 0 ]]; then
+    if [[ ${agent_state:-0} -eq 1 ]]; then
         if [[ ! -x "/etc/init.d/nad" ]]; then
             fail "Agent init script /etc/init.d/nad not found!"
         fi
@@ -679,7 +683,6 @@ cosi_initialize() {
     etc_dir="${cosi_dir}/etc"
     reg_dir="${cosi_dir}/registration"
 
-    agent_installed=0
     agent_state=0
     agent_ip="127.0.0.1"
     agent_port="2609"
@@ -839,16 +842,15 @@ cosi_check_agent() {
     if [[ $agent_state -eq 0 ]]; then
         log "Agent not found, installing Agent"
         __install_agent
-        log "Verify Agent install state"
         __check_agent
-    else
-        pass "Existing agent installation detected."
     fi
 
-    if [[ $agent_state -ne 3 ]]; then
+    if [[ $agent_state -eq 1 ]]; then
         __start_agent
         __check_agent
-    else
+    fi
+
+    if [[ $agent_state -eq 3 ]]; then
         pass "Agent running and responding"
     fi
 }
