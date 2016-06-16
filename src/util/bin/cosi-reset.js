@@ -171,6 +171,32 @@ function findItems(dir, itemType, itemId) {
     return entries;
 }
 
+function removeConfigs() {
+    const configFiles = [
+        path.resolve(path.join(cosi.etc_dir, "cosi.json")),
+        path.resolve(path.join(cosi.etc_dir, "circonus-nadreversesh")),
+        path.resolve(path.join(cosi.cosi_dir, "..", "etc", "circonus-nadpush.json")),
+        path.resolve(path.join(cosi.reg_dir, "setup-config.json")),
+        path.resolve(path.join(cosi.reg_dir, "setup-metrics.json"))
+    ];
+
+    console.log("Removing COSI configuration files");
+
+    for (let i = 0; i < configFiles.length; i++) {
+        const file = configFiles[i];
+
+        try {
+            console.log(`\tremoving ${file}`);
+            fs.unlinkSync(file);
+        }
+        catch (err) {
+            // ignore any files which are missing (some are --agent type dependent)
+            if (err.code !== "ENOENT") {
+                console.error(chalk("red"), err);
+            }
+        }
+    }
+}
 
 app.
     version(cosi.app_version).
@@ -262,37 +288,17 @@ if (items.length > 0) {
     });
 
     events.on("done", () => {
+        if (app.configs) {
+            removeConfigs();
+        }
         console.log("reset complete");
     });
 
     events.emit("next");
 }
-
-if (app.configs) {
-    const configFiles = [
-        path.resolve(path.join(cosi.etc_dir, "cosi.json")),
-        path.resolve(path.join(cosi.etc_dir, "circonus-nadreversesh")),
-        path.resolve(path.join(cosi.cosi_dir, "..", "etc", "circonus-nadpush.json")),
-        path.resolve(path.join(cosi.reg_dir, "setup-config.json")),
-        path.resolve(path.join(cosi.reg_dir, "setup-metrics.json"))
-    ];
-
-    console.log("Removing COSI configuration files");
-
-    for (let i = 0; i < configFiles.length; i++) {
-        const file = configFiles[i];
-
-        try {
-            console.log(`\tremoving ${file}`);
-            fs.unlinkSync(file);
-        }
-        catch (err) {
-            // ignore any files which are missing (some are --agent type dependent)
-            if (err.code !== "ENOENT") {
-                console.error(chalk("red"), err);
-            }
-        }
-    }
+else if (app.configs) {
+    removeConfigs();
 }
+
 
 // END
