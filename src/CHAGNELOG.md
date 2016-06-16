@@ -1,3 +1,12 @@
+### 0.7.2 2016-06-16
+
+* change: protect cosi-site process on template syntax errors
+* change: clarify error message for 'cosi template fetch' when template id not found
+* fix: better detection of state when nad already installed for cosi-install
+* new: add --configs option to cosi reset to remove configs (clean slate for new cosi-install run)
+* new: add proxy support to circonus-nadpush
+* new: standardize on https-proxy-agent for external requests
+
 ### 0.7.1 2016-06-14
 
 * new: NAD reverse support (--agent reverse) for OmniOS
