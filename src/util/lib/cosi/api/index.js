@@ -24,6 +24,9 @@ const qs = require("querystring");
 const url = require("url");
 const http = require("http");
 const https = require("https");
+const path = require("path");
+
+const cosi = require(path.resolve(path.join(__dirname, "..")));
 
 let singleton = null;
 
@@ -182,7 +185,7 @@ Api.prototype.do_request = function(options, callback) {
 Api.prototype.get_request_options = function(method, endpoint, data) {
     // ensure valid url object with all required variables initialized
 
-    const options = url.parse(url.format(
+    const options = cosi.getProxySettings(url.format(
         {
             protocol: this.protocol,
             host: this.apihost,
@@ -192,7 +195,6 @@ Api.prototype.get_request_options = function(method, endpoint, data) {
     ));
 
     options.method = method.toUpperCase();
-    options.agent = false;
     options.headers = {
         "X-Circonus-Auth-Token": this.authtoken,
         "X-Circonus-App-Name": this.appname,
@@ -201,24 +203,6 @@ Api.prototype.get_request_options = function(method, endpoint, data) {
         retry: 0,
         data: null
     };
-
-    // const options = {
-    //     protocol: this.protocol,
-    //     host: this.apihost,
-    //     port: this.apiport,
-    //     path: this.apipath,
-    //     method: method.toUpperCase(),
-    //     agent: false,
-    //     headers: {
-    //         "X-Circonus-Auth-Token": this.authtoken,
-    //         "X-Circonus-App-Name": this.appname,
-    //         "Accept": "application/json"
-    //     },
-    //     circapi: {
-    //         retry: 0,
-    //         data: null
-    //     }
-    // };
 
     options.circapi.data = data;
     if (options.method === "POST" || options.method === "PUT" && data ) {
@@ -235,48 +219,6 @@ Api.prototype.get_request_options = function(method, endpoint, data) {
     }
 
     options.pathname = options.path;
-
-    if (this.protocol === "https:") {
-        // check for https proxy environment variable
-        let httpsProxy = null;
-        let proxyServer = null;
-
-        if (process.env.hasOwnProperty("https_proxy")) {
-            proxyServer = process.env.https_proxy;
-
-        }
-        else if (process.env.hasOwnProperty("HTTPS_PROXY")) {
-            proxyServer = process.env.HTTPS_PROXY;
-        }
-
-        if (proxyServer !== null && proxyServer !== "") {
-            if (!proxyServer.match(/^http[s]?:\/\//)) {
-                proxyServer = `http://${proxyServer}`;
-            }
-            httpsProxy = url.parse(proxyServer);
-        }
-
-        if (httpsProxy !== null) {
-            // setup for https proxy
-
-            const proxyOptions = options;
-
-            proxyOptions.path = url.format(options);
-            proxyOptions.pathname = proxyOptions.path;
-            proxyOptions.headers = options.headers || {};
-            proxyOptions.headers.Host = options.host || url.format({
-                hostname: options.hostname,
-                port: options.port
-            });
-            proxyOptions.protocol = httpsProxy.protocol;
-            proxyOptions.hostname = httpsProxy.hostname;
-            proxyOptions.port = httpsProxy.port;
-            proxyOptions.href = null;
-            proxyOptions.host = null;
-
-            return proxyOptions;
-        }
-    }
 
     return options;
 };

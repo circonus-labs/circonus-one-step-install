@@ -6,6 +6,7 @@ const path = require("path");
 const crypto = require("crypto");
 const fs = require("fs");
 const url = require("url");
+const ProxyAgent = require("https-proxy-agent");
 
 const chalk = require("chalk");
 
@@ -145,50 +146,43 @@ class COSI {
 
     getProxySettings(reqUrl) {
         const reqOptions = url.parse(reqUrl);
+        const proxyServer = this._getProtocolProxyUrl(reqOptions.protocol);
 
-        if (reqOptions.protocol === "https:") {
-            // check for https proxy environment variable
-            let httpsProxy = null;
-            let proxyServer = null;
+        reqOptions.agent = false;
+        if (proxyServer !== null) {
+            reqOptions.agent = new ProxyAgent(proxyServer);
+        }
 
+        return reqOptions;
+    }
+
+    // extract proxy setting from environment for a specific protocol
+    _getProtocolProxyUrl(urlProtocol) {
+        let proxyServer = null;
+
+        if (urlProtocol === "http:") {
+            if (process.env.hasOwnProperty("http_proxy")) {
+                proxyServer = process.env.http_proxy;
+            }
+            else if (process.env.hasOwnProperty("HTTP_PROXY")) {
+                proxyServer = process.env.HTTP_PROXY;
+            }
+        }
+        else if (urlProtocol === "https:") {
             if (process.env.hasOwnProperty("https_proxy")) {
                 proxyServer = process.env.https_proxy;
-
             }
             else if (process.env.hasOwnProperty("HTTPS_PROXY")) {
                 proxyServer = process.env.HTTPS_PROXY;
             }
-
-            if (proxyServer !== null && proxyServer !== "") {
-                if (!proxyServer.match(/^http[s]?:\/\//)) {
-                    proxyServer = `http://${proxyServer}`;
-                }
-                httpsProxy = url.parse(proxyServer);
-            }
-
-            if (httpsProxy !== null) {
-                // setup for https proxy
-
-                const proxyOptions = reqOptions;
-
-                proxyOptions.path = url.format(reqOptions);
-                proxyOptions.pathname = proxyOptions.path;
-                proxyOptions.headers = reqOptions.headers || {};
-                proxyOptions.headers.Host = reqOptions.host || url.format({
-                    hostname: reqOptions.hostname,
-                    port: reqOptions.port
-                });
-                proxyOptions.protocol = httpsProxy.protocol;
-                proxyOptions.hostname = httpsProxy.hostname;
-                proxyOptions.port = httpsProxy.port;
-                proxyOptions.href = null;
-                proxyOptions.host = null;
-
-                return proxyOptions;
+        }
+        if (proxyServer !== null && proxyServer !== "") {
+            if (!proxyServer.match(/^http[s]?:\/\//)) {
+                proxyServer = `http://${proxyServer}`;
             }
         }
 
-        return reqOptions;
+        return proxyServer;
     }
 }
 
