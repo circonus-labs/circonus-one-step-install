@@ -1,20 +1,13 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-#src_file = '../../content/files/cosi-install.sh'
-#dst_file = 'cosi-install.sh'
-#if !File.exists?(dst_file) || !FileUtils.uptodate?(src_file, [dst_file])
-#    FileUtils.cp(src_file, dst_file)
-#end
-
 Vagrant.configure(2) do |config|
-  config.vm.box = "maier/centos-7.2.1511-x86_64"
-  config.vm.provision "shell", inline: <<-SHELL
-    echo "Installing RPM building utilities"
-    yum -q install -y rpmdevtools
-    su - vagrant -c rpmdev-setuptree
-    #echo "Installing mock"
-    #yum -q install -y mock
-    #usermod -a -G mock vagrant
-  SHELL
+    config.vm.box = 'maier/centos-7.2.1511-x86_64'
+    config.vm.provision 'shell', inline: <<-SHELL
+        echo "Updating yum cache"
+        yum -q -e 0 makecache fast
+        echo "Installing RPM building utilities"
+        yum -q install -y rpmdevtools
+        su - vagrant -c rpmdev-setuptree
+    SHELL
 end
