@@ -6,10 +6,49 @@
 const path = require("path");
 const url = require("url");
 const util = require("util");
+const ProxyAgent = require("https-proxy-agent");
 
 const options = require("commander");
 
+const CERT_URL = "http://login.circonus.com/pki/ca.crt";
+const DEFAULT_CONFIG_FILE = "/opt/circonus/etc/circonus-nadpush.json";
+const DEFAULT_GROUP = "nobody";
+const DEFAULT_NAD_URL = "http://127.0.0.1:2609/";
+const DEFAULT_POLL_INTERVAL = 60;
+const DEFAULT_REQUEST_TIMEOUT = 15;
+const DEFAULT_SILENT = false;
+const DEFAULT_USER = "nobody";
+const DEFAULT_VERBOSE = false;
+
 let instance = null;
+
+function getProxySettings(urlProtocol) {
+    let proxyServer = null;
+
+    if (urlProtocol === "http:") {
+        if (process.env.hasOwnProperty("http_proxy")) {
+            proxyServer = process.env.http_proxy;
+        }
+        else if (process.env.hasOwnProperty("HTTP_PROXY")) {
+            proxyServer = process.env.HTTP_PROXY;
+        }
+    }
+    else if (urlProtocol === "https:") {
+        if (process.env.hasOwnProperty("https_proxy")) {
+            proxyServer = process.env.https_proxy;
+        }
+        else if (process.env.hasOwnProperty("HTTPS_PROXY")) {
+            proxyServer = process.env.HTTPS_PROXY;
+        }
+    }
+    if (proxyServer !== null && proxyServer !== "") {
+        if (!proxyServer.match(/^http[s]?:\/\//)) {
+            proxyServer = `http://${proxyServer}`;
+        }
+    }
+
+    return proxyServer;
+}
 
 class Settings {
     constructor() {
@@ -18,16 +57,6 @@ class Settings {
         }
 
         instance = this; //eslint-disable-line consistent-this
-
-        const CERT_URL = "http://login.circonus.com/pki/ca.crt";
-        const DEFAULT_CONFIG_FILE = "/opt/circonus/etc/circonus-nadpush.json";
-        const DEFAULT_GROUP = "nobody";
-        const DEFAULT_NAD_URL = "http://127.0.0.1:2609/";
-        const DEFAULT_POLL_INTERVAL = 60;
-        const DEFAULT_REQUEST_TIMEOUT = 15;
-        const DEFAULT_SILENT = true;
-        const DEFAULT_USER = "nobody";
-        const DEFAULT_VERBOSE = false;
 
         this.name = "circonus-nadpush";
         this.version = "1.0.0";
@@ -39,7 +68,7 @@ class Settings {
         this.poll_interval = null;
         this.poller = null;
         this.request_timeout = null;
-        this.silent = true;
+        this.silent = false;
         this.user = null;
         this.verbose = false;
         this.send_req_opts = {};
@@ -57,7 +86,7 @@ class Settings {
             option("--cert_url <url>", util.format("Broker CA certificate URL [%s]", CERT_URL), null).
             option("--cert_file <path>", "Broker CA certificate file [none]", null).
             option("-v, --verbose", "Output more verbose log lines [false] verbose takes precedence over silent.", null).
-            option("-s, --silent", "Output no messages at all [true]. Use to silence output re:sent metrics.", null).
+            option("-s, --silent", "Output no messages at all [false]. Use to silence output re:sent metrics.", null).
             parse(process.argv);
 
         // load config, if specified
@@ -105,6 +134,11 @@ class Settings {
         }
         if (cert_url !== null) {
             this.cert_url = url.parse(cert_url);
+            const proxyServer = getProxySettings(this.cert_url.protocol);
+
+            if (proxyServer !== null) {
+                this.cert_url.agent = new ProxyAgent(proxyServer);
+            }
         }
 
         if (this.check_url === null) {
@@ -112,58 +146,19 @@ class Settings {
             options.outputHelp();
             process.exit(1);
         }
-
-        this.send_req_opts = url.parse(this.check_url);
-        this.send_req_opts.headers = {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        };
-
-        // honor proxy environment settings
-        let proxyServer = null;
-
-        if (this.send_req_opts.protocol === "http:") {
-            if (process.env.hasOwnProperty("http_proxy")) {
-                proxyServer = process.env.http_proxy;
-            }
-            else if (process.env.hasOwnProperty("HTTP_PROXY")) {
-                proxyServer = process.env.HTTP_PROXY;
-            }
-        }
-        else if (this.send_req_opts.protocol === "https:") {
-            if (process.env.hasOwnProperty("https_proxy")) {
-                proxyServer = process.env.https_proxy;
-            }
-            else if (process.env.hasOwnProperty("HTTPS_PROXY")) {
-                proxyServer = process.env.HTTPS_PROXY;
-            }
-        }
-
-        if (proxyServer !== null && proxyServer !== "") {
-            if (!proxyServer.match(/^http[s]?:\/\//)) {
-                proxyServer = `http://${proxyServer}`;
-            }
-            const proxyOptions = url.parse(proxyServer);
-            const reqOptions = url.parse(this.check_url);
-
-            reqOptions.path = url.format(this.send_req_opts);
-            reqOptions.pathname = this.send_req_opts.path;
-            reqOptions.headers = this.send_req_opts.headers || {};
-            reqOptions.headers.Host = this.send_req_opts.host || url.format({
-                hostname: this.send_req_opts.hostname,
-                port: this.send_req_opts.port
-            });
-            reqOptions.protocol = proxyOptions.protocol;
-            reqOptions.hostname = proxyOptions.hostname;
-            reqOptions.port = proxyOptions.port;
-            reqOptions.href = null;
-            reqOptions.host = null;
-
-            this.send_req_opts = reqOptions;
-            this.send_via_proxy = true;
-        }
         else {
-            this.send_via_proxy = false;
+            this.send_req_opts = url.parse(this.check_url);
+            const proxyServer = getProxySettings(this.send_req_opts.protocol);
+
+            if (proxyServer !== null) {
+                this.send_req_opts.agent = new ProxyAgent(proxyServer);
+                this.send_req_opts.timeout = 15 * 1000;
+            }
+            this.send_req_opts.method = "PUT";
+            this.send_req_opts.headers = {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            };
             this.send_req_opts.ca = [];
             // adding support to leverage CN/external_hostname to avoid
             // no IP SANS type of errors. (derived submission URLs *shouldn't*
@@ -173,8 +168,6 @@ class Settings {
                 this.send_req_opts.servername = config.broker_servername;
             }
         }
-
-        this.send_req_opts.method = "PUT";
 
         const cmdline = process.argv.slice(2);
 

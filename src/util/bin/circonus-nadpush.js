@@ -76,8 +76,10 @@ function sendMetrics(metricJson) {
 
             try {
                 const result = JSON.parse(data);
-
-                log.info(`${result.stats} metrics sent to broker.`);
+                
+                if (!settings.silent) {
+                    log.info(`${result.stats} metrics sent to broker.`);
+                }
             }
             catch (err) {
                 log.warn(`Error parsing metric send result ${err} ${data}`);
@@ -100,15 +102,8 @@ function sendMetrics(metricJson) {
 
 
 function fetchMetrics() {
-    if (settings.send_req_opts.ca[0] === null) {
-        if (settings.verbose) {
-            log.info("CA cert not initialized yet, waiting for next cycle.");
-        }
-        return;
-    }
-
     if (settings.verbose) {
-        log.info(`Fetching metrics from NAD ${settings.nad_url}`);
+        log.info(`Fetching metrics from NAD ${settings.nad_url.href}`);
     }
 
     // a) be a nice citizen, don't consume/hold resources unecessarily.
@@ -136,29 +131,24 @@ function fetchMetrics() {
 
         });
     }).once("error", (err) => {
-        log.error(`Error fetching metrics from NAD ${settings.nad_url} ${err}`);
+        log.error(`Error fetching metrics from NAD ${settings.nad_url.href} ${err}`);
     });
 
 }
 
 
-if (settings.send_via_proxy) {
-    fetchMetrics();
-}
-else {
-    cert.load(settings.cert_file, settings.cert_url, (err, brokerCert) => {
-        if (err) {
-            // unable to load the cert, no point in continuing
-            log.error(`Unable to load Broker CA cert ${err}`);
-            process.exit(1);
-        }
+cert.load(settings.cert_file, settings.cert_url, (err, brokerCert) => {
+    if (err) {
+        // unable to load the cert, no point in continuing
+        log.error(`Unable to load Broker CA cert ${err}`);
+        process.exit(1);
+    }
 
-        if (brokerCert) {
-            settings.send_req_opts.ca.push(brokerCert);
-            fetchMetrics();
-        }
-    });
-}
+    if (brokerCert) {
+        settings.send_req_opts.ca.push(brokerCert);
+        fetchMetrics();
+    }
+});
 
 
 //
