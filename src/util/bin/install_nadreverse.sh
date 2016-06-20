@@ -54,12 +54,19 @@ if [[ $nadrev_enable -eq 1 ]]; then
 fi
 
 if [[ -f /etc/sysconfig/nad ]]; then
-    # Linux
+    # Linux (RHEL)
     echo "NAD_OPTS=\"${nadrev_opts}\"" > /etc/sysconfig/nad
     # *should* work given that nad is installed as an /etc/init.d service
     # script regardless of actual init system in place on the host
     service nad restart
     sleep 2
+elif [[ -f /etc/default/nad ]]; then
+        # Linux (Ubuntu)
+        echo "NAD_OPTS=\"${nadrev_opts}\"" > /etc/sysconfig/nad
+        # *should* work given that nad is installed as an /etc/init.d service
+        # script regardless of actual init system in place on the host
+        service nad restart
+        sleep 2
 elif [[ -d /var/svc/manifest && -x /usr/sbin/svcadm ]]; then
     # OmniOS
     nad_method_script="/var/svc/method/circonus-nad"
