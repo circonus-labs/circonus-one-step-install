@@ -62,7 +62,7 @@ if [[ -f /etc/sysconfig/nad ]]; then
     sleep 2
 elif [[ -f /etc/default/nad ]]; then
         # Linux (Ubuntu)
-        echo "NAD_OPTS=\"${nadrev_opts}\"" > /etc/sysconfig/nad
+        echo "NAD_OPTS=\"${nadrev_opts}\"" > /etc/default/nad
         # *should* work given that nad is installed as an /etc/init.d service
         # script regardless of actual init system in place on the host
         service nad restart

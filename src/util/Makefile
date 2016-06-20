@@ -1,7 +1,7 @@
 
 BABEL	 	:= ./node_modules/.bin/babel
 
-BIN_SRC  	:= $(shell git ls-files bin/*.js)
+BIN_SRC  	:= $(shell git ls-files bin/*.{js,sh})
 LIB_SRC  	:= $(shell git ls-files lib)
 
 UTILS 		:= cosi-util.tar.gz
