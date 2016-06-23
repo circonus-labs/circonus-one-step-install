@@ -192,7 +192,10 @@
         "quotes": [
             2,
             "double",
-            "avoid-escape"
+            {
+                "avoidEscape": true,
+                "allowTemplateLiterals": true
+            }
         ],
         "operator-assignment": [
             2,
