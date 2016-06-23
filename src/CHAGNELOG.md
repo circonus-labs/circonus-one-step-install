@@ -1,3 +1,7 @@
+### 0.7.3 2016-06-23
+
+* new: Amazon Linux v2016.03 x86\_64 (RHEL6) support (alpha-trial)
+
 ### 0.7.2 2016-06-16
 
 * change: protect cosi-site process on template syntax errors
