@@ -258,6 +258,23 @@ __detect_os() {
                     cosi_os_dist="Debian"
                     cosi_os_vers="$(head -1 /etc/debian_version)"
                 fi
+            elif [[ -f /etc/os-release ]]; then
+                log "\tAttempt detection from /etc/os-release"
+                cat /etc/os-release >> $cosi_install_log
+                source /etc/os-release
+                if [[ "${PRETTY_NAME:-}" != "" ]]; then
+                    log "\t\tFound '${PRETTY_NAME}'"
+                fi
+                cosi_os_dist="${ID:-Unsupported}"
+                cosi_os_vers="${VERSION_ID:-}"
+                # if it's an amazon linux ami stuff dmi so it will trigger
+                # getting the external public name (amazon linux doesn't
+                # include the dmidecode command by default).
+                if [[ "${cosi_os_dist:-}" == "amzn" ]]; then
+                    if [[ "${cosi_os_dmi:-}" == "" ]]; then
+                        cosi_os_dmi="amazon"
+                    fi
+                fi
             else
                 ### add more as needed/supported
                 cosi_os_dist="unsup"
