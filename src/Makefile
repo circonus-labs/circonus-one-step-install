@@ -7,7 +7,8 @@ COSI_VER := $(shell node -e "console.log(require('./package.json').version);")
 BIN_SRC = cosi-site.js
 LIB_SRC = $(shell git ls-files lib)
 ETC_SRC = etc/circonus-packages.json
-MOD_SRC = .modules
+#MOD_SRC = .modules
+MOD_SRC = 
 OTH_SRC = service content install.sh package.json
 DOC_SRC = README.md LICENSE
 
@@ -70,7 +71,7 @@ $(SITE_TGZ): $(ALL_SRC) $(UTIL_PKG) $(RPM_FILE)
 	@echo "Create cosi-site package"
 	-rm -rf .modules
 	test -d node_modules || npm install
-	pac --production
+	#pac --production
 	install -vC $(UTIL_PKG) content/files
 	install -vC $(RPM_FILE) content/files
 	COPYFILE_DISABLE=true tar -czf $@ $(BIN_SRC) $(LIB_SRC) $(ETC_SRC) $(MOD_SRC) $(OTH_SRC) $(DOC_SRC)
