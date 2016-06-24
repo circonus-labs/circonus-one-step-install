@@ -33,4 +33,4 @@
 
 - name: Enable COSI-Site service
   become: true
-  service: name="cosi-site" enabled=yes state=started
+  service: name="cosi-site" enabled=yes

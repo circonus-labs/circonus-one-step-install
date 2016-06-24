@@ -1,20 +1,9 @@
 ---
 
-- name: Install COSI Site
-  become: true
-  shell: ./install.sh "{{ cosi_directory }}" >> install.log
-  args:
-     chdir: "{{ cosi_directory }}"
-     creates: "{{ cosi_directory }}/etc/packages.json"
-  register: sh_rc
-  notify: Check Install Result
- 
-- name: Check Install Result
-  fail: var=sh_rc
-  when: sh_rc.rc != 0
-
 - name: Import SMF manifest
   become: true
   shell: /usr/sbin/svccfg -v import "{{ smf_directory }}/cosi-site.xml"
 
-
+- name: Restart Site
+  become: true
+  service: name="cosi-site" state="restarted"

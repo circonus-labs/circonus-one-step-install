@@ -29,16 +29,6 @@
       mode="0755"
       state="directory"
 
-- name: Copy COSI node modules for OmniOS
-  become: true
-  copy:
-      src="node_modules-v{{ node_version }}-omnios-{{ ansible_distribution_version }}.tar.gz"
-      dest="{{ cosi_directory }}/cosi-node_modules-omnios.tar.gz"
-      owner="{{ cosi_owner}}"
-      group="{{ cosi_group }}"
-      mode="0640"
-  when: ansible_distribution == "OmniOS"
-
 - name: Unpack COSI Site package
   become: true
   unarchive:
@@ -47,7 +37,7 @@
       copy="yes"
       owner="{{ cosi_owner }}"
       group="{{ cosi_group }}"
-  notify: Install COSI Site
+  notify: Restart Site
 
 - name: Install COSI Site config
   become: true
@@ -57,5 +47,24 @@
       owner="{{ cosi_owner }}"
       group="{{ cosi_group }}"
       mode="0640"
+  notify: Restart Site
 
-- meta: flush_handlers
+- name: Install 'bunyan' nodejs module
+  become: true
+  npm: executable="{{ npm_bin }}" path="{{ cosi_directory }}"  state="present" name="bunyan" version="1.8.1"
+  notify: Restart Site
+
+- name: Install 'commander' nodejs module
+  become: true
+  npm: executable="{{ npm_bin }}" path="{{ cosi_directory }}"  state="present" name="commander" version="2.9.0"
+  notify: Restart Site
+
+- name: Install 'node-statsd' nodejs module
+  become: true
+  npm: executable="{{ npm_bin }}" path="{{ cosi_directory }}"  state="present" name="node-statsd" version="0.1.1"
+  notify: Restart Site
+
+- name: Install 'restify' nodejs module
+  become: true
+  npm: executable="{{ npm_bin }}" path="{{ cosi_directory }}"  state="present" name="restify" version="4.1.1"
+  notify: Restart Site

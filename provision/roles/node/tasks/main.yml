@@ -14,10 +14,6 @@
           - "../vars/{{ ansible_system }}.yml"
         skip: true
 
-- name: Check directory
-  become: true
-  file: path="{{ node_directory }}/bin" state=directory owner="{{ node_owner }}" group="{{ node_group }}" mode=0755
-
 - name: Install
   include: "{{ item }}"
   with_first_found:
@@ -26,6 +22,10 @@
     - "{{ ansible_distribution }}.yml"
     - "{{ ansible_os_family }}.yml"
     - "{{ ansible_system }}.yml"
+
+- name: Check directory
+  become: true
+  file: path="{{ node_directory }}/bin" state=directory owner="{{ node_owner }}" group="{{ node_group }}" mode=0755
 
 #
 # set the locations of node and npm as facts (used in site role)
