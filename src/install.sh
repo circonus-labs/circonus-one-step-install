@@ -7,7 +7,7 @@ date
 
 cosi_directory=${1:-/opt/circonus/osi-site}
 
-local_path="$PATH"
+local_path="/usr/gnu/bin:$PATH"
 
 [[ -d /opt/circonus/bin ]] && local_path="/opt/circonus/bin:${local_path}"
 
@@ -24,18 +24,20 @@ echo "*** Installing COSI-Site node modules"
 
 cd "$cosi_directory"
 
-omnios_tgz="cosi-node_modules-omnios.tar.gz"
-if [[ -f $omnios_tgz ]]; then
-    # install binary ones so dtrace support exists without having
-    # to install all the dev packages on a production machine
-    # ansible will gate copying of the tgz
-    /usr/gnu/bin/tar -zxf $omnios_tgz
-    [[ -d .modules ]] && rm -rf .modules
+[[ -d .modules ]] && {
+    echo "Cleaning up old module distribution"
+    rm -rfv .modules
+}
+if [[ -d node_modules ]]; then
+    echo "Existing node_modules"
+    npm ls --depth=0
+    echo "Updating existing modules"
+    npm update --production
 else
-    install -d "${cosi_directory}/node_modules"
-    for f in .modules/*.tgz; do tar -zxf "$f" -C node_modules/; done
-    [[ $(uname -s) =~ Linux ]] && npm rebuild
+    npm install --production
 fi
+echo "Installed modules:"
+npm ls --depth=0
 
 # create the log directory if needed
 [[ -d "${cosi_directory}/log" ]] || mkdir -p "${cosi_directory}/log"
