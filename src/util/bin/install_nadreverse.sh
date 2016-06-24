@@ -55,25 +55,43 @@ fi
 
 if [[ -f /etc/sysconfig/nad ]]; then
     # Linux (RHEL)
+    if [[ -x /etc/init.d/nad ]]; then
+        /etc/init.d/nad stop
+    else
+        service nad stop
+    fi
     echo "NAD_OPTS=\"${nadrev_opts}\"" > /etc/sysconfig/nad
     # *should* work given that nad is installed as an /etc/init.d service
     # script regardless of actual init system in place on the host
-    service nad restart
+    if [[ -x /etc/init.d/nad ]]; then
+        /etc/init.d/nad start
+    else
+        service nad start
+    fi
     sleep 2
 elif [[ -f /etc/default/nad ]]; then
-        # Linux (Ubuntu)
-        echo "NAD_OPTS=\"${nadrev_opts}\"" > /etc/default/nad
-        # *should* work given that nad is installed as an /etc/init.d service
-        # script regardless of actual init system in place on the host
-        service nad restart
-        sleep 2
+    # Linux (Ubuntu)
+    if [[ -x /etc/init.d/nad ]]; then
+        /etc/init.d/nad stop
+    else
+        service nad stop
+    fi
+    echo "NAD_OPTS=\"${nadrev_opts}\"" > /etc/default/nad
+    # *should* work given that nad is installed as an /etc/init.d service
+    # script regardless of actual init system in place on the host
+    if [[ -x /etc/init.d/nad ]]; then
+        /etc/init.d/nad start
+    else
+        service nad start
+    fi
+    sleep 2
 elif [[ -d /var/svc/manifest && -x /usr/sbin/svcadm ]]; then
     # OmniOS
     nad_method_script="/var/svc/method/circonus-nad"
     if [[ -f $nad_method_script ]]; then
-        /usr/sbin/svcadm disable circonus/nad
+        /usr/sbin/svcadm -v disable circonus/nad
         cp -v "${cosi_dir}/service/circonus-nad-reverse.method" $nad_method_script
-        /usr/sbin/svcadm enable circonus/nad
+        /usr/sbin/svcadm -v enable circonus/nad
         sleep 2
     else
         fail "Unable to find NAD 'method' script in default location $nad_method_script"
