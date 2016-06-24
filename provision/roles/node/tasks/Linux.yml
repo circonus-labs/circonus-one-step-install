@@ -4,9 +4,24 @@
   fail: msg="Invalid node_arch {{ node_arch }} not x86|x64"
   when: node_arch not in ['x86', 'x64']
 
+- name: Get current NodeJS version
+  ignore_errors: true
+  register: node_ver_result
+  command: ./bin/node -v
+  args:
+    chdir: "{{ node_directory }}"
+  changed_when: false
+
+- debug: msg="Found Node {{ node_ver_result.stdout }} want v{{ node_version }}"
+  when: node_ver_result.rc == 0
+
+- name: Set install action
+  set_fact: install_node={{ node_ver_result.rc != 0 or node_ver_result.stdout != "v"+node_version }}
+
 - name: Download archive {{ node_directory }}/{{ node_tar_file }}
   become: true
   get_url: url="{{ node_url }}" dest="{{ node_directory }}/{{ node_tar_file }}"
+  when: install_node
 
 # the builtin unarchive doesn't support stripping the top level directory
 # this becomes a huge mess if moving/linking directories in a version

@@ -1,19 +1,28 @@
 ---
 
-- name: Copy OmniOS node archive
+- name: Add Circonus Publisher
   become: true
-  copy: src="{{ node_tar_file }}" dest="{{ node_directory }}" owner="{{ node_owner }}" group="{{ node_group }}" mode=0640
+  pkg5_publisher: name="circonus" origin="http://updates.circonus.net/omnios/r151014/" enabled=true
 
-- name: Unpack OmniOS node archive
+- name: NodeJS package
   become: true
-  register: node_tar_result
-  failed_when: node_tar_result.rc != 0
-  changed_when: node_tar_result.rc == 0
-  shell: cd "{{ node_directory }}" && /usr/gnu/bin/tar --no-same-owner --owner={{ node_owner }} --group={{ node_group }} -zxf "{{ node_tar_file }}"
-  when: install_node
+  package: name="platform/runtime/nodejs" state=installed use=pkg5
 
-- debug: var=node_tar_result
-  when: install_node and node_tar_result.rc != 0
+#
+# - name: Copy OmniOS node archive
+#   become: true
+#   copy: src="{{ node_tar_file }}" dest="{{ node_directory }}" owner="{{ node_owner }}" group="{{ node_group }}" mode=0640
+#
+# - name: Unpack OmniOS node archive
+#   become: true
+#   register: node_tar_result
+#   failed_when: node_tar_result.rc != 0
+#   changed_when: node_tar_result.rc == 0
+#   shell: cd "{{ node_directory }}" && /usr/gnu/bin/tar --no-same-owner --owner={{ node_owner }} --group={{ node_group }} -zxf "{{ node_tar_file }}"
+#   when: install_node
+#
+# - debug: var=node_tar_result
+#   when: install_node and node_tar_result.rc != 0
 
 # - name: Install OmniOS Node v{{ node_version }} build
 #   become: true

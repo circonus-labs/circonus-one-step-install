@@ -18,22 +18,7 @@
   become: true
   file: path="{{ node_directory }}/bin" state=directory owner="{{ node_owner }}" group="{{ node_group }}" mode=0755
 
-- name: Get current version
-  ignore_errors: true
-  register: node_ver_result
-  command: ./bin/node -v
-  args:
-    chdir: "{{ node_directory }}"
-  changed_when: false
-
-- debug: msg="Found Node {{ node_ver_result.stdout }} want v{{ node_version }}"
-  when: node_ver_result.rc == 0
-
-- name: Set install action
-  set_fact: install_node={{ node_ver_result.rc != 0 or node_ver_result.stdout != "v"+node_version }}
-
-# note, we don't want to skip if not found, we want an error
-- name: Install Node v{{ node_version }}
+- name: Install
   include: "{{ item }}"
   with_first_found:
     - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
@@ -41,7 +26,6 @@
     - "{{ ansible_distribution }}.yml"
     - "{{ ansible_os_family }}.yml"
     - "{{ ansible_system }}.yml"
-  when: install_node
 
 #
 # set the locations of node and npm as facts (used in site role)
