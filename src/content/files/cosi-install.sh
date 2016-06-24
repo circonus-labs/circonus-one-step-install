@@ -419,8 +419,7 @@ __install_agent() {
     local do_install=""
     local package_file
 
-    case "$cosi_os_dist" in
-    (Ubuntu|CentOS|RedHat)
+    if [[ ${cosi_os_type,,} =~ linux ]]; then
         if [[ ${#cosi_agent_package_info[@]} -ne 2 ]]; then
             fail "Invalid Agent package information ${cosi_agent_package_info[@]}, expected 'url file_name'"
         fi
@@ -429,38 +428,36 @@ __install_agent() {
         log "Installing agent package ${package_file}"
         [[ ! -f "$package_file" ]] && fail "Unable to find package '$package_file'"
         if [[ -z "${pkg_cmd:-}" ]]; then
-            case "$cosi_os_dist" in
-            (Ubuntu)
-                pkg_cmd="dpkg"
-                pkg_cmd_args="--install ${package_file}"
-                ;;
-            (CentOS|RedHat)
+            if [[ $package_file =~ \.rpm$ ]]; then
                 pkg_cmd="rpm"
                 pkg_cmd_args="-v --install ${package_file}"
-                ;;
-            (*)
-                fail "Unable to determine package installation command for ${cosi_os_dist}. Please set package_install_cmd in config file to continue."
-                ;;
-            esac
+            elif [[ $package_file =~ \.deb$ ]]; then
+                pkg_cmd="dpkg"
+                pkg_cmd_args="--install ${package_file}"
+            else
+                fail "Unable to determine package installation command on '${cosi_os_dist}' for '${package_file}'. Please set package_install_cmd in config file to continue."
+            fi
         fi
-        ;;
-    (OmniOS)
-        if [[ ${#cosi_agent_package_info[@]} -ne 3 ]]; then
-            fail "Invalid Agent package information ${cosi_agent_package_info[@]}, expected 'publisher_url publisher_name package_name'"
-        fi
-        set +e
-        pkg publisher ${cosi_agent_package_info[1]} &>/dev/null
-        if [[ $? -ne 0 ]]; then
-            pub_cmd="pkg set-publisher -g ${cosi_agent_package_info[0]} ${cosi_agent_package_info[1]}"
-        fi
-        set -e
-        pkg_cmd="pkg"
-        pkg_cmd_args="install ${cosi_agent_package_info[2]}"
-        ;;
-    (*)
-        fail "Unrecognized distribution for installation ${cosi_os_dist}"
-        ;;
-    esac
+    else
+        case "$cosi_os_dist" in
+        (OmniOS)
+            if [[ ${#cosi_agent_package_info[@]} -ne 3 ]]; then
+                fail "Invalid Agent package information ${cosi_agent_package_info[@]}, expected 'publisher_url publisher_name package_name'"
+            fi
+            set +e
+            pkg publisher ${cosi_agent_package_info[1]} &>/dev/null
+            if [[ $? -ne 0 ]]; then
+                pub_cmd="pkg set-publisher -g ${cosi_agent_package_info[0]} ${cosi_agent_package_info[1]}"
+            fi
+            set -e
+            pkg_cmd="pkg"
+            pkg_cmd_args="install ${cosi_agent_package_info[2]}"
+            ;;
+        (*)
+            fail "Unable to determine package installation command for ${cosi_os_dist}. Please set package_install_cmd in config file to continue."
+            ;;
+        esac
+    fi
 
     type -P $pkg_cmd >> $cosi_install_log 2>&1 || fail "Unable to find '${pkg_cmd}' command. Ensure it is in the PATH before continuing."
 
@@ -473,7 +470,6 @@ __install_agent() {
     fi
 
     if [[ "${pub_cmd:-}" != "" ]]; then
-
         $pub_cmd 2>&1 | tee -a $cosi_install_log
         [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "adding publisher '${pub_cmd}'"
     fi
