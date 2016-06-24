@@ -610,7 +610,7 @@ class Config extends Registration {
                             for (let filterIdx = 0; filterIdx < template.filter.include.length; filterIdx++) {
                                 const filter = template.filter.include[filterIdx];
 
-                                if (item === filter) {
+                                if (item.match(filter) !== null) {
                                     keepMetric = true;
                                     break;
                                 }
@@ -622,7 +622,7 @@ class Config extends Registration {
                             for (let filterIdx = 0; filterIdx < template.filter.exclude.length; filterIdx++) {
                                 const filter = template.filter.exclude[filterIdx];
 
-                                if (item === filter) {
+                                if (item.match(filter) !== null) {
                                     keepMetric = false;
                                     break;
                                 }
