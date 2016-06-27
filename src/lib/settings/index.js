@@ -47,7 +47,11 @@ const DEFAULT_BROKER_LIST = {
         BROKER_SANJOSE,     // reverse_default=1
         BROKER_CHICAGO      // reverse_default=2
     ],
-    reverse_default: 2         // 0 based index to an element in reverse array or -1 for random
+    reverse_default: 2,     // 0 based index to an element in reverse array or -1 for random
+    trap: [
+        BROKER_HTTPTRAP     // trap_default=0
+    ],
+    trap_default: 0         // 0 based index to an element in trap array or -1 for random
 };
 
 let instance = null;
