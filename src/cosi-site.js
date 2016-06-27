@@ -115,15 +115,24 @@ server.get(
 );
 
 //
-// return default broker (for nad check) based on mode (pull|push)
-// registeration will have to take care of statsd because it will
-// have to use the api to inspect the broker to ensure that a)
-// it is enterprise and b) it has the statsd module enabled
+// return default broker (for nad check) based on mode (pull|push|reverse)
+// these are all converging to be the same 'type' of check (json:nad) but,
+// will leave separate settings for each to allow local customization by
+// agent type.
 //
 server.get(
     { path: /^\/broker\/?$/, version: "1.0.0" },
     validate.requiredParameters,
     validate.agentMode,
+    handler.defaultBroker
+);
+
+//
+// return default brokers for each type (push, pull, reverse, trap)
+//
+server.get(
+    { path: /^\/brokers\/?$/, version: "1.0.0" },
+    validate.requiredParameters,
     handler.defaultBroker
 );
 
