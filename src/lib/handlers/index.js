@@ -124,28 +124,19 @@ class Handlers {
     defaultBroker(req, res, next) {
         const mode = req.params.mode.toLowerCase();
         const broker = { broker_id: null };
-        let defaultId = 0;
+        const brokers = this._defaultBrokers();
 
         if (mode === "push") {
-            defaultId = settings.default_broker_list.push_default;
-            if (defaultId === -1) { //eslint-disable-line no-magic-numbers
-                defaultId = Math.floor(Math.random() * settings.default_broker_list.push.length);
-            }
-            broker.broker_id = settings.default_broker_list.push[defaultId];
+            broker.broker_id = brokers.push;
         }
         else if (req.params.mode.toLowerCase() === "pull") {
-            defaultId = settings.default_broker_list.pull_default;
-            if (defaultId === -1) { //eslint-disable-line no-magic-numbers
-                defaultId = Math.floor(Math.random() * settings.default_broker_list.pull.length);
-            }
-            broker.broker_id = settings.default_broker_list.pull[defaultId];
+            broker.broker_id = brokers.pull;
         }
         else if (req.params.mode.toLowerCase() === "reverse") {
-            defaultId = settings.default_broker_list.reverse_default;
-            if (defaultId === -1) { //eslint-disable-line no-magic-numbers
-                defaultId = Math.floor(Math.random() * settings.default_broker_list.reverse.length);
-            }
-            broker.broker_id = settings.default_broker_list.reverse[defaultId];
+            broker.broker_id = brokers.reverse;
+        }
+        else if (req.params.mode.toLowerCase() === "trap") {
+            broker.broker_id = brokers.trap;
         }
         else {
             return next(new restify.InvalidArgumentError(`Invalid agent mode specified '${mode}'`));
@@ -154,6 +145,48 @@ class Handlers {
         res.json(broker);
         return next();
     }
+
+
+    defaultBrokers(req, res, next) {
+        const brokers = this._defaultBrokers();
+
+        res.cache("private", { maxAge: 0 });
+        res.json(brokers);
+        return next();
+    }
+
+
+    _defaultBrokers() {
+        const brokers = { push: null, pull: null, reverse: null };
+        let defaultId = 0;
+
+        defaultId = settings.default_broker_list.push_default;
+        if (defaultId === -1) {
+            defaultId = Math.floor(Math.random() * settings.default_broker_list.push.length);
+        }
+        brokers.push = settings.default_broker_list.push[defaultId];
+
+        defaultId = settings.default_broker_list.pull_default;
+        if (defaultId === -1) {
+            defaultId = Math.floor(Math.random() * settings.default_broker_list.pull.length);
+        }
+        brokers.pull = settings.default_broker_list.pull[defaultId];
+
+        defaultId = settings.default_broker_list.reverse_default;
+        if (defaultId === -1) {
+            defaultId = Math.floor(Math.random() * settings.default_broker_list.reverse.length);
+        }
+        brokers.reverse = settings.default_broker_list.reverse[defaultId];
+
+        defaultId = settings.default_broker_list.trap_default;
+        if (defaultId === -1) {
+            defaultId = Math.floor(Math.random() * settings.default_broker_list.trap.length);
+        }
+        brokers.trap = settings.default_broker_list.trap[defaultId];
+
+        return brokers;
+    }
+
 }
 
 module.exports = new Handlers();
