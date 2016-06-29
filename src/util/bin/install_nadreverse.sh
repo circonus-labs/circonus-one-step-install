@@ -90,7 +90,7 @@ elif [[ -d /var/svc/manifest && -x /usr/sbin/svcadm ]]; then
     nad_method_script="/var/svc/method/circonus-nad"
     if [[ -f $nad_method_script ]]; then
         /usr/sbin/svcadm -v disable circonus/nad
-        cp -v "${cosi_dir}/service/circonus-nad-reverse.method" $nad_method_script
+        cp "${cosi_dir}/service/circonus-nad-reverse.method" $nad_method_script
         /usr/sbin/svcadm -v enable circonus/nad
         sleep 2
     else
