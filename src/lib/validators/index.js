@@ -127,7 +127,7 @@ class Validators {
             return next(new restify.MissingParameterError(errors.join(", ")));
         }
 
-        if (!req.params.mode.match(/^(push|pull|reverse)$/)) {
+        if (!req.params.mode.match(/^(push|pull|reverse|revonly)$/)) {
             errors.push(`Invalid Agent mode '${req.params.mode}'`);
         }
 
