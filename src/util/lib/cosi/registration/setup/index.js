@@ -262,8 +262,17 @@ class Setup extends Registration {
         }
         else if (this.agentMode.toLowerCase() === "reverse") {
              // this is what NAD will use to find the check to get reverse url
-            console.log(chalk.green("Reverse agent"), "using", os.hostname());
             this.regConfig.templateData.host_target = os.hostname();
+            console.log(chalk.green("Reverse agent"), "using", this.regConfig.templateData.host_target);
+            this.emit("default.target.done");
+        }
+        else if (this.agentMode.toLowerCase() === "revonly") {
+             // this is what NAD will use to find the check to get reverse url
+             // if a reverse connection fails, the broker would ordinarily resort to attempting to
+             // *pull* metrics. the target needs to be non-resolvable to prevent the broker accidentally
+             // pulling metrics from an unintended target that happens to be reachable
+            this.regConfig.templateData.host_target = `REV:${os.hostname()}`;
+            console.log(chalk.green(`Reverse ${chalk.bold("ONLY")} agent`), this.regConfig.templateData.host_target);
             this.emit("default.target.done");
         }
         else {
