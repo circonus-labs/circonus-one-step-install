@@ -37,6 +37,10 @@ source $reverse_conf
 : ${nadrev_enable:=0}
 : ${nadrev_check_id:=}
 : ${nadrev_key:=}
+: ${nadrev_apihost:=}
+: ${nadrev_apiport:=}
+: ${nadrev_apipath:=}
+: ${nadrev_apiprotocol:=}
 
 [[ -d $nadrev_plugin_dir ]] || {
     fail "NAD plugin directory not found. ${nadrev_plugin_dir}"
@@ -51,6 +55,12 @@ if [[ $nadrev_enable -eq 1 ]]; then
         fail "NAD reverse key not set."
     }
     nadrev_opts+=" -r --cid ${nadrev_check_id} --authtoken ${nadrev_key}"
+
+    [[ -z "${nadrev_apihost:-}" ]] || nadrev_opts+=" --apihost ${nadrev_apihost}"
+    [[ -z "${nadrev_apiport:-}" ]] || nadrev_opts+=" --apiport ${nadrev_apiport}"
+    [[ -z "${nadrev_apipath:-}" ]] || nadrev_opts+=" --apipath ${nadrev_apipath}"
+    [[ -z "${nadrev_apiprotocol:-}" ]] || nadrev_opts+=" --apiprotocol ${nadrev_apiprotocol}"
+
 fi
 
 if [[ -f /etc/sysconfig/nad ]]; then
