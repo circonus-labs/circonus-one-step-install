@@ -732,7 +732,7 @@ cosi_initialize() {
     : ${cosi_api_url:=https://api.circonus.com/}
     : ${cosi_api_key:=}
     : ${cosi_api_app:=cosi}
-    : ${cosi_agent_mode:=pull}
+    : ${cosi_agent_mode:=reverse}
     : ${cosi_statsd_flag:=0}
     : ${cosi_statsd_type:=none}
     : ${cosi_install_agent:=1}
