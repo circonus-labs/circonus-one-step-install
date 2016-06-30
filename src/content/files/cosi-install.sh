@@ -29,9 +29,11 @@ Options
 
   [--apiurl]    Circonus API URL Default: https://api.circonus.com/
 
-  [--agent]     Agent mode (reverse|pull|push) Default: pull
+  [--agent]     Agent mode. Default: reverse
                 reverse = Install NAD, NAD will open connection to broker.
                           broker will request metrics through reverse connection.
+                revonly = reverse *ONLY* ensure target will not resolve by prefixing
+                          with 'REV:'
                 pull = Install NAD, broker will connect to system and request metrics
                 push = Install NAD, metrics will be sent to broker at an interval
                 Note: If NAD is already installed, installation will be skipped
@@ -117,11 +119,11 @@ __parse_parameters() {
             if [[ -n "${1:-}" ]]; then
                 cosi_agent_mode="$1"
                 shift
-                if [[ ! "${cosi_agent_mode:-}" =~ ^(reverse|pull|push)$ ]]; then
-                    fail "--agent must be followed by a valid agent mode (reverse|pull|push)."
+                if [[ ! "${cosi_agent_mode:-}" =~ ^(reverse|revonly|pull|push)$ ]]; then
+                    fail "--agent must be followed by a valid agent mode (reverse|revonly|pull|push)."
                 fi
             else
-                fail "--agent must be followed by an agent mode (reverse|pull|push)."
+                fail "--agent must be followed by an agent mode (reverse|revonly|pull|push)."
             fi
             ;;
         (--statsd)
@@ -905,15 +907,15 @@ cosi_register() {
         else
             fail "Agent mode is push, nadpush installer not found."
         fi
-    elif [[ "${cosi_agent_mode}" == "reverse" ]]; then
+    elif [[ "${cosi_agent_mode}" == "reverse" || "${cosi_agent_mode}" == "revonly" ]]; then
         echo
         echo
-        log "Enabling reverse mode for agent"
+        log "Enabling ${cosi_agent_mode} mode for agent"
         if [[ -x "$install_nadreverse" ]]; then
             $install_nadreverse | tee -a $cosi_install_log
-            [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "Errors encountered during NAD reverse configuration."
+            [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "Errors encountered during NAD ${cosi_agent_mode} configuration."
         else
-            fail "Agent mode is reverse, nadreverse installer not found."
+            fail "Agent mode is ${cosi_agent_mode}, nadreverse installer not found."
         fi
     fi
 
