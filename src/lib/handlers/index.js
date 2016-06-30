@@ -124,18 +124,21 @@ class Handlers {
     defaultBroker(req, res, next) {
         const mode = req.params.mode.toLowerCase();
         const broker = { broker_id: null };
-        const brokers = this._defaultBrokers();
+        const brokers = self._getDefaultBrokers();
 
         if (mode === "push") {
             broker.broker_id = brokers.push;
         }
-        else if (req.params.mode.toLowerCase() === "pull") {
+        else if (mode === "pull") {
             broker.broker_id = brokers.pull;
         }
-        else if (req.params.mode.toLowerCase() === "reverse") {
+        else if (mode === "reverse") {
             broker.broker_id = brokers.reverse;
         }
-        else if (req.params.mode.toLowerCase() === "trap") {
+        else if (mode === "revonly") {
+            broker.broker_id = brokers.reverse;
+        }
+        else if (mode === "trap") {
             broker.broker_id = brokers.trap;
         }
         else {
@@ -148,7 +151,7 @@ class Handlers {
 
 
     defaultBrokers(req, res, next) {
-        const brokers = this._defaultBrokers();
+        const brokers = self._getDefaultBrokers();
 
         res.cache("private", { maxAge: 0 });
         res.json(brokers);
@@ -156,7 +159,7 @@ class Handlers {
     }
 
 
-    _defaultBrokers() {
+    _getDefaultBrokers() {
         const brokers = { push: null, pull: null, reverse: null };
         let defaultId = 0;
 
