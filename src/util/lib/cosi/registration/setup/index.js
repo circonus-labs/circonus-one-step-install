@@ -8,6 +8,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const http = require("http");
+const dgram = require("dgram");
 
 const chalk = require("chalk");
 
@@ -23,7 +24,10 @@ class Setup extends Registration {
         super(quiet);
 
         this.regConfig = {
-            broker: null,
+            broker: {
+                json: null,
+                trap: null
+            },
             account: null,
             metricsFile: path.join(this.regDir, "setup-metrics.json"),
             cosiTags: [
@@ -38,6 +42,10 @@ class Setup extends Registration {
                 host_target: null,
                 host_vars: this.customOptions.host_vars ? this.customOptions.host_vars : {},
                 host_tags: this.customOptions.host_tags ? this.customOptions.host_tags : []
+            },
+            statsd: {
+                enabled: cosi.statsd === 1,
+                port: cosi.statsd_port
             }
         };
 
@@ -59,6 +67,11 @@ class Setup extends Registration {
 
         this.once("default.target", this.setTarget);
         this.once("default.target.done", () => {
+            self.emit("verify.statsd");
+        });
+
+        this.once("verify.statsd", this.checkStatsdPort);
+        this.once("verify.statsd.done", () => {
             self.emit("metrics.fetch");
         });
 
@@ -70,11 +83,16 @@ class Setup extends Registration {
 
         this.once("templates.fetch", this.fetchTemplates);
         this.once("templates.fetch.done", () => {
-            self.emit("verify.broker");
+            self.emit("broker.json");
         });
 
-        this.once("verify.broker", this.verifyBroker);
-        this.once("verify.broker.done", () => {
+        this.once("broker.json", this.getJsonBroker);
+        this.once("broker.json.done", () => {
+            self.emit("broker.trap");
+        });
+
+        this.once("broker.trap", this.getTrapBroker);
+        this.once("broker.trap.done", () => {
             self.emit("save.config");
         });
 
@@ -118,6 +136,58 @@ class Setup extends Registration {
         });
     }
 
+    _isStatsdPortAvailable(port, cb) {
+        const tester = dgram.createSocket("udp4");
+
+        tester.once("error", (err) => {
+            if (err.code === "EADDRINUSE") {
+                return cb(null, false);
+            }
+            return cb(err);
+        });
+
+        tester.once("listening", () => {
+            tester.once("close", () => {
+                return cb(null, true);
+            });
+            tester.close();
+        });
+
+        tester.bind(port);
+    }
+
+    checkStatsdPort() {
+        console.log(chalk.blue(this.marker));
+        console.log("Checking StatsD port");
+        if (!this.regConfig.statsd.enabled) {
+            console.log("\tStatsD disabled, skipping.");
+            this.emit("verify.statsd.done");
+        }
+
+        const self = this;
+
+        this._isStatsdPortAvailable(this.regConfig.statsd.port, (err, ok) => {
+            if (err) {
+                self.emit("error", err);
+                return;
+            }
+            if (!ok) {
+                console.log(chalk.yellow("\tWARN:"), `StatsD port ${self.regConfig.statsd.port} is in use, disabling StatsD setup.`);
+                self.regConfig.statsd.enabled = false;
+                try {
+                    fs.writeFileSync(path.resolve(path.join(cosi.etc_dir, "statsd.disabled")));
+                }
+                catch (errSignalFile) {
+                    console.log(chalk.yellow("\tWARN:"), errSignalFile);
+                }
+                self.emit("verify.statsd.done");
+                return;
+            }
+            console.log(chalk.green("\tOK:"), `StatsD port ${self.regConfig.statsd.port} is open.`);
+            self.emit("verify.statsd.done");
+            return;
+        });
+    }
 
     fetchNADMetrics() {
         console.log(chalk.blue(this.marker));
@@ -202,21 +272,39 @@ class Setup extends Registration {
     }
 
 
-    verifyBroker() {
+    getJsonBroker() {
         console.log(chalk.blue(this.marker));
-        console.log("Verify Circonus broker");
+        console.log("Determine default broker for json");
 
         const self = this;
-        const broker = new Broker(this.quiet);
+        const bh = new Broker(this.quiet);
 
-        broker.getDefaultBroker((err, defaultBroker) => {
+        bh.getDefaultBroker("json", (err, broker) => {
             if (err) {
                 self.emit("error", err);
                 return;
             }
 
-            self.regConfig.broker = defaultBroker;
-            self.emit("verify.broker.done");
+            self.regConfig.broker.json = JSON.parse(JSON.stringify(broker));
+            self.emit("broker.json.done");
+        });
+    }
+
+    getTrapBroker() {
+        console.log(chalk.blue(this.marker));
+        console.log("Determine default broker for trap");
+
+        const self = this;
+        const bh = new Broker(this.quiet);
+
+        bh.getDefaultBroker("httptrap", (err, broker) => {
+            if (err) {
+                self.emit("error", err);
+                return;
+            }
+
+            self.regConfig.broker.trap = JSON.parse(JSON.stringify(broker));
+            self.emit("broker.trap.done");
         });
     }
 
@@ -260,13 +348,13 @@ class Setup extends Registration {
             this.regConfig.templateData.host_target = this.customOptions.host_target;
             this.emit("default.target.done");
         }
-        else if (this.agentMode.toLowerCase() === "reverse") {
+        else if (this.agentMode === "reverse") {
              // this is what NAD will use to find the check to get reverse url
             this.regConfig.templateData.host_target = os.hostname();
             console.log(chalk.green("Reverse agent"), "using", this.regConfig.templateData.host_target);
             this.emit("default.target.done");
         }
-        else if (this.agentMode.toLowerCase() === "revonly") {
+        else if (this.agentMode === "revonly") {
              // this is what NAD will use to find the check to get reverse url
              // if a reverse connection fails, the broker would ordinarily resort to attempting to
              // *pull* metrics. the target needs to be non-resolvable to prevent the broker accidentally

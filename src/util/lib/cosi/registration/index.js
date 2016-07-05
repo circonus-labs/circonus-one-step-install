@@ -36,10 +36,13 @@ class Registration extends Events {
         };
 
         this.agentUrl = cosi.agent_url;
-        this.agentMode = cosi.agent_mode;
+        this.agentMode = cosi.agent_mode.toLowerCase();
+        this.agentCheckType = "json:nad";
+        if (this.agentMode === "push") {
+            this.agentCheckType = "httptrap";
+        }
         this.regDir = cosi.reg_dir;
         this.cosiId = cosi.cosi_id;
-        this.statsd = cosi.statsd_type;
         this.quiet = quiet;
         this.customOptions = cosi.custom_options;
 

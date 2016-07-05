@@ -35,7 +35,7 @@ class Fetch extends Events {
         this.agentUrl = cosi.agent_url;
         this.dir = cosi.reg_dir;
         this.force = overwrite;
-        this.statsd = cosi.statsd_type;
+        this.statsd = cosi.statsd === 1;
 
         return this;
     }
@@ -129,7 +129,7 @@ class Fetch extends Events {
             // list of all templates applicable to this host
             const wantTemplates = [ "check-system", "worksheet-system" ];
 
-            if (self.statsd && self.statsd !== "none") {
+            if (self.statsd) {
                 wantTemplates.push("check-statsd");
             }
 

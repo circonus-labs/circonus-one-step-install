@@ -221,7 +221,7 @@ class Config extends Registration {
             );
 
             if (this._fileExists(configFile)) {
-                console.log("\tGraph config already exists.", configFile);
+                console.log("\tGraph configuration already exists.", configFile);
             }
             else {
                 const graphId = `${template.type}-${template.id}-${item}`;
@@ -269,7 +269,7 @@ class Config extends Registration {
         const configFile = path.resolve(this.regDir, `config-graph-${template.id}-${graphIdx}.json`);
 
         if (this._fileExists(configFile)) {
-            console.log("\tGraph config already exists.", configFile);
+            console.log("\tGraph configuration already exists.", configFile);
             return;
         }
 
@@ -310,7 +310,7 @@ class Config extends Registration {
         const templateFile = configFile.replace("config-", "template-");
 
         if (this._fileExists(configFile)) {
-            console.log("\Check config already exists.", configFile);
+            console.log("\tCheck configuration already exists.", configFile);
             this.emit("check.config.done");
             return;
         }
@@ -319,33 +319,24 @@ class Config extends Registration {
         const template = new Template(templateFile);
         const check = template.check;
 
-        // set check type (check module) and type specific config options
-        const agentMode = this.agentMode.toLowerCase();
-
-        if ( agentMode === "reverse" ) {
-            check.type = "json:nad";
-            check.config.url = this.agentUrl;
-        }
-        else if ( agentMode === "pull") {
-            check.type = "json:nad";
-            check.config.url = this.agentUrl;
-        }
-        else if (agentMode === "push") {
-            check.type = "httptrap";
+        check.type = this.agentCheckType;
+        if (this.agentMode === "push") {
+            check.brokers = [
+                this.regConfig.broker.trap._cid.replace("/broker/", "")
+            ];
             check.config = {
                 asynch_metrics: true,
                 secret: crypto.randomBytes(2048).toString("hex").substr(0, 16)
             };
         }
         else {
-            this.emit("error", new Error(`Invalid agent mode '${agentMode}'`));
-            return;
+            check.brokers = [
+                this.regConfig.broker.json._cid.replace("/broker/", "")
+            ];
+            check.config.url = this.agentUrl;
         }
 
         // set the broker receiving for pulling metrics
-        check.brokers = [
-            this.regConfig.broker._cid.replace("/broker/", "")
-        ];
 
         // add the activated metrics
         check.metrics = checkMetrics;
@@ -369,7 +360,7 @@ class Config extends Registration {
             return;
         }
 
-        console.log(chalk.green("Saved config"), configFile);
+        console.log(chalk.green("\tSaved configuration"), configFile);
         this.emit("check.config.done");
 
     }
@@ -381,8 +372,8 @@ class Config extends Registration {
         console.log(chalk.blue(this.marker));
         console.log(`Configuring Check (${id})`);
 
-        if (!this.statsd || this.statsd === "none") {
-            console.log("Optional StatsD check not enabled, skipping.");
+        if (!this.regConfig.statsd.enabled) {
+            console.log("\tStatsD check disabled, skipping.");
             this.emit("statsd.config.done");
             return;
         }
@@ -391,7 +382,7 @@ class Config extends Registration {
         const templateFile = configFile.replace("config-", "template-");
 
         if (this._fileExists(configFile)) {
-            console.log("\Check config already exists.", configFile);
+            console.log("\tCheck configuration already exists.", configFile);
             this.emit("statsd.config.done");
             return;
         }
@@ -399,27 +390,15 @@ class Config extends Registration {
         const template = new Template(templateFile);
         const check = template.check;
 
-        const statsdMode = this.statsd.toLowerCase();
-
-        if (statsdMode === "host") {
-            check.type = "httptrap";
-            check.config = {
-                asynch_metrics: true,
-                secret: crypto.randomBytes(2048).toString("hex").substr(0, 16)
-            };
-        }
-
-        if (statsdMode === "broker") {
-            if (this._brokerHasStatsd) {
-                console.log(chalk.green("Verfiied Broker support for StatsD"));
-                check.type = "statsd";
-                // save STATSD_HOST and STATSD_PORT to /opt/circonus/etc/shstatsd (when check created successfully)
-            }
-        }
+        check.type = "httptrap";
+        check.config = {
+            asynch_metrics: true,
+            secret: crypto.randomBytes(2048).toString("hex").substr(0, 16)
+        };
 
         // set the broker receiving for pulling metrics
         check.brokers = [
-            this.regConfig.broker._cid.replace("/broker/", "")
+            this.regConfig.broker.trap._cid.replace("/broker/", "")
         ];
 
         // add *ONLY* if there are no metrics defined in the template.
@@ -453,7 +432,7 @@ class Config extends Registration {
             return;
         }
 
-        console.log(chalk.green("Saved config"), configFile);
+        console.log(chalk.green("\tSaved configuration"), configFile);
         this.emit("statsd.config.done");
 
     }
@@ -469,7 +448,7 @@ class Config extends Registration {
         const templateFile = configFile.replace("config-", "template-");
 
         if (this._fileExists(configFile)) {
-            console.log("Config already exists", configFile);
+            console.log("\tWorksheet configuration already exists", configFile);
             this.emit("worksheet.config.done");
             return;
         }
@@ -501,38 +480,9 @@ class Config extends Registration {
             return;
         }
 
-        console.log("Worksheet configuration saved", configFile);
+        console.log("\tSaved configuration", configFile);
         this.emit("worksheet.config.done");
 
-    }
-
-
-    _brokerHasStatsd() {
-        if (!this.regConfig.hasOwnProperty("broker")) {
-            console.log(chalk.yellow("WARN"), "registration configuration missing broker property, unable to verify support for statsd.");
-            return false;
-        }
-
-        if (!this.regConfig.broker.hasOwnProperty("_details") && Array.isArray(this.regConfig.broker._details)) {
-            console.log(chalk.yellow("WARN"), "registration configuration missing broker details property, unable to verify support for statsd.");
-            return false;
-        }
-
-        if (!this.regConfig.broker._details[0].hasOwnProperty("modules") && Array.isArray(this.regConfig.broker._details[0].modules)) {
-            console.log(chalk.yellow("WARN"), "registration configuration missing broker modules property, unable to verify support for statsd.");
-            return false;
-        }
-
-        // for (const checkModule of this.regConfig.broker._details.modules) {
-        for (let i = 0; i < this.regConfig.broker._details.modules.length; i++) {
-            const checkModule = this.regConfig.broker._details.modules[i];
-
-            if (checkModule === "statsd") {
-                return true;
-            }
-        }
-
-        return false;
     }
 
 
@@ -541,7 +491,7 @@ class Config extends Registration {
 
         // step through and load each "config-graph-.+\.json(\.pre)?"
         // yank out all metrics from ech graph (datapoints)
-        console.log("Activating metrics required by graphs");
+        console.log("\tActivating metrics required by graphs");
 
         const files = fs.readdirSync(this.regDir);
 
@@ -553,7 +503,7 @@ class Config extends Registration {
                 try {
                     const configFile = path.resolve(this.regDir, file);
 
-                    console.log(`\tLoading required metrics from ${configFile}`);
+                    console.log(`\t\tLoading required metrics from ${configFile}`);
 
                     const graph = require(configFile);
 
@@ -561,7 +511,7 @@ class Config extends Registration {
                     for (let dpIdx = 0; dpIdx < graph.datapoints.length; dpIdx++) {
                         const dp = graph.datapoints[dpIdx];
 
-                        console.log("\tAdding required metric:", dp.metric_name);
+                        console.log("\t\t\tAdding required metric:", dp.metric_name);
                         checkMetrics.push({
                             name: dp.metric_name,
                             type: dp.metric_type,

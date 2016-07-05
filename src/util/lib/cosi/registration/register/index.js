@@ -9,12 +9,14 @@ const assert = require("assert");
 // const Events = require("events");
 const fs = require("fs");
 const path = require("path");
+const url = require("url");
 
 const chalk = require("chalk");
 
 const cosi = require(path.resolve(path.resolve(__dirname, "..", "..", "..", "cosi")));
 const Registration = require(path.resolve(cosi.lib_dir, "registration"));
 const Check = require(path.resolve(cosi.lib_dir, "check"));
+const Broker = require(path.resolve(cosi.lib_dir, "broker"));
 const Graph = require(path.resolve(cosi.lib_dir, "graph"));
 const Worksheet = require(path.resolve(cosi.lib_dir, "worksheet"));
 
@@ -23,10 +25,16 @@ class Register extends Registration {
     constructor(quiet) {
         super(quiet);
 
+        this.bh = new Broker(quiet);
+        this.brokerList = null;
         this.regConfig = null;
         this.checkId = null;
         this.checkBundleId = null;
         this.checkSubmissionUrl = null;
+        this.checks = {
+            system: null,
+            statsd: null
+        };
     }
 
 
@@ -36,7 +44,30 @@ class Register extends Registration {
         const self = this;
 
         this.once("check", this.systemCheck);
-        this.once("check.done", () => {
+        this.once("check.done", (check) => {
+            if (check === null) {
+                self.emit("error", new Error("null check passed to check.done event"));
+                return;
+            }
+
+            // original code from systemCheck
+            self.checkId = check._checks[0].replace("/check/", "");
+            self.checkBundleId = check._cid.replace("/check_bundle/", "");
+
+            if (self.agentMode === "push") {
+                if (check.type === "httptrap") {
+                    self.checkSubmissionUrl = check.config.submission_url;
+                }
+                else if (check.type === "json:nad") {
+                    self.checkSubmissionUrl = check._reverse_connection_urls[0].replace("mtev_reverse", "https").replace("check", "module/httptrap");
+                }
+                else {
+                    self.emit("error", new Error("Agent mode is push but check does not have a submission URL.", check));
+                    return;
+                }
+            }
+
+            // original code from event handler
             if (self.checkId === null) {
                 self.emit("error", new Error("check id is null, wtf!?"));
                 return;
@@ -48,7 +79,8 @@ class Register extends Registration {
                     user: "nobody",
                     group: self.cosiAPI.args.dist.toLowerCase() === "ubuntu" ? "nogroup" : "nobody",
                     agent_url: self.agentUrl,
-                    check_url: self.checkSubmissionUrl
+                    check_url: self.checkSubmissionUrl,
+                    broker_servername: self._getTrapBrokerCn(self.checkSubmissionUrl)
                 };
 
                 console.log(`\tSaving NAD Push configuration ${npCfgFile}`);
@@ -59,6 +91,7 @@ class Register extends Registration {
                         JSON.stringify(npConfig, null, 4),
                         { encoding: "utf8", mode: 0o644, flag: "w" }
                     );
+                    console.log(chalk.green("\tSaved"), "NAD push configuration", npCfgFile);
                 }
                 catch (nadpushConfigErr) {
                     self.emit("error", nadpushConfigErr);
@@ -69,11 +102,26 @@ class Register extends Registration {
                 const nadCfgFile = path.resolve(path.join(self.regDir, "..", "etc", "circonus-nadreversesh"));
                 const nadOpts = [
                     `nadrev_plugin_dir="${path.resolve(path.join(self.regDir, "..", "..", "etc", "node-agent.d"))}"`,
-                    "nadrev_listen_address=\"127.0.0.1:2609\"",
+                    'nadrev_listen_address="127.0.0.1:2609"',
                     "nadrev_enable=1",
                     `nadrev_check_id="${self.checkBundleId}"`,
                     `nadrev_key="${self.circonusAPI.key}"`
                 ];
+
+                const apiUrl = url.parse(self.circonusAPI.url);
+
+                if (apiUrl.hostname !== "api.circonus.com") {
+                    nadOpts.push(`nadrev_apihost=${apiUrl.hostname}`);
+                    nadOpts.push(`nadrev_apiprotocol=${apiUrl.protocol}`);
+
+                    if (apiUrl.port !== null) {
+                        nadOpts.push(`nadrev_apiport=${apiUrl.port}`);
+                    }
+
+                    if (apiUrl.path !== "/") {
+                        nadOpts.push(`nadrev_apipath=${apiUrl.path}`);
+                    }
+                }
 
                 console.log(`\tSaving NAD Reverse configuration ${nadCfgFile}`);
 
@@ -83,6 +131,7 @@ class Register extends Registration {
                         nadOpts.join("\n"),
                         { encoding: "utf8", mode: 0o640, flag: "w" }
                     );
+                    console.log(chalk.green("\tSaved"), "NAD reverse configuration", nadCfgFile);
                 }
                 catch (nadCfgErr) {
                     self.emit("error", nadCfgErr);
@@ -110,7 +159,17 @@ class Register extends Registration {
         });
 
         this.loadRegConfig();
-        this.emit("check");
+        console.log("Loading broker list");
+
+        this.bh.getBrokerList((err, list) => {
+            if (err) {
+                self.emit("error", err);
+                return;
+            }
+            self.brokerList = list;
+            console.log(chalk.green("Loaded"), "broker list");
+            this.emit("check");
+        });
     }
 
 
@@ -126,7 +185,7 @@ class Register extends Registration {
             return;
         }
 
-        console.log(chalk.green("Registration configuration loaded"), this.regConfigFile);
+        console.log(chalk.green("Loaded"), "registration configuration", this.regConfigFile);
     }
 
 
@@ -141,14 +200,7 @@ class Register extends Registration {
         if (this._fileExists(regFile)) {
             console.log(chalk.bold("Registration exists"), `using ${regFile}`);
 
-            const check = new Check(regFile);
-
-            this.checkId = check._checks[0].replace("/check/", "");
-            self.checkBundleId = check._cid.replace("/check_bundle/", "");
-            if (self.agentMode === "push") {
-                this.checkSubmissionUrl = check.config.submission_url;
-            }
-            this.emit("check.done");
+            this.emit("check.done", new Check(regFile));
             return;
         }
 
@@ -174,14 +226,14 @@ class Register extends Registration {
             console.log(`\tSaving registration ${regFile}`);
             check.save(regFile, true);
 
-            self.checkId = check._checks[0].replace("/check/", "");
-            self.checkBundleId = check._cid.replace("/check_bundle/", "");
-            if (self.agentMode === "push") {
-                this.checkSubmissionUrl = check.config.submission_url;
-            }
+            // self.checkId = check._checks[0].replace("/check/", "");
+            // self.checkBundleId = check._cid.replace("/check_bundle/", "");
+            // if (self.agentMode === "push") {
+            //     this.checkSubmissionUrl = check.config.submission_url;
+            // }
             console.log(chalk.green("\tCheck created:"), `${self.regConfig.account.uiUrl}${check._checks[0].replace("check", "checks")}`);
 
-            self.emit("check.done");
+            self.emit("check.done", check);
         });
 
     }
@@ -189,10 +241,10 @@ class Register extends Registration {
 
     statsdCheck() {
         console.log(chalk.blue(this.marker));
-        console.log("Creating StatsD check");
+        console.log("Creating trap check for StatsD");
 
-        if (!this.statsd || this.statsd === "none") {
-            console.log("Optional StatsD check not enabled, skipping.");
+        if (!this.regConfig.statsd.enabled) {
+            console.log("\tStatsD check disabled, skipping.");
             this.emit("statsd.done");
             return;
         }
@@ -207,7 +259,7 @@ class Register extends Registration {
 
             // default configuration
             let statsdConfig = {
-                port: 8125,
+                port: self.regConfig.statsd.port,
                 address: "127.0.0.1",
                 flushInterval: 60000,
                 keyNameSanitize: false,
@@ -262,11 +314,9 @@ class Register extends Registration {
         if (this._fileExists(regFile)) {
             console.log(chalk.bold("Registration exists"), `using ${regFile}`);
 
-            if (this.statsd === "host") {
-                const check = new Check(regFile);
+            const check = new Check(regFile);
 
-                saveStatsdConfig(check.config.submission_url);
-            }
+            saveStatsdConfig(check.config.submission_url);
 
             this.emit("statsd.done");
             return;
@@ -443,6 +493,32 @@ class Register extends Registration {
             self.emit("worksheet.done");
         });
 
+    }
+
+    _getTrapBrokerCn(trapUrl) {
+        const urlInfo = url.parse(trapUrl);
+        const urlHost = urlInfo.hostname;
+
+        if (urlHost === null) {
+            return null;
+        }
+
+        for (let i = 0; i < this.broker.trap._details.length; i++) {
+            if (this.broker.trap._details[i].status !== "active") {
+                continue;
+            }
+            if (this.broker.trap._details[i].cn === urlHost) {
+                return null;
+            }
+            else if (this.broker.trap._details[i].ipaddress === urlHost) {
+                return this.broker.trap._details[i].cn;
+            }
+            else if (this.broker.trap._details[i].external_host === urlHost) {
+                return this.broker.trap._details[i].cn;
+            }
+        }
+
+        return null;
     }
 
 }
