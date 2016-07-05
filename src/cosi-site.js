@@ -122,18 +122,16 @@ server.get(
 //
 server.get(
     { path: /^\/broker\/?$/, version: "1.0.0" },
-    validate.requiredParameters,
     validate.agentMode,
     handler.defaultBroker
 );
 
 //
-// return default brokers for each type (push, pull, reverse, trap)
+// return default brokers for check types
 //
 server.get(
     { path: /^\/brokers\/?$/, version: "1.0.0" },
-    validate.requiredParameters,
-    handler.defaultBroker
+    handler.defaultBrokers
 );
 
 //
