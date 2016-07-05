@@ -1,109 +1,93 @@
 "use strict";
 
 /*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers, consistent-return */
+/*eslint-disable no-magic-numbers, consistent-return, no-process-exit */
 
 const assert = require("assert");
-const Events = require("events").EventEmitter;
 const path = require("path");
-const qs = require("querystring");
 const https = require("https");
 const http = require("http");
 
 const chalk = require("chalk");
+const ct = require("connection-tester");
 
 const cosi = require(path.resolve(path.join(__dirname, "..")));
 const api = require(path.resolve(cosi.lib_dir, "api"));
 
 let brokerList = null;
+let defaultBrokerConfig = null;
 
-class Broker extends Events {
+class Broker {
 
     constructor(quiet) {
-        super();
-
         this.verbose = !quiet;
-
-        this.defaultBrokerId = null;
-        this.defaultBroker = null;
-
+        this.defaultBrokers = {};
     }
 
-    getBrokerList(cb) {
+    // get the default broker to use for a specific check type
+    getDefaultBroker(checkType, cb) {
+        assert.strictEqual(typeof checkType, "string", "checkType must be a string");
         assert.strictEqual(typeof cb, "function", "cb must be a callback function");
 
+        // already verified
+        if (this.defaultBrokers.hasOwnProperty(checkType)) {
+            return cb(null, this.defaultBrokers[checkType]);
+        }
+
         const self = this;
+
+        this.getBrokerList((errGBL) => {
+            if (errGBL) {
+                console.error(chalk.red("ERROR:"), "Fetching broker list from API", errGBL);
+                process.exit(1);
+            }
+            self.getDefaultBrokerList((errGDBL) => {
+                if (errGDBL) {
+                    console.error(chalk.red("ERROR:"), "Fetching broker list from API", errGDBL);
+                    process.exit(1);
+                }
+
+                let brokerId = self._getCustomBroker();
+
+                if (brokerId === null) {
+                    brokerId = self._getEnterpriseBroker(checkType);
+                }
+
+                if (brokerId === null) {
+                    brokerId = self._getCosiBroker(checkType);
+                }
+
+                if (brokerId === null) {
+                    console.error(chalk.red("ERROR"), "Unable to determine broker to use.");
+                    process.exit(1);
+                }
+
+                const broker = self.getBrokerById(brokerId);
+
+                if (self._isValidBroker(broker, checkType)) {
+                    self.defaultBrokers[checkType] = broker;
+                }
+                else {
+                    console.error(chalk.red("ERROR"), "Invalid broker", broker._name, "is not valid for", checkType);
+                    process.exit(1);
+                }
+
+                return cb(null, broker);
+            });
+        });
+    }
+
+    // Get list of brokers available to api token
+    getBrokerList(cb) {
+        assert.strictEqual(typeof cb, "function", "cb must be a callback function");
 
         if (brokerList !== null) {
             return cb(null, brokerList);
         }
 
-        this.once("fbl.start", this._fbl);
-
-        this.once("fbl.error", (err) => {
-            self.removeAllListeners("fbl.done");
-            return cb(err);
-        });
-
-        this.once("fbl.done", () => {
-            return cb(null, brokerList);
-        });
-
-        this.emit("fbl.start");
-    }
-
-
-    getBrokerInfo(id, cb) {
-        assert.strictEqual(typeof id, "string", "id must be a string");
-        assert.strictEqual(typeof cb, "function", "cb must be a callback function");
-
-        const brokerCid = `/broker/${id}`;
-
-        this.getBrokerList((err, brokers) => {
-            if (err) {
-                console.log("broker.info list call");
-                console.dir(err);
-                return cb(err);
-            }
-
-            for (let i = 0; i < brokers.length; i++) {
-                if (brokers[i]._cid === brokerCid) {
-                    return cb(null, brokers[i]);
-                }
-            }
-            return cb(new Error(`No broker found with id ${id}`));
-        });
-    }
-
-    getDefaultBroker(cb) {
-        assert.strictEqual(typeof cb, "function", "cb must be a callback function");
-
-        const self = this;
-
-        this.once("gdb.error", (err) => {
-            console.dir(err);
-            self.removeAllListeners("gdb.done");
-            return cb(err);
-        });
-
-        this.once("gdb.done", (broker) => {
-            self.defaultBroker = broker;
-            if (self.verbose) {
-                console.log(`${chalk.green("Broker identified")}, using: ${self.defaultBroker._name} ID:${self.defaultBrokerId}`);
-            }
-            return cb(null, self.defaultBroker);
-        });
-
-        this._gdb();
-    }
-
-    /*
-     * private methods, well, will be when classes support such
-     */
-
-     // fetch broker list
-    _fbl() {
-        const self = this;
+        if (this.verbose) {
+            console.log("Fetching broker list from Circonus");
+        }
 
         api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
         api.get("/broker", null, (code, err, brokers) => {
@@ -118,174 +102,84 @@ class Broker extends Events {
                     error: err,
                     body: brokers
                 };
-                self.emit("fbl.error", apiError);
+                return cb(apiError);
             }
-            else {
-                brokerList = brokers;
-                self.emit("fbl.done");
+
+            brokerList = [];
+
+            // filter broker groups which do not have a minimum of
+            // one member in an active state.
+            for (let i = 0; i < brokers.length; i++) {
+                const broker = brokers[i];
+
+                let active = 0;
+
+                for (let j = 0; j < broker._details.length; j++) {
+                    const detail = broker._details[j];
+
+                    if (detail.status === "active") {
+                        active++;
+                    }
+                }
+
+                if (active > 0) {
+                    brokerList.push(broker);
+                }
             }
+
+            return cb(null, brokerList);
         });
     }
 
-    // get default broker
-    _gdb() {
-        const self = this;
+    // return the default brokers from custom configuration or cosi
+    getDefaultBrokerList(cb) {
+        assert.strictEqual(typeof cb, "function", "cb must be a callback function");
 
-        // 1. custom
-        //    a) cosi-install command line --broker argument
-        //    b) options broker.id
-        //    c) options broker.list[broker.default]
-        // 2. first "enterprise" broker in brokerList
-        // 3. punt, use COSI default "circonus" broker
-
-        this.getBrokerList((err) => {
-            if (err) {
-                throw err;
-            }
-
-            self.once("gdb.error", () => {
-                self.removeAllListeners("gdb.custom");
-                self.removeAllListeners("gdb.enterprise");
-                self.removeAllListeners("gdb.cosi");
-                self.removeAllListeners("gdb.verify");
-                self.removeAllListeners("gdb.valid");
-            });
-
-            if (self.defaultBrokerId === null) {
-                self.once("gdb.custom", self._gdbc);
-                self.once("gdb.enterprise", self._gdbe);
-                self.once("gdb.cosi", self._gdbd);
-            }
-
-            self.once("gdb.verify", self._gdbv);
-            self.once("gdb.valid", (broker) => {
-                self.defaultBrokerId = broker._cid.replace("/broker/", "");
-                self.emit("gdb.done", broker);
-            });
-
-            if (self.defaultBrokerId === null) {
-                self.emit("gdb.custom");
-            }
-            else {
-                self.emit("gdb.verify", self.defaultBrokerId);
-            }
-        });
-    }
-
-    // default broker, custom options
-    _gdbc() {
-        const self = this;
-
-        function log(msg) {
-            if (self.verbose) {
-                console.log(msg);
-            }
+        if (defaultBrokerConfig !== null) {
+            return cb(null, defaultBrokerConfig);
         }
 
-        log("Checking for custom broker settings");
-
-        let brokerId = null;
-
-        if (this.defaultBrokerId === null && cosi.hasOwnProperty("cosi_broker_id")) {
-            log(`Using broker from command line: ${cosi.cosi_broker_id}`);
-            if (!cosi.cosi_broker_id.match(/^\d+$/)) {
-                console.error(chalk.red("Invalid broker specified on command line", cosi.cosi_broker_id, "should be a number."));
-                process.exit(1); //eslint-disable-line no-process-exit
-            }
-            brokerId = cosi.cosi_broker_id;
+        if (this.verbose) {
+            console.log("Checking Custom configuration for default broker list");
         }
-        else if (this.defaultBrokerId === null && cosi.custom_options.hasOwnProperty("broker")) {
-            const customBroker = cosi.custom_options.broker;
 
-            if (customBroker.id) {
-                brokerId = customBroker.id;
-                log(`Customer broker ID found ${customBroker.id}`);
-            }
-            else if (customBroker.list && customBroker.default) {
-                const list = customBroker.list;
-                const idx = customBroker.default;
+        if (cosi.custom_options.hasOwnProperty("broker")) {
+            if (cosi.custom_options.broker.hasOwnProperty("default")) {
+                const reqBrokerKeys = [ "fallback", "json", "httptrap" ];
+                let ok = true;
 
-                log("Customer broker list found");
+                for (let i = 0; i < reqBrokerKeys.length; i++) {
+                    const listKey = reqBrokerKeys[i];
+                    const idxKey = `${listKey}_default`;
 
-                if (Array.isArray(list)) {
-                    if (idx !== -1 || (idx < 0 || idx > list.length)) {
-                        console.log(chalk.yellow("WARN", "custom options, broker.default is not in bounds of broker.list, ignoring."));
+                    if (!cosi.custom_options.broker.default.hasOwnProperty(listKey)) {
+                        ok = false;
+                        break;
                     }
-                    else {
-                        brokerId = list[ idx === -1 ? Math.floor(Math.random() * list.length) : idx ];
-                        log(`Custom broker ID from supplied list ${brokerId}`);
+                    if (!cosi.custom_options.broker.default.hasOwnProperty(idxKey)) {
+                        ok = false;
+                        break;
                     }
                 }
-                else {
-                    console.log(chalk.yellow("WARN"), "custom options, broker.list is not an array, ignoring.");
+
+                // if the list is invalid, exit since it was an explicit user configuration
+                if (!ok) {
+                    console.error(chalk.red("WARN:"), "custom broker list found but, is invalid.");
+                    process.exit(1);
                 }
+
+                // we want a *copy* of it, not a reference to the original...
+                defaultBrokerConfig = JSON.parse(JSON.stringify(cosi.custom_options.broker.default));
+                return cb(null, defaultBrokerConfig);
             }
         }
 
-        if (brokerId === null) {
-            this.emit("gdb.enterprise");
-        }
-        else {
-            this.emit("gdb.verify", brokerId);
-        }
-    }
 
-    // default broker, enterprise
-    _gdbe() {
-        const self = this;
-
-        function log(msg) {
-            if (self.verbose) {
-                console.log(msg);
-            }
+        if (this.verbose) {
+            console.log("Fetching default broker list from COSI");
         }
 
-        log("Checking for enterprise brokers");
-
-        if (this.defaultBrokerId === null) {
-            this.getBrokerList((err, brokers) => {
-                if (err) {
-                    self.emit("gdb.error", err);
-                }
-                for (let i = 0; i < brokers.length; i++) {
-                    if (brokers[i]._type === "enterprise") {
-                        for (let j = 0; j < brokers[i]._details.length; j++) {
-                            if (brokers[i]._details[j].status === "active") {
-                                const brokerId = brokers[i]._cid.replace("/broker/", "");
-
-                                log(`Identified enterprise broker ID ${brokerId}`);
-                                self.emit("gdb.verify", brokerId);
-                                return;
-                            }
-                        }
-                    }
-                }
-                self.emit("gdb.cosi");
-            });
-        }
-    }
-
-    // default broker, cosi
-    _gdbd() {
-        const self = this;
-
-        function log(msg) {
-            if (self.verbose) {
-                console.log(msg);
-            }
-        }
-
-        log("Checking COSI for default broker");
-
-        const query = {
-            type: cosi.cosi_os_type,
-            dist: cosi.cosi_os_dist,
-            vers: cosi.cosi_os_vers,
-            arch: cosi.cosi_os_arch,
-            mode: cosi.agent_mode
-        };
-
-        const reqOptions = cosi.getProxySettings(`${cosi.cosi_url}broker?${qs.stringify(query)}`);
+        const reqOptions = cosi.getProxySettings(`${cosi.cosi_url}brokers`);
         let client = null;
 
         if (reqOptions.protocol === "https:") {
@@ -313,68 +207,239 @@ class Broker extends Events {
                         msg: res.statusMessage,
                         data
                     };
-                    self.emit("gdb.error", apiError);
+                    return cb(apiError);
                 }
 
-                let broker = null;
+                let brokers = null;
 
                 try {
-                    broker = JSON.parse(data);
-                    if (broker.broker_id) {
-                        log(`COSI default broker ID ${broker.broker_id}`);
-                        self.emit("gdb.verify", broker.broker_id);
-                    }
-                    else {
-                        throw new Error("No broker id found in cosi api response");
-                    }
+                    brokers = JSON.parse(data);
                 }
                 catch (err) {
                     console.error(chalk.red("COSI API error"), "parsing response", data, err);
-                    self.emit("gdb.error", err);
+                    return cb(err);
                 }
+
+                defaultBrokerConfig = brokers;
+                return cb(null, defaultBrokerConfig);
+
             });
         }).on("error", (err) => {
             if (err.code === "ECONNREFUSED") {
-                console.error(chalk.red("Fetch default broker - unable to connect to COSI"), reqOptions, err.toString());
-                process.exit(1); //eslint-disable-line no-process-exit
+                console.error(chalk.red("Fetch default broker list - unable to connect to COSI"), reqOptions, err.toString());
+                process.exit(1);
             }
         });
     }
 
-    // verify broker
-    _gdbv(brokerId) {
-        const self = this;
+    // get broker object for a specific broker id
+    getBrokerById(id) {
+        const brokerId = id.toString();
 
-        function log(msg) {
-            if (self.verbose) {
-                console.log(msg);
-            }
+        if (!brokerId.match(/^[0-9]+$/)) {
+            throw new Error("Invalid broker id, must only be digits.");
         }
 
-        log(`Verifying broker ID ${brokerId}`);
+        const brokerCid = `/broker/${brokerId}`;
 
-        if (!brokerId) {
-            this.emit("gdb.error", new Error("Unable to verify unset broker id"));
-            return;
+        for (let i = 0; i < brokerList.length; i++) {
+            if (brokerList[i]._cid === brokerCid) {
+                return JSON.parse(JSON.stringify(brokerList[i]));
+            }
+        }
+        console.error(chalk.red("ERROR:"), `No broker found with id ${brokerId}`);
+        process.exit(1);
+    }
+
+    // default broker, custom options
+    _getCustomBroker() {
+
+        if (this.verbose) {
+            console.log("Checking for custom broker settings");
         }
 
-        this.getBrokerList((err, brokers) => {
-            if (err) {
-                self.emit("gdb.error", err);
-                return;
+        // command line --broker trumps all
+
+        if (cosi.hasOwnProperty("cosi_broker_id")) {
+            if (this.verbose) {
+                console.log(`Using broker from command line: ${cosi.cosi_broker_id}`);
+            }
+            if (!cosi.cosi_broker_id.match(/^\d+$/)) {
+                console.error(chalk.red("Invalid broker specified on command line", cosi.cosi_broker_id, "should be a number."));
+                process.exit(1);
+            }
+            return cosi.cosi_broker_id;
+        }
+
+        // check if registration options config file has a broker section
+
+        if (!cosi.custom_options.hasOwnProperty("broker")) {
+            return null;
+        }
+
+        const customBroker = cosi.custom_options.broker;
+
+        // does it have a specific id to use
+
+        if (customBroker.id) {
+            if (this.verbose) {
+                console.log(`Customer broker ID found ${customBroker.id}`);
+            }
+            return customBroker.id;
+        }
+
+        // does it have a list of brokers from which to pick (a specific or random one)
+
+        if (customBroker.list && customBroker.default) {
+            const list = customBroker.list;
+            const idx = customBroker.default;
+
+            if (this.verbose) {
+                console.log("Customer broker list found");
             }
 
-            const cid = `/broker/${brokerId}`;
+            if (Array.isArray(list) && list.length > 0) {
+                if (idx !== -1 || (idx < 0 || idx > list.length)) {
+                    console.log(chalk.yellow("WARN", "custom options, broker.default is not in bounds of broker.list, ignoring."));
+                }
+                else {
+                    const brokerId = list[ idx === -1 ? Math.floor(Math.random() * list.length) : idx ];
 
-            for (let i = 0; i < brokers.length; i++) {
-                if (brokers[i]._cid === cid) {
-                    self.emit("gdb.valid", brokers[i]);
-                    return;
+                    if (this.verbose) {
+                        console.log(`Custom broker ID from supplied list ${brokerId}`);
+                    }
+                    return brokerId;
                 }
             }
-            self.emit("gdb.error", new Error(`Specified broker id ${brokerId}, is not valid.`));
-        });
+            else {
+                console.warn(chalk.yellow("WARN"), "custom options, broker.list is not an array or has no elements, ignoring.");
+            }
+        }
+
+        return null;
     }
+
+    // default broker, enterprise
+    _getEnterpriseBroker(checkType) {
+        assert.strictEqual(typeof checkType, "string", "checkType must be a string");
+
+        if (this.verbose) {
+            console.log("Checking for enterprise brokers");
+        }
+
+        const enterpriseBrokers = [];
+
+        for (let i = 0; i < brokerList.length; i++) {
+            const broker = brokerList[i];
+
+            if (broker._type !== "enterprise") {
+                continue;
+            }
+            if (!this._isValidBroker(broker, checkType)) {
+                continue;
+            }
+            for (let j = 0; j < broker._details.length; j++) {
+                const detail = broker._details[j];
+
+                if (detail.status !== "active") {
+                    continue;
+                }
+
+                if (this._brokerConnectionTest(detail, 500)) {
+                    enterpriseBrokers.push(JSON.parse(JSON.stringify(broker)));
+                    break;
+                }
+            }
+        }
+
+        if (enterpriseBrokers.length === 0) {
+            return null;
+        }
+
+        const brokerIdx = Math.floor(Math.random() * enterpriseBrokers.length);
+        const brokerId = enterpriseBrokers[brokerIdx]._cid.replace("/broker/", "");
+
+        if (this.verbose) {
+            console.log("Found enterprise brokers, using", brokerId, enterpriseBrokers[brokerIdx]._name);
+        }
+
+        return brokerId;
+    }
+
+    // default broker from cosi (circonus brokers)
+    _getCosiBroker(checkType) {
+        let brokerId = null;
+
+        if (defaultBrokerConfig.hasOwnProperty(checkType)) {
+            brokerId = defaultBrokerConfig[checkType];
+        }
+
+        if (this.verbose) {
+            console.log(`COSI default broker used ${brokerId}`);
+        }
+
+        return brokerId;
+    }
+
+
+    _brokerSupportsCheckType(detail, checkType) {
+        for (let i = 0; i < detail.modules.length; i++) {
+            if (detail.modules[i] === checkType) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    _brokerConnectionTest(detail, maxResponseTime) {
+        const maxTime = maxResponseTime || 500;
+        const port = detail.external_port || 43191;
+        let host = detail.ipaddress;
+
+        if (detail.cn === detail.external_host) {
+            host = detail.external_host;
+        }
+
+        const status = ct.test(host, port, maxTime);
+
+        if (this.verbose) {
+            if (status.success) {
+                console.log(chalk.green(`\t${host}:${port}`), "OK");
+            }
+            else {
+                console.log(chalk.yellow(`\t${host}:${port}`), status.error);
+            }
+        }
+
+        return status.success;
+    }
+
+
+    _isValidBroker(broker, checkType) {
+
+        if (broker._name === "composite" && checkType !== "composite") {
+            return false;
+        }
+
+        let valid = false;
+
+        for (let i = 0; i < broker._details.length; i++) {
+            const detail = broker._details[i];
+
+            if (detail.status !== "active") {
+                continue; // ignore broker group members in any state other than "active"
+            }
+
+            if (this._brokerSupportsCheckType(detail, checkType)) {
+                valid = true;
+                break;
+            }
+        }
+
+        return valid;
+    }
+
 }
 
 module.exports = Broker;
