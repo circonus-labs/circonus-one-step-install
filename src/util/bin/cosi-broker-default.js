@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers */
+/*eslint-disable no-magic-numbers, no-process-exit */
 
 "use strict";
 
@@ -22,15 +22,32 @@ if (!app.quiet) {
     console.log(chalk.bold(app.name()), `v${app.version()}`);
 }
 
-const broker = new Broker(app.quiet);
+const bh = new Broker(app.quiet);
+let checkType = "json";
 
-broker.getDefaultBroker((err, defaultBroker) => {
+console.log(cosi.cosi_os_type, cosi.cosi_os_dist, `v${cosi.cosi_os_vers}`, cosi.cosi_os_arch, cosi.agent_mode, "agent mode.");
+
+console.log(chalk.bold("====="));
+console.log("Determining default broker for check type", checkType);
+
+bh.getDefaultBroker(checkType, (err, broker) => {
     if (err) {
         console.dir(err);
         throw err;
     }
 
-    console.log(cosi.cosi_os_type, cosi.cosi_os_dist, `v${cosi.cosi_os_vers}`, cosi.cosi_os_arch, cosi.agent_mode, "agent mode.");
-    console.log(chalk.bold("Default broker:"), defaultBroker._cid.replace("/broker/", ""), "-", defaultBroker._name);
+    console.log(chalk.bold("Default broker:"), "for check type", checkType, broker._cid.replace("/broker/", ""), "-", broker._name);
 
+    checkType = "httptrap";
+    console.log(chalk.bold("====="));
+    console.log("Determining default broker for check type", checkType);
+
+    bh.getDefaultBroker(checkType, (err2, broker2) => {
+        if (err2) {
+            console.dir(err2);
+            throw err2;
+        }
+
+        console.log(chalk.bold("Default"), "broker for", checkType, "check type:", broker._cid.replace("/broker/", ""), "-", broker2._name);
+    });
 });

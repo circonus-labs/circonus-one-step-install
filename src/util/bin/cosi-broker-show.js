@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers */
+/*eslint-disable no-magic-numbers, no-process-exit */
 
 "use strict";
 
@@ -31,23 +31,29 @@ if (app.args.length !== 1) {
 }
 
 const brokerId = app.args[0];
-const broker = new Broker(app.quiet);
+const bh = new Broker(app.quiet);
 
-broker.getBrokerInfo(brokerId, (err, info) => {
-    if (err) {
-        console.dir(err);
-        throw err;
+bh.getBrokerList((errGBL) => {
+    if (errGBL) {
+        console.error(chalk.red("ERROR:"), "Fetching broker list from API.", errGBL);
+        process.exit(1);
     }
+
+    const broker = bh.getBrokerById(brokerId);
 
     const checkTypes = {};
     let maxCheckWidth = 0;
     let active = false;
 
-    for (const detail of info._details) {
+    for (let i = 0; i < broker._details.length; i++) {
+        const detail = broker._details[i];
+
         if (detail.status === "active") {
             active = true;
-            for (const module of detail.modules) {
-                if (module !== "selfcheck") {
+            for (let j = 0; j < detail.modules.length; j++) {
+                const module = detail.modules[j];
+
+                if (module !== "selfcheck" && module.substr(0, 7) !== "hidden:") {
                     checkTypes[module] = true;
                     maxCheckWidth = Math.max(maxCheckWidth, module.length);
                 }
@@ -59,9 +65,9 @@ broker.getBrokerInfo(brokerId, (err, info) => {
         const checkList = Object.keys(checkTypes);
         const width = 10;
 
-        console.log(chalk.bold(sprintf(`%-${width}s`, "ID")), info._cid.replace("/broker/", ""));
-        console.log(chalk.bold(sprintf(`%-${width}s`, "Name")), info._name);
-        console.log(chalk.bold(sprintf(`%-${width}s`, "Type")), info._type);
+        console.log(chalk.bold(sprintf(`%-${width}s`, "ID")), broker._cid.replace("/broker/", ""));
+        console.log(chalk.bold(sprintf(`%-${width}s`, "Name")), broker._name);
+        console.log(chalk.bold(sprintf(`%-${width}s`, "Type")), broker._type);
         console.log(chalk.bold(sprintf(`%-${width}s`, "Checks")), `${checkList.length} types supported`);
 
         maxCheckWidth += 2;
@@ -75,7 +81,9 @@ broker.getBrokerInfo(brokerId, (err, info) => {
             }
             console.log(sprintf(`%-${width}s`, ""), line);
         }
-    } else {
+    }
+    else {
         console.error(chalk.red(`Broker ${brokerId} is not active.`));
     }
+
 });

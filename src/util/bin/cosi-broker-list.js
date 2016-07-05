@@ -42,22 +42,22 @@ if (!app.quiet) {
     console.log(chalk.bold(app.name()), `v${app.version()}`);
 }
 
-const broker = new Broker(app.quiet);
+const bh = new Broker(app.quiet);
 
-broker.getBrokerList((err, list) => {
+bh.getBrokerList((err, brokers) => {
     if (err) {
         process.exit(1);
     }
 
     emitLine(app.quiet);
 
-    for (let i = 0; i < list.length; i++) {
-        const item = list[i];
-        const id = item._cid.replace("/broker/", "");
-        const type = item._type;
-        const name = item._name;
+    for (let i = 0; i < brokers.length; i++) {
+        const broker = brokers[i];
+        const id = broker._cid.replace("/broker/", "");
+        const type = broker._type;
+        const name = broker._name;
 
-        if (item._name !== "composite") {
+        if (name !== "composite") {
             emitLine(app.quiet, id, name, type);
         }
         // for (const detail of item._details) {
