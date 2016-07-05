@@ -24,6 +24,12 @@ if [[ -z "${cosi_dir:-}" ]]; then
     cosi_dir="$(readlink -e $cosi_bin_dir/..)"
 fi
 
+statsd_disabled="${cosi_dir}/etc/statsd.disabled"
+if [[ -f "$statsd_disabled" ]]; then
+    log "StatsD disabled, skipping."
+    exit 0
+fi
+
 log "Checking for ${service_name} package"
 statsd_pkg="${cosi_dir}/cosi-statsd.tar.gz"
 if [[ ! -f "$statsd_pkg" ]]; then
@@ -34,7 +40,13 @@ pass "${service_name} package found."
 log "Checking for ${service_name} configuration"
 statsd_cfg="${cosi_dir}/etc/statsd.json"
 if [[ ! -f "$statsd_cfg" ]]; then
-    fail "${service_name} configuration not found, unable to install. (${statsd_cfg})"
+    statsd_disabled="${cosi_dir}/etc/statsd.disabled"
+    if [[ ! -f "$statsd_disabled" ]]; then
+        fail "${service_name} configuration not found, unable to install. (${statsd_cfg})"
+    else
+        pass "StatsD disabled, exiting."
+        exit 0
+    fi
 fi
 pass "${service_name} configuration found."
 
