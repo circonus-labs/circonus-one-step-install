@@ -32,26 +32,24 @@ const BROKER_ARLINGTON = 1;
 const BROKER_SANJOSE = 2;
 const BROKER_CHICAGO = 275;
 const DEFAULT_BROKER_LIST = {
-    push: [
-        BROKER_HTTPTRAP     // push_default=0
+    // if there isn't a broker config for the specific type of check,
+    // the fallback will/should be used.
+    fallback: [
+        BROKER_ARLINGTON,
+        BROKER_SANJOSE,
+        BROKER_CHICAGO
     ],
-    push_default: 0,        // 0 based index to an element in push array or -1 for random
-    pull: [
-        BROKER_ARLINGTON,   // pull_default=0
-        BROKER_SANJOSE,     // pull_default=1
-        BROKER_CHICAGO      // pull_default=2
+    fallback_default: 2,         // 0 based index or -1 for random
+    httptrap: [
+        BROKER_HTTPTRAP
     ],
-    pull_default: 2,        // 0 based index to an element in pull array or -1 for random
-    reverse: [
-        BROKER_ARLINGTON,   // reverse_default=0
-        BROKER_SANJOSE,     // reverse_default=1
-        BROKER_CHICAGO      // reverse_default=2
+    httptrap_default: 0,         // 0 based index or -1 for random
+    json: [
+        BROKER_ARLINGTON,
+        BROKER_SANJOSE,
+        BROKER_CHICAGO
     ],
-    reverse_default: 2,     // 0 based index to an element in reverse array or -1 for random
-    trap: [
-        BROKER_HTTPTRAP     // trap_default=0
-    ],
-    trap_default: 0         // 0 based index to an element in trap array or -1 for random
+    json_default: 2             // 0 based index or -1 for random
 };
 
 let instance = null;
@@ -236,6 +234,27 @@ class Settings {
         // note, no command line option. only user config, user is responsible for ensuring the configuration adheres
         // to the format of DEFAULT_BROKER_LIST defined above.
         this.default_broker_list = cfg.default_broker_list || defaults.default_broker_list;
+
+        // backfill the required types from default if they do not exist in a custom config
+        // because these are the ones cosi will use to create checks.
+        const requiredBrokerTypes = [ "fallback", "httptrap", "json" ];
+
+        for (let i = 0; i < requiredBrokerTypes.length; i++) {
+            const brokerType = requiredBrokerTypes[i];
+            const brokerTypeDefault = `${brokerType}_default`;
+
+            if (!this.default_broker_list.hasOwnProperty(brokerType)) {
+                this.default_broker_list[brokerType] = DEFAULT_BROKER_LIST[brokerType];
+            }
+            if (!this.default_broker_list.hasOwnProperty(brokerTypeDefault)) {
+                this.default_broker_list[brokerTypeDefault] = DEFAULT_BROKER_LIST[brokerTypeDefault];
+            }
+        }
+
+        // verify a minimum of "fallback" broker
+        if (!(this.default_broker_list.hasOwnProperty("fallback") && this.default_broker_list.hasOwnProperty("fallback_default"))) {
+            config_error("Invalid broker configuration, no fallback broker defined.");
+        }
 
         //
         // SSL enablement

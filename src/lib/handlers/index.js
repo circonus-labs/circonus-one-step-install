@@ -123,29 +123,47 @@ class Handlers {
 
     defaultBroker(req, res, next) {
         const mode = req.params.mode.toLowerCase();
-        const broker = { broker_id: null };
         const brokers = self._getDefaultBrokers();
+        let broker = null;
+        let brokerIdx = null;
+        let brokerId = null;
 
-        if (mode === "push") {
-            broker.broker_id = brokers.push;
+        if (mode.match(/^(push|trap|httptrap)$/)) {
+            if (brokers.hasOwnProperty("httptrap") && brokers.hasOwnProperty("httptrap_default")) {
+                broker = brokers.httptrap;
+                brokerIdx = brokers.httptrap_default;
+            }
         }
-        else if (mode === "pull") {
-            broker.broker_id = brokers.pull;
-        }
-        else if (mode === "reverse") {
-            broker.broker_id = brokers.reverse;
-        }
-        else if (mode === "revonly") {
-            broker.broker_id = brokers.reverse;
-        }
-        else if (mode === "trap") {
-            broker.broker_id = brokers.trap;
+        else if (mode.match(/^(pull|reverse|revonly|json)$/)) {
+            if (brokers.hasOwnProperty("json") && brokers.hasOwnProperty("json_default")) {
+                broker = brokers.json;
+                brokerIdx = brokers.json_default;
+            }
         }
         else {
             return next(new restify.InvalidArgumentError(`Invalid agent mode specified '${mode}'`));
         }
+
+        if (broker === null) {
+            if (brokers.hasOwnProperty("fallback") && brokers.hasOwnProperty("fallback_default")) {
+                broker = brokers.fallback;
+                brokerIdx = brokers.fallback_default;
+            }
+        }
+
+        if (broker === null) {
+            return next(new restify.InternalServerError(`Invalid broker configuration, could not satisfy query for '${mode}'.`));
+        }
+
+        if (brokerIdx === -1) {
+            brokerId = broker[ Math.floor(Math.random() * broker.length) ];
+        }
+        else {
+            brokerId = broker[brokerIdx];
+        }
+
         res.cache("private", { maxAge: 0 });
-        res.json(broker);
+        res.json({ broker_id: brokerId });
         return next();
     }
 
@@ -160,32 +178,26 @@ class Handlers {
 
 
     _getDefaultBrokers() {
-        const brokers = { push: null, pull: null, reverse: null };
-        let defaultId = 0;
+        const brokers = { fallback: null, json: null, httptrap: null };
+        const checkTypes = Object.keys(brokers);
 
-        defaultId = settings.default_broker_list.push_default;
-        if (defaultId === -1) {
-            defaultId = Math.floor(Math.random() * settings.default_broker_list.push.length);
-        }
-        brokers.push = settings.default_broker_list.push[defaultId];
+        for (let i = 0; i < checkTypes.length; i++) {
+            const checkType = checkTypes[i];
+            const idxKey = `${checkType}_default`;
 
-        defaultId = settings.default_broker_list.pull_default;
-        if (defaultId === -1) {
-            defaultId = Math.floor(Math.random() * settings.default_broker_list.pull.length);
-        }
-        brokers.pull = settings.default_broker_list.pull[defaultId];
+            if (settings.default_broker_list.hasOwnProperty(checkType)) {
+                if (settings.default_broker_list.hasOwnProperty(idxKey)) {
+                    const brokerIdx = settings.default_broker_list[idxKey];
 
-        defaultId = settings.default_broker_list.reverse_default;
-        if (defaultId === -1) {
-            defaultId = Math.floor(Math.random() * settings.default_broker_list.reverse.length);
+                    if (brokerIdx === -1) {
+                        brokers[checkType] = Math.floor(Math.random() * settings.default_broker_list[checkType].length);
+                    }
+                    else {
+                        brokers[checkType] = settings.default_broker_list[checkType][brokerIdx];
+                    }
+                }
+            }
         }
-        brokers.reverse = settings.default_broker_list.reverse[defaultId];
-
-        defaultId = settings.default_broker_list.trap_default;
-        if (defaultId === -1) {
-            defaultId = Math.floor(Math.random() * settings.default_broker_list.trap.length);
-        }
-        brokers.trap = settings.default_broker_list.trap[defaultId];
 
         return brokers;
     }
