@@ -21,36 +21,39 @@ Usage
 
 Options
 
-  --key         Circonus API key/token **${BOLD}REQUIRED${NORMAL}**
+  --key           Circonus API key/token **${BOLD}REQUIRED${NORMAL}**
 
-  --app         Circonus API app name (authorized w/key) Default: cosi
+  --app           Circonus API app name (authorized w/key) Default: cosi
 
-  [--cosiurl]   COSI URL Default: https://onestep.circonus.com/
+  [--cosiurl]     COSI URL Default: https://onestep.circonus.com/
 
-  [--apiurl]    Circonus API URL Default: https://api.circonus.com/
+  [--apiurl]      Circonus API URL Default: https://api.circonus.com/
 
-  [--agent]     Agent mode. Default: reverse
-                reverse = Install NAD, NAD will open connection to broker.
-                          broker will request metrics through reverse connection.
-                revonly = reverse *ONLY* ensure target will not resolve by prefixing
-                          with 'REV:'
-                pull = Install NAD, broker will connect to system and request metrics
-                push = Install NAD, metrics will be sent to broker at an interval
-                Note: If NAD is already installed, installation will be skipped
+  [--agent]       Agent mode. Default: reverse
+                  reverse = Install NAD, NAD will open connection to broker.
+                            broker will request metrics through reverse connection.
+                  revonly = reverse *ONLY* ensure target will not resolve by prefixing
+                            with 'REV:'
+                  pull = Install NAD, broker will connect to system and request metrics
+                  push = Install NAD, metrics will be sent to broker at an interval
+                  Note: If NAD is already installed, installation will be skipped
 
-  [--regconf]   Configuration file with custom options to use during registration.
+  [--nostatsd]    Disable installing the StatsD server.
+  [--statsdport]  StatsD port [8125].
 
-  [--target]    Host IP/hostname to use as check target.
+  [--regconf]     Configuration file with custom options to use during registration.
 
-  [--broker]    Broker to use ('Group ID' from a Broker on the Brokers page in Circonus UI).
+  [--target]      Host IP/hostname to use as check target.
 
-  [--noreg]     Do not attempt to register this system. Using this option
-                will *${BOLD}require${NORMAL}* that the system be manually registered.
-                Default: register system (creating check, graphs, and worksheet)
+  [--broker]      Broker to use ('Group ID' from a Broker on the Brokers page in Circonus UI).
 
-  [--help]      This message
+  [--noreg]       Do not attempt to register this system. Using this option
+                  will *${BOLD}require${NORMAL}* that the system be manually registered.
+                  Default: register system (creating check, graphs, and worksheet)
 
-  [--trace]     Enable tracing, output debugging messages
+  [--help]        This message
+
+  [--trace]       Enable tracing, output debugging messages
 "
 }
 
@@ -126,9 +129,16 @@ __parse_parameters() {
                 fail "--agent must be followed by an agent mode (reverse|revonly|pull|push)."
             fi
             ;;
-        (--statsd)
-            cosi_statsd_flag=1
-            cosi_statsd_type="host"
+        (--nostatsd)
+            cosi_statsd_flag=0
+            ;;
+        (--statsdport)
+            if [[ -n "${1:-}" ]]; then
+                cosi_statsd_port="$1"
+                shift
+            else
+                fail "--statsdport must be followed by a port number."
+            fi
             ;;
         (--regconf)
             if [[ -n "${1:-}" ]]; then
@@ -583,7 +593,8 @@ __save_cosi_register_config() {
     "cosi_url": "${cosi_url}",
     "agent_mode": "${cosi_agent_mode}",
     "agent_url": "${agent_url}",
-    "statsd_type": "${cosi_statsd_type}",
+    "statsd": ${cosi_statsd_flag},
+    "statsd_port": ${cosi_statsd_port},
     "custom_options_file": "${cosi_regopts_conf}",
     "cosi_host_target": "${cosi_host_target}",
     "cosi_broker_id": "${cosi_broker_id}",
@@ -733,8 +744,8 @@ cosi_initialize() {
     : ${cosi_api_key:=}
     : ${cosi_api_app:=cosi}
     : ${cosi_agent_mode:=reverse}
-    : ${cosi_statsd_flag:=0}
-    : ${cosi_statsd_type:=none}
+    : ${cosi_statsd_flag:=1}
+    : ${cosi_statsd_port:=8125}
     : ${cosi_install_agent:=1}
     : ${package_install_cmd:=}
     : ${package_install_args:=--install}
@@ -749,7 +760,8 @@ cosi_initialize() {
     cosi_host_target \
     cosi_broker_id \
     cosi_install_agent \
-    cosi_statsd_type \
+    cosi_statsd_flag \
+    cosi_statsd_port \
     cosi_register_flag \
     cosi_register_config \
     cosi_quiet_flag \
@@ -840,6 +852,12 @@ cosi_initialize() {
         mkdir -p "$bin_dir"
         [[ $? -eq 0 ]] || fail "Unable to create bin_dir '${bin_dir}'."
     }
+
+    if [[ ${cosi_statsd_flag:-1} -eq 1 && -f "${etc_dir}/statsd.disabled" ]]; then
+        set +e
+        rm "${etc_dir}/statsd.disabled"
+        set -e
+    fi
 }
 
 
@@ -919,15 +937,17 @@ cosi_register() {
         fi
     fi
 
-    if [[ ${cosi_statsd_flag:-0} -eq 1 ]]; then
-        echo
-        echo
-        log "Installing Circonus StatsD"
-        if [[ -x "$install_statsd" ]]; then
-            $install_statsd | tee -a $cosi_install_log
-            [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "Errors encountered during Circonus StatsD installation."
-        else
-            fail "StatsD flag set but, installer not found."
+    if [[ ${cosi_statsd_flag:-1} -eq 1 ]]; then
+        if [[ ! -f "${etc_dir}/stastd.disabled" ]]; then
+            echo
+            echo
+            log "Installing Circonus StatsD"
+            if [[ -x "$install_statsd" ]]; then
+                $install_statsd | tee -a $cosi_install_log
+                [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "Errors encountered during Circonus StatsD installation."
+            else
+                fail "StatsD flag set but, installer not found."
+            fi
         fi
     fi
 
