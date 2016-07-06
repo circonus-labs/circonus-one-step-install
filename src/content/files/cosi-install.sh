@@ -71,7 +71,7 @@ BOLD=$(tput bold)
 set -e
 
 log()  { [[ "$cosi_quiet_flag" == 1 ]] && log_only "$*" || printf "%b\n" "$*" | tee -a $cosi_install_log; }
-log_only() { printf "%b\n" "${FUNCNAME[1]}: $*" >> $cosi_install_log; }
+log_only() { printf "%b\n" "${FUNCNAME[1]:-}: $*" >> $cosi_install_log; }
 fail() { printf "${RED}" >&2; log "\nERROR: $*\n" >&2; printf "${NORMAL}" >&2; exit 1; }
 pass() { printf "${GREEN}"; log "$*"; printf "${NORMAL}"; }
 
@@ -1018,22 +1018,25 @@ fi
 #
 : ${cosi_dir:=/opt/circonus/cosi}
 [[ -d "$cosi_dir" ]] || {
+    set +e
     mkdir -p "$cosi_dir"
     [[ $? -eq 0 ]] || {
         printf "\n%b\n" "${RED}Unable to create cosi_dir '${cosi_dir}'.${NORMAL}"
         exit 1
     }
+    set -e
 }
 cosi_log_dir="${cosi_dir}/log"
 [[ -d "$cosi_log_dir" ]] || {
+    set +e
     mkdir -p "$cosi_log_dir"
     [[ $? -eq 0 ]] || {
         printf "\n%b\n" "${RED}Unable to create cosi_log_dir '${cosi_log_dir}'.${NORMAL}"
         exit 1
     }
+    set -e
 }
 cosi_install_log="${cosi_log_dir}/install.log"
-> "$cosi_install_log"
 
 #
 # squelch output (log messages to file only)
@@ -1043,7 +1046,9 @@ if [[ "$*" == *--quiet* ]]; then
   cosi_quiet_flag=1
 fi
 
+[[ ! -f $cosi_install_log ]] || printf "\n\n==========\n\n" >> $cosi_install_log
 log "Started Circonus One step Install on $(date)"
+printf "Options: $*\n" >> $cosi_install_log
 
 cosi_install "$@"
 
