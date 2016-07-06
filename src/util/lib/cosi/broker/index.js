@@ -24,6 +24,20 @@ class Broker {
         this.defaultBrokers = {};
     }
 
+    _verifyCustomBroker(id, checkType) {
+        if (id !== null) {
+            const broker = this.getBrokerById(id);
+
+            if (this._isValidBroker(broker, checkType)) {
+                return id;
+            }
+
+            console.log(chalk.yellow("WARN"), "Invalid broker", broker._name, "is not valid for", checkType, "-- checking next option.");
+
+        }
+        return null;
+    }
+
     // get the default broker to use for a specific check type
     getDefaultBroker(checkType, cb) {
         assert.strictEqual(typeof checkType, "string", "checkType must be a string");
@@ -47,7 +61,7 @@ class Broker {
                     process.exit(1);
                 }
 
-                let brokerId = self._getCustomBroker();
+                let brokerId = self._verifyCustomBroker(self._getCustomBroker(), checkType);
 
                 if (brokerId === null) {
                     brokerId = self._getEnterpriseBroker(checkType);

@@ -1,7 +1,7 @@
 "use strict";
 
 /*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers, global-require, camelcase */
+/*eslint-disable no-magic-numbers, global-require, camelcase, no-process-exit */
 
 const assert = require("assert");
 const fs = require("fs");
@@ -83,7 +83,28 @@ class Setup extends Registration {
 
         this.once("templates.fetch", this.fetchTemplates);
         this.once("templates.fetch.done", () => {
-            self.emit("broker.json");
+            self.emit("broker.load");
+        });
+
+        this.once("broker.load", () => {
+            console.log(chalk.blue(this.marker));
+            console.log("Loading broker information");
+
+            const bh = new Broker(self.quiet);
+
+            bh.getBrokerList((errGBL) => {
+                if (errGBL) {
+                    console.error(chalk.red("ERROR:"), "Fetching broker list from API", errGBL);
+                    process.exit(1);
+                }
+                bh.getDefaultBrokerList((errGDBL) => {
+                    if (errGDBL) {
+                        console.error(chalk.red("ERROR:"), "Fetching broker list from API", errGDBL);
+                        process.exit(1);
+                    }
+                    self.emit("broker.json");
+                });
+            });
         });
 
         this.once("broker.json", this.getJsonBroker);
