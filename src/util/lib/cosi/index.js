@@ -57,8 +57,6 @@ class COSI {
             "cosi_url",
             "agent_mode",
             "agent_url",
-            "statsd",
-            "statsd_port",
             "cosi_os_type",
             "cosi_os_dist",
             "cosi_os_vers",
@@ -77,6 +75,10 @@ class COSI {
                 process.exit(1);
             }
         }
+
+        // additional settings (previous installs may not have these settings on a cosi re-run)
+        instance.statsd = cfg.statsd || 0;
+        instance.statsd_port = cfg.statsd_port || 8125;
 
         const optionalSettings = [
             "cosi_host_target",
