@@ -503,18 +503,20 @@ class Register extends Registration {
             return null;
         }
 
-        for (let i = 0; i < this.broker.trap._details.length; i++) {
-            if (this.broker.trap._details[i].status !== "active") {
+        for (let i = 0; i < this.regConfig.broker.trap._details.length; i++) {
+            const detail = this.regConfig.broker.trap._details[i];
+
+            if (detail.status !== "active") {
                 continue;
             }
-            if (this.broker.trap._details[i].cn === urlHost) {
+            if (detail.cn === urlHost) {
                 return null;
             }
-            else if (this.broker.trap._details[i].ipaddress === urlHost) {
-                return this.broker.trap._details[i].cn;
+            else if (detail.ipaddress === urlHost) {
+                return detail.cn;
             }
-            else if (this.broker.trap._details[i].external_host === urlHost) {
-                return this.broker.trap._details[i].cn;
+            else if (detail.external_host === urlHost) {
+                return detail.cn;
             }
         }
 
