@@ -515,7 +515,7 @@ __is_nad_installed() {
             nad_pkg_ver=$(/usr/bin/rpm --queryformat '%{Version}' -q nad-omnibus 2>/dev/null)
             [[ $? -ne 0 ]] && nad_pkg_ver=""
         elif [[ -x /usr/bin/pkg ]]; then
-            log_only "\t$(/usr/bin/pkg info circonus/nad)"
+            log_only "\t$(/usr/bin/pkg info field/nad 2>&1)"
         else
             log_only "\tNAD found but do not know how to get info for this OS."
         fi
