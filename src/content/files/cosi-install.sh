@@ -38,7 +38,7 @@ Options
                   push = Install NAD, metrics will be sent to broker at an interval
                   Note: If NAD is already installed, installation will be skipped
 
-  [--nostatsd]    Disable installing the StatsD server.
+  [--statsd]      Enable install of the StatsD server.
   [--statsdport]  StatsD port [8125].
 
   [--regconf]     Configuration file with custom options to use during registration.
@@ -129,8 +129,8 @@ __parse_parameters() {
                 fail "--agent must be followed by an agent mode (reverse|revonly|pull|push)."
             fi
             ;;
-        (--nostatsd)
-            cosi_statsd_flag=0
+        (--statsd)
+            cosi_statsd_flag=1
             ;;
         (--statsdport)
             if [[ -n "${1:-}" ]]; then
@@ -505,6 +505,21 @@ __is_nad_installed() {
     local agent_bin="${agent_dir}/sbin/nad"
     if [[ -x "$agent_bin" ]]; then
         pass "NAD installation found"
+        set +e
+        if [[ -x /usr/bin/dpkg-query ]]; then
+            log_only "\t$(/usr/bin/dpkg-query --show nad-omnibus 2>&1)"
+            nad_pkg_ver=$(/usr/bin/dpkg-query --showformat='${Version}' --show nad-omnibus)
+            [[ $? -ne 0 ]] && nad_pkg_ver=""
+        elif [[ -x /usr/bin/rpm ]]; then
+            log_only "\t$(/usr/bin/rpm -qi nad-omnibus 2>&1)"
+            nad_pkg_ver=$(/usr/bin/rpm --queryformat '%{Version}' -q nad-omnibus 2>/dev/null)
+            [[ $? -ne 0 ]] && nad_pkg_ver=""
+        elif [[ -x /usr/bin/pkg ]]; then
+            log_only "\t$(/usr/bin/pkg info circonus/nad)"
+        else
+            log_only "\tNAD found but do not know how to get info for this OS."
+        fi
+        set -e
         agent_state=1
     fi
 }
@@ -744,7 +759,7 @@ cosi_initialize() {
     : ${cosi_api_key:=}
     : ${cosi_api_app:=cosi}
     : ${cosi_agent_mode:=reverse}
-    : ${cosi_statsd_flag:=1}
+    : ${cosi_statsd_flag:=0}
     : ${cosi_statsd_port:=8125}
     : ${cosi_install_agent:=1}
     : ${package_install_cmd:=}
@@ -853,7 +868,7 @@ cosi_initialize() {
         [[ $? -eq 0 ]] || fail "Unable to create bin_dir '${bin_dir}'."
     }
 
-    if [[ ${cosi_statsd_flag:-1} -eq 1 && -f "${etc_dir}/statsd.disabled" ]]; then
+    if [[ ${cosi_statsd_flag:-0} -eq 1 && -f "${etc_dir}/statsd.disabled" ]]; then
         set +e
         rm "${etc_dir}/statsd.disabled"
         set -e
@@ -937,7 +952,7 @@ cosi_register() {
         fi
     fi
 
-    if [[ ${cosi_statsd_flag:-1} -eq 1 ]]; then
+    if [[ ${cosi_statsd_flag:-0} -eq 1 ]]; then
         if [[ ! -f "${etc_dir}/stastd.disabled" ]]; then
             echo
             echo
