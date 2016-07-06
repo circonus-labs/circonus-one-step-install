@@ -1,3 +1,16 @@
+### 0.8.0 2016-07-06
+
+* new: enable circonus-statsd to provide a statsd endpoint (cosi-install --statsd) will default to ON going forward
+* new: cosi-install --statsdport option
+* new: cosi defaults NAD installs to reverse mode
+* new: --revonly (ensure target is non-resolvable to broker) for reverse only connections
+* change: pass-through custom api settings in nad reverse config (api host/port/protocol/path)
+* change: refactor broker selection logic
+* fix: typo in template fetch for registration setup (errors not error)
+* new: add current nad package info to install log
+* change: provisioning for site. use npm ansible module, back to using nodejs pkg.
+
+
 ### 0.7.3 2016-06-23
 
 * new: Amazon Linux v2016.03 x86\_64 (RHEL6) support (alpha-trial)

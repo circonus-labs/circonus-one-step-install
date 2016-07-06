@@ -1,6 +1,6 @@
 {
   "name": "cosi-cli",
-  "version": "0.7.3",
+  "version": "0.8.0",
   "description": "Circonus One Step Install utility",
   "private": true,
   "author": "matt maier (https://github.com/maier)",
@@ -8,6 +8,7 @@
   "dependencies": {
     "chalk": "1.1.3",
     "commander": "2.9.0",
+    "connection-tester": "0.1.1",
     "dot": "1.0.3",
     "https-proxy-agent": "1.0.0",
     "ora": "0.2.3",
