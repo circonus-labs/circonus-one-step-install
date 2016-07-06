@@ -29,23 +29,23 @@ class Setup extends Registration {
                 trap: null
             },
             account: null,
-            metricsFile: path.join(this.regDir, "setup-metrics.json"),
+            metricsFile: path.join(cosi.reg_dir, "setup-metrics.json"),
             cosiTags: [
                 "cosi:install",
-                `distro:${this.cosiAPI.args.dist}-${this.cosiAPI.args.vers}`,
-                `arch:${this.cosiAPI.args.arch}`,
-                `os:${this.cosiAPI.args.type}`
+                `distro:${cosi.cosi_os_dist}-${cosi.cosi_os_vers}`,
+                `arch:${cosi.cosi_os_arch}`,
+                `os:${cosi.cosi_os_type}`
             ],
-            cosiNotes: `cosi:register,cosi_id:${this.cosiId}`,
+            cosiNotes: `cosi:register,cosi_id:${cosi.cosi_id}`,
             templateData: {
-                host_name: this.customOptions.host_name ? this.customOptions.host_name : os.hostname(),
+                host_name: cosi.custom_options.host_name || os.hostname(),
                 host_target: null,
-                host_vars: this.customOptions.host_vars ? this.customOptions.host_vars : {},
-                host_tags: this.customOptions.host_tags ? this.customOptions.host_tags : []
+                host_vars: cosi.custom_options.host_vars || {},
+                host_tags: cosi.custom_options.host_tags || []
             },
             statsd: {
                 enabled: cosi.statsd === 1,
-                port: cosi.statsd_port
+                port: cosi.statsd_port || 8125
             }
         };
 
@@ -159,9 +159,11 @@ class Setup extends Registration {
     checkStatsdPort() {
         console.log(chalk.blue(this.marker));
         console.log("Checking StatsD port");
+
         if (!this.regConfig.statsd.enabled) {
             console.log("\tStatsD disabled, skipping.");
             this.emit("verify.statsd.done");
+            return;
         }
 
         const self = this;
@@ -171,19 +173,21 @@ class Setup extends Registration {
                 self.emit("error", err);
                 return;
             }
-            if (!ok) {
-                console.log(chalk.yellow("\tWARN:"), `StatsD port ${self.regConfig.statsd.port} is in use, disabling StatsD setup.`);
-                self.regConfig.statsd.enabled = false;
-                try {
-                    fs.writeFileSync(path.resolve(path.join(cosi.etc_dir, "statsd.disabled")));
-                }
-                catch (errSignalFile) {
-                    console.log(chalk.yellow("\tWARN:"), errSignalFile);
-                }
+
+            if (ok) {
+                console.log(chalk.green("\tOK:"), `StatsD port ${self.regConfig.statsd.port} is open.`);
                 self.emit("verify.statsd.done");
                 return;
             }
-            console.log(chalk.green("\tOK:"), `StatsD port ${self.regConfig.statsd.port} is open.`);
+
+            console.log(chalk.yellow("\tWARN:"), `StatsD port ${self.regConfig.statsd.port} is in use, disabling StatsD setup.`);
+            self.regConfig.statsd.enabled = false;
+            try {
+                fs.writeFileSync(path.resolve(path.join(cosi.etc_dir, "statsd.disabled")));
+            }
+            catch (errSignalFile) {
+                console.log(chalk.yellow("\tWARN:"), errSignalFile);
+            }
             self.emit("verify.statsd.done");
             return;
         });
@@ -425,7 +429,6 @@ class Setup extends Registration {
                     if (hostnames.length > 0) {
                         return cb(hostnames[0]);
                     }
-                    return cb(null);
                 }
                 return cb(null);
             });
