@@ -270,7 +270,7 @@ class Setup extends Registration {
                 self.emit("error", err);
                 return;
             }
-            console.log(`Checked ${result.attempts}, fetched ${result.fetched}, errors ${result.error}`);
+            console.log(`Checked ${result.attempts}, fetched ${result.fetched}, warnings ${result.warnings}, errors ${result.errors}`);
             self.emit("templates.fetch.done");
         });
     }
