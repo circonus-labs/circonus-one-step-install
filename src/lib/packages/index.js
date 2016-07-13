@@ -172,7 +172,7 @@ class Packages {
     }
 
     _fixVersion(dist, vers) {
-        if (dist && dist.match(/^(CentOS|Fedora|RedHat)$/)) {
+        if (dist && dist.match(/^(CentOS|Fedora|RedHat|Oracle)$/)) {
             return vers.substr(0, 1);
         }
         return vers;

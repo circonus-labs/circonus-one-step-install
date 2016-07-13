@@ -1,6 +1,6 @@
 {
   "name": "cosi-cli",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Circonus One Step Install utility",
   "private": true,
   "author": "matt maier (https://github.com/maier)",

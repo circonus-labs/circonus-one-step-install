@@ -252,6 +252,11 @@ __detect_os() {
                     cosi_os_dist="Fedora"
                     cosi_os_vers="${distro_info[2]}.${distro_info[3]%%\.*}"
                     ;;
+                (oraclelinux)
+                    # oraclelinux-release-7.2-1.0.5.el7.x86_64 - Oracle 7.2
+                    cosi_os_dist="Oracle"
+                    cosi_os_vers="${distro_info[2]}"
+                    ;;
                 (*) fail "Unknown RHEL variant '${distro_info[0]}' derived from '${release_rpm}'" ;;
                 esac
                 log "\tDerived ${cosi_os_dist} v${cosi_os_vers} from '${release_rpm}'"
