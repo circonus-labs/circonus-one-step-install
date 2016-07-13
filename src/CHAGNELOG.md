@@ -1,3 +1,7 @@
+### 0.8.1 2016-07-13
+
+* new: Oracle Linux v7.2 x86_64 support
+
 ### 0.8.0 2016-07-06
 
 * new: enable circonus-statsd to provide a statsd endpoint (cosi-install --statsd) will default to ON going forward
