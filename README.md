@@ -54,6 +54,8 @@ Vagrant 1.8.1
 5.0.20r106931
 ```
 
+> Note: Vagrant is used in the build process to create an RPM for RHEL systems. Supported OSes for building cosi are CentOS, Ubuntu and OSX (what Vagrant supports).
+
 ```sh
 # get the source, change the URL if you're using a forked copy
 git clone https://github.com/circonus-labs/circonus-one-step-install
