@@ -38,4 +38,37 @@ The [provision/](provision/) directory contains everything needed to provision c
 
 The [test/](test/) directory contains a test suite for cosi-site. (See [README](test/) in the directory.)
 
+## Development
 
+```sh
+git clone https://github.com/circonus-one-step-install
+cd circonus-one-step-install/src
+npm install
+cd util
+npm install
+cd ..
+npm install -g eslint pac npm-check-updates
+make package
+```
+
+The `demo/` directory contains a full working cosi-site and several cosi client VM definitions. The cosi-site VM will be provisioned from what is built locally.
+
+```sh
+cd demo
+vagrant up site
+```
+
+Select a client to test with (CentOS `c7`, Ubuntu `u14`, OmniOS `omnios`).
+
+```sh
+vagrant up c7
+```
+
+Once the client is up you can ssh into it (e.g. `vagrant ssh c7`) and run a cosi install command.
+
+To test changes made to the local source tree on a running cosi-site VM:
+
+```sh
+# from the demo/ subdirectory
+cd ../src && make package && cd ../demo && vagrant provision site
+```
