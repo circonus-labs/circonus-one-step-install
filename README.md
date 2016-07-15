@@ -54,19 +54,18 @@ Vagrant 1.8.1
 5.0.20r106931
 ```
 
+> Note: Vagrant is used in the build process to create an RPM for RHEL systems. Supported OSes for building cosi are CentOS, Ubuntu and OSX (what Vagrant supports).
+
 ```sh
 # get the source, change the URL if you're using a forked copy
 git clone https://github.com/circonus-labs/circonus-one-step-install
 
-# install global NPM packages
-npm install -g eslint pac npm-check-updates
+# install global NPM packages (if you will be using 'make check' or want linting in an editor supporting eslint)
+npm install -g eslint npm-check-updates
 
 # install local development and production NPM packages
 cd circonus-one-step-install/src
-npm install
-cd util
-npm install
-cd ..
+make init
 
 # build the cosi-site package for deployment
 make package

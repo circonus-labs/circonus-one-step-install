@@ -48,6 +48,10 @@ install:
 	@echo "Use 'install.sh' for installation of the COSI-Site package *on the target system*"
 	@exit 2
 
+init:
+	test -d node_modules || npm install
+	make -C util init
+	
 
 package: utils $(SITE_TGZ)
 	@echo "Copy cosi-site package to provisioning directory"
