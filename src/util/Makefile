@@ -51,6 +51,8 @@ check:
 	eslint $(BIN_SRC) $(LIB_SRC)
 	@ncu --prod
 
+init:
+	test -d node_modules || npm install
 
 .PHONY: clean
 clean:
