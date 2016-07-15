@@ -40,20 +40,42 @@ The [test/](test/) directory contains a test suite for cosi-site. (See [README](
 
 ## Development
 
+Environment:
+
 ```sh
-git clone https://github.com/circonus-one-step-install
+ansible --version && vagrant -v && vboxmanage --version
+
+ansible 2.1.0 (devel 9bb069f873) last updated 2016/04/18 12:42:14 (GMT -400)
+  lib/ansible/modules/core: (detached HEAD 5409ed1b28) last updated 2016/04/18 12:42:15 (GMT -400)
+  lib/ansible/modules/extras: (detached HEAD 3afe117730) last updated 2016/04/18 12:42:15 (GMT -400)
+  config file =
+  configured module search path = Default w/o overrides
+Vagrant 1.8.1
+5.0.20r106931
+```
+
+```sh
+# get the source, change the URL if you're using a forked copy
+git clone https://github.com/circonus-labs/circonus-one-step-install
+
+# install global NPM packages
+npm install -g eslint pac npm-check-updates
+
+# install local development and production NPM packages
 cd circonus-one-step-install/src
 npm install
 cd util
 npm install
 cd ..
-npm install -g eslint pac npm-check-updates
+
+# build the cosi-site package for deployment
 make package
 ```
 
 The `demo/` directory contains a full working cosi-site and several cosi client VM definitions. The cosi-site VM will be provisioned from what is built locally.
 
 ```sh
+# from repo root
 cd demo
 vagrant up site
 ```
