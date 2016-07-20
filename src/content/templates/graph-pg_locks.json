@@ -1,0 +1,71 @@
+{
+    "type": "graph",
+    "id": "pg_locks",
+    "description": "Postgres locks",
+    "version": "0.1.0",
+    "notes": [],
+    "graphs": [
+        {
+            "access_keys": [],
+            "composites": [],
+            "datapoints": [
+                {
+                    "alpha": null,
+                    "axis": "l",
+                    "check_id": null,
+                    "color": "#a0505f",
+                    "data_formula": null,
+                    "derive": "gauge",
+                    "hidden": false,
+                    "legend_formula": null,
+                    "metric_name": "pg_locks`exclusive",
+                    "metric_type": "numeric",
+                    "name": "exclusive",
+                    "stack": null
+                },
+                {
+                    "alpha": null,
+                    "axis": "l",
+                    "check_id": null,
+                    "color": "#657aa6",
+                    "data_formula": null,
+                    "derive": "gauge",
+                    "hidden": false,
+                    "legend_formula": null,
+                    "metric_name": "pg_locks`total",
+                    "metric_type": "numeric",
+                    "name": "total",
+                    "stack": null
+                },
+                {
+                    "alpha": null,
+                    "axis": "r",
+                    "check_id": null,
+                    "color": "#b5c52d",
+                    "data_formula": null,
+                    "derive": "gauge",
+                    "hidden": false,
+                    "legend_formula": null,
+                    "metric_name": "pg_locks`waiting",
+                    "metric_type": "numeric",
+                    "name": "waiting",
+                    "stack": null
+                }
+            ],
+            "description": "Postgres lock info",
+            "guides": [],
+            "line_style": "stepped",
+            "logarithmic_left_y": null,
+            "logarithmic_right_y": null,
+            "max_left_y": null,
+            "max_right_y": null,
+            "metric_clusters": [],
+            "min_left_y": null,
+            "min_right_y": null,
+            "notes": null,
+            "style": "line",
+            "tags": ["db:postgres", "database:locks"],
+            "title": "{{=cosi.host_name}} Postgres Locks"
+        }
+    ]
+}

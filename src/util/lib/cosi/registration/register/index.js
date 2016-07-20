@@ -19,6 +19,7 @@ const Check = require(path.resolve(cosi.lib_dir, "check"));
 const Broker = require(path.resolve(cosi.lib_dir, "broker"));
 const Graph = require(path.resolve(cosi.lib_dir, "graph"));
 const Worksheet = require(path.resolve(cosi.lib_dir, "worksheet"));
+const Dashboard = require(path.resolve(cosi.lib_dir, "dashboard"));
 
 class Register extends Registration {
 
@@ -155,7 +156,7 @@ class Register extends Registration {
 
         this.once("worksheet", this.worksheet);
         this.once("worksheet.done", () => {
-            self.emit("registration.done");
+            self.emit("register.done");
         });
 
         this.loadRegConfig();
@@ -494,6 +495,49 @@ class Register extends Registration {
         });
 
     }
+
+    dashboard(cfgFile) {
+        console.log(chalk.blue(this.marker));
+
+        const self = this;
+        const regFile = cfgFile.replace("config-", "registration-");
+        
+        console.log("Creating COSI dashboard");
+
+        if (this._fileExists(regFile)) {
+            console.log(chalk.bold("Registration exists"), `using ${regFile}`);
+            this.emit("dashboard.done");
+            return;
+        }
+
+        if (!this._fileExists(cfgFile)) {
+            this.emit("error", new Error(`Missing worksheet configuration file '${cfgFile}'`));
+            return;
+        }
+
+        const dash = new Dashboard(cfgFile);
+
+        if (dash.verifyConfig()) {
+            console.log("\tValid dashboard config");
+        }
+
+        console.log("\tSending dashboard configuration to Circonus API");
+
+        dash.create((err) => {
+            if (err) {
+                self.emit("error", err);
+                return;
+            }
+
+            console.log(`\tSaving registration ${regFile}`);
+            dash.save(regFile, true);
+
+            console.log(chalk.green("\tDashboard created:"), `${self.regConfig.account.uiUrl}/trending/worksheets/${worksheet._cid.replace("/worksheet/", "")}`);
+            self.emit("dashboard.done");
+        });
+
+    }
+
 
     _getTrapBrokerCn(trapUrl) {
         const urlInfo = url.parse(trapUrl);

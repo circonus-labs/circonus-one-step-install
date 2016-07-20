@@ -1,0 +1,85 @@
+{
+    "type": "graph",
+    "id": "pg_bgwriter",
+    "description": "Postgres bgwriter buffers",
+    "version": "0.1.0",
+    "notes": [],
+    "graphs": [
+        {
+            "access_keys": [],
+            "composites": [],
+            "datapoints": [
+                {
+                    "alpha": null,
+                    "axis": "l",
+                    "check_id": null,
+                    "color": "#b5c52d",
+                    "data_formula": null,
+                    "derive": "derive",
+                    "hidden": false,
+                    "legend_formula": null,
+                    "metric_name": "pg_bgwriter`buffers_allocated",
+                    "metric_type": "numeric",
+                    "name": "buffers allocated",
+                    "stack": null
+                },
+                {
+                    "alpha": null,
+                    "axis": "l",
+                    "check_id": null,
+                    "color": "#4fa18e",
+                    "data_formula": null,
+                    "derive": "derive",
+                    "hidden": false,
+                    "legend_formula": null,
+                    "metric_name": "pg_bgwriter`buffers_at_checkpoint",
+                    "metric_type": "numeric",
+                    "name": "buffers at checkpoint",
+                    "stack": null
+                },
+                {
+                    "alpha": null,
+                    "axis": "l",
+                    "check_id": null,
+                    "color": "#657aa6",
+                    "data_formula": null,
+                    "derive": "derive",
+                    "hidden": false,
+                    "legend_formula": null,
+                    "metric_name": "pg_bgwriter`buffers_by_backend",
+                    "metric_type": "numeric",
+                    "name": "buffers written by backends",
+                    "stack": null
+                },
+                {
+                    "alpha": null,
+                    "axis": "l",
+                    "check_id": null,
+                    "color": "#8e69a2",
+                    "data_formula": null,
+                    "derive": "derive",
+                    "hidden": false,
+                    "legend_formula": null,
+                    "metric_name": "pg_bgwriter`buffers_cleaned",
+                    "metric_type": "numeric",
+                    "name": "buffers cleaned",
+                    "stack": null
+                }
+            ],
+            "description": "Postgres bgwriter info",
+            "guides": [],
+            "line_style": "stepped",
+            "logarithmic_left_y": null,
+            "logarithmic_right_y": null,
+            "max_left_y": null,
+            "max_right_y": null,
+            "metric_clusters": [],
+            "min_left_y": null,
+            "min_right_y": null,
+            "notes": null,
+            "style": "line",
+            "tags": ["db:postgres", "database:bgwriters"],
+            "title": "{{=cosi.host_name}} Postgres Bgwriters"
+        }
+    ]
+}

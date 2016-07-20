@@ -160,7 +160,7 @@ class Validators {
             return next(new restify.MissingParameterError(errors.join(", ")));
         }
 
-        if (!req.params.t_cat.match(/^(check|graph|worksheet)$/i)) {
+        if (!req.params.t_cat.match(/^(check|graph|worksheet|dashboard)$/i)) {
             errors.push(`Invalid template category '${req.params.t_cat}'`);
         }
 

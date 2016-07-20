@@ -149,7 +149,8 @@ class Setup extends Registration {
 
             self.regConfig.account = {
                 name: account.name,
-                uiUrl: accountUrl
+                uiUrl: accountUrl,
+                account_id: account._cid.replace("/account/", "")
             };
 
             self.emit("verify.api.done");
@@ -277,7 +278,7 @@ class Setup extends Registration {
     }
 
 
-    fetchTemplates() {
+    fetchTemplates(extras) {
         console.log(chalk.blue(this.marker));
         console.log("Fetching templates");
 
@@ -285,6 +286,11 @@ class Setup extends Registration {
 
         // DO NOT force in register, if templates have been provisioned, use them
         const templateFetch = new TemplateFetcher(false);
+        if (extras != null && typeof extras != "undefined") {
+            for (let i = 0; i < extras.length; i++ ) {
+                templateFetch.addExtraTemplate(extras[i]);
+            }
+        }
 
         templateFetch.all(this.quiet, (err, result) => {
             if (err) {

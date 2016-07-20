@@ -31,7 +31,7 @@ all: usage
 
 .PHONY: clean
 clean:
-	-make -C cosi-util clean
+	-$(MAKE) -C cosi-util clean
 	-rm $(SITE_TGZ)
 	-rm content/files/$(UTIL_TGZ)
 
@@ -64,7 +64,7 @@ $(RPM_FILE): content/files/cosi-install.sh
 .PHONY: utils
 utils:
 	@echo "Create cosi-util package"
-	make -C util package
+	$(MAKE) -C util package
 
 
 $(SITE_TGZ): $(ALL_SRC) $(UTIL_PKG) $(RPM_FILE)

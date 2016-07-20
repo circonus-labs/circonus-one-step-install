@@ -1,0 +1,401 @@
+{
+    "description" : "The standard dashboard for monitoring postgres.",
+    "notes" : "This will create an instance of a dashboard.  A name will be passed to this dashboard for inclusion in templated output.  This will be made available to the dashboard as {{=cosi.dashboard_item}}.  Each graph widget is mapped to an existing registered graph based on matching tags in the widget:tags field.",
+    "config": {
+        "description" : "The standard dashboard for monitoring postgres.",
+        "account_default": false, 
+        "grid_layout": {
+            "cells": [
+                {
+                    "cell_coordinates": "a0", 
+                    "cell_type": "left-single"
+                }, 
+                {
+                    "cell_coordinates": "a1", 
+                    "cell_type": "left-single"
+                }, 
+                {
+                    "cell_coordinates": "a2", 
+                    "cell_type": "left-single"
+                }, 
+                {
+                    "cell_coordinates": "a3", 
+                    "cell_type": "left-single"
+                }, 
+                {
+                    "cell_coordinates": "a4", 
+                    "cell_type": "left-single"
+                }, 
+                {
+                    "cell_coordinates": "b0", 
+                    "cell_type": "right-single"
+                }, 
+                {
+                    "cell_coordinates": "b1", 
+                    "cell_type": "right-single"
+                }, 
+                {
+                    "cell_coordinates": "b2", 
+                    "cell_type": "mid-single"
+                }, 
+                {
+                    "cell_coordinates": "b3", 
+                    "cell_type": "mid-single"
+                }, 
+                {
+                    "cell_coordinates": "b4", 
+                    "cell_type": "mid-single"
+                }, 
+                {
+                    "cell_coordinates": "c0", 
+                    "cell_type": "single-single"
+                }, 
+                {
+                    "cell_coordinates": "c1", 
+                    "cell_type": "left-single"
+                }, 
+                {
+                    "cell_coordinates": "c2", 
+                    "cell_type": "mid-single"
+                }, 
+                {
+                    "cell_coordinates": "c3", 
+                    "cell_type": "mid-single"
+                }, 
+                {
+                    "cell_coordinates": "c4", 
+                    "cell_type": "mid-single"
+                }, 
+                {
+                    "cell_coordinates": "d0", 
+                    "cell_type": "single-single"
+                }, 
+                {
+                    "cell_coordinates": "d1", 
+                    "cell_type": "right-single"
+                }, 
+                {
+                    "cell_coordinates": "d2", 
+                    "cell_type": "mid-single"
+                }, 
+                {
+                    "cell_coordinates": "d3", 
+                    "cell_type": "mid-single"
+                }, 
+                {
+                    "cell_coordinates": "d4", 
+                    "cell_type": "mid-single"
+                }, 
+                {
+                    "cell_coordinates": "e0", 
+                    "cell_type": "left-single"
+                }, 
+                {
+                    "cell_coordinates": "e1", 
+                    "cell_type": "left-single"
+                }, 
+                {
+                    "cell_coordinates": "e2", 
+                    "cell_type": "mid-single"
+                }, 
+                {
+                    "cell_coordinates": "e3", 
+                    "cell_type": "mid-single"
+                }, 
+                {
+                    "cell_coordinates": "e4", 
+                    "cell_type": "mid-single"
+                }, 
+                {
+                    "cell_coordinates": "f0", 
+                    "cell_type": "right-single"
+                }, 
+                {
+                    "cell_coordinates": "f1", 
+                    "cell_type": "right-single"
+                }, 
+                {
+                    "cell_coordinates": "f2", 
+                    "cell_type": "right-single"
+                }, 
+                {
+                    "cell_coordinates": "f3", 
+                    "cell_type": "right-single"
+                }, 
+                {
+                    "cell_coordinates": "f4", 
+                    "cell_type": "right-single"
+                }
+            ], 
+            "height": 5, 
+            "width": 6
+        }, 
+        "options": {
+            "access_configs": [], 
+            "fullscreen_hide_title": true, 
+            "hide_grid": false, 
+            "linkages": [], 
+            "scale_text": false, 
+            "text_size": 12
+        }, 
+        "shared": true, 
+        "title": "Postgres {{=cosi.dashboard_item}}", 
+        "widgets": [
+            {
+                "active": true, 
+                "height": 1, 
+                "name": "Graph", 
+                "origin": "a1", 
+                "settings": {
+                    "account_id": null, 
+                    "date_window": "2h", 
+                    "graph_id": null, 
+                    "graph_title": "{{=cosi.host_name}} bandwidth", 
+                    "hide_xaxis": false, 
+                    "hide_yaxis": false, 
+                    "key_inline": false, 
+                    "key_loc": "noop", 
+                    "key_size": "1", 
+                    "key_wrap": false, 
+                    "label": "{{=cosi.host_name}} network bandwidth", 
+                    "period": "2000", 
+                    "realtime": false, 
+                    "show_flags": false
+                }, 
+                "tags" : ["network:bandwidth"],
+                "type": "graph", 
+                "widget_id": "w4", 
+                "width": 2
+            }, 
+            {
+                "active": true, 
+                "height": 1, 
+                "name": "Graph", 
+                "origin": "e0", 
+                "settings": {
+                    "account_id": null, 
+                    "date_window": "2h", 
+                    "graph_id": null, 
+                    "graph_title": "Postgres Cache: {{=cosi.host_name}}`{{=cosi.dashboard_item}}",
+                    "hide_xaxis": false, 
+                    "hide_yaxis": false, 
+                    "key_inline": false, 
+                    "key_loc": "noop", 
+                    "key_size": "1", 
+                    "key_wrap": false, 
+                    "label": "{{=cosi.dashboard_item}} cache vs. file system", 
+                    "period": "2000", 
+                    "realtime": false, 
+                    "show_flags": true,
+                    "notes" : ""
+                }, 
+                "tags" : ["database:cache"],
+                "type": "graph", 
+                "widget_id": "w9", 
+                "width": 2
+            }, 
+            {
+                "active": true, 
+                "height": 1, 
+                "name": "Gauge", 
+                "origin": "d0", 
+                "settings": {
+                    "account_id": null, 
+                    "check_id": null, 
+                    "check_uuid": null, 
+                    "disable_autoformat": false, 
+                    "formula": "", 
+                    "metric_display_name": "commits", 
+                    "metric_name": "pg_transactions`commits", 
+                    "period": 5000, 
+                    "range_high": 100, 
+                    "range_low": 0, 
+                    "thresholds": {
+                        "colors": [
+                            "#008000", 
+                            "#ffcc00", 
+                            "#ee0000"
+                        ], 
+                        "flip": false, 
+                        "values": [
+                            "75%", 
+                            "87.5%"
+                        ]
+                    }, 
+                    "title": "commits", 
+                    "type": "text", 
+                    "value_type": "derive"
+                }, 
+                "type": "gauge", 
+                "widget_id": "w2", 
+                "width": 1
+            }, 
+            {
+                "active": true, 
+                "height": 1, 
+                "name": "Gauge", 
+                "origin": "c0", 
+                "settings": {
+                    "account_id": null, 
+                    "check_id": null, 
+                    "check_uuid": null, 
+                    "disable_autoformat": true, 
+                    "formula": "", 
+                    "metric_display_name": "cache hit ratio", 
+                    "metric_name": "pg_cache`{{=cosi.dashboard_item}}`cache_hit_ratio", 
+                    "period": 5000, 
+                    "range_high": 1, 
+                    "range_low": 0, 
+                    "thresholds": {
+                        "colors": [
+                            "#008000", 
+                            "#ffcc00", 
+                            "#ee0000"
+                        ], 
+                        "flip": true, 
+                        "values": [
+                            "75%", 
+                            "87.5%"
+                        ]
+                    }, 
+                    "title": "cache hit ratio", 
+                    "type": "dial", 
+                    "value_type": "gauge"
+                }, 
+                "type": "gauge", 
+                "widget_id": "w8", 
+                "width": 1
+            }, 
+            {
+                "active": true, 
+                "height": 1, 
+                "name": "Graph", 
+                "origin": "c1", 
+                "settings": {
+                    "account_id": null, 
+                    "date_window": "2h", 
+                    "graph_id": null, 
+                    "graph_title": "{{=cosi.host_name}} Postgres Bgwriters", 
+                    "hide_xaxis": false, 
+                    "hide_yaxis": false, 
+                    "key_inline": false, 
+                    "key_loc": "noop", 
+                    "key_size": "1", 
+                    "key_wrap": false, 
+                    "label": "{{=cosi.dashboard_item}} bgwriters", 
+                    "period": "2000", 
+                    "realtime": false, 
+                    "show_flags": true
+                }, 
+                "tags" : ["database:bgwriters"],
+                "type": "graph", 
+                "widget_id": "w10", 
+                "width": 2
+            }, 
+            {
+                "active": true, 
+                "height": 1, 
+                "name": "Graph", 
+                "origin": "e1", 
+                "settings": {
+                    "account_id": null, 
+                    "date_window": "2h", 
+                    "graph_id": null, 
+                    "graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_item}} Postgres Locks", 
+                    "hide_xaxis": false, 
+                    "hide_yaxis": false, 
+                    "key_inline": false, 
+                    "key_loc": "noop", 
+                    "key_size": "1", 
+                    "key_wrap": false, 
+                    "label": "{{=cosi.dashboard_item}} locks", 
+                    "period": "2000", 
+                    "realtime": false, 
+                    "show_flags": true
+                }, 
+                "tags" : ["database:locks"],
+                "type": "graph", 
+                "widget_id": "w11", 
+                "width": 2
+            }, 
+            {
+                "active": true, 
+                "height": 1, 
+                "name": "Graph", 
+                "origin": "a3", 
+                "settings": {
+                    "account_id": null, 
+                    "date_window": "2w", 
+                    "graph_id": null, 
+                    "graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_item}} Postgres Database Size", 
+                    "hide_xaxis": false, 
+                    "hide_yaxis": false, 
+                    "key_inline": false, 
+                    "key_loc": "noop", 
+                    "key_size": "1", 
+                    "key_wrap": false, 
+                    "label": "{{=cosi.dashboard_item}} database size", 
+                    "period": "2000", 
+                    "realtime": false, 
+                    "show_flags": true
+                }, 
+                "tags" : ["database:size"],
+                "type": "graph", 
+                "widget_id": "w13", 
+                "width": 6
+            }, 
+            {
+                "active": true, 
+                "height": 1, 
+                "name": "Graph", 
+                "origin": "a0", 
+                "settings": {
+                    "account_id": null, 
+                    "date_window": "2h", 
+                    "graph_id": null, 
+                    "graph_title": "{{=cosi.host_name}} Postgres Transactions", 
+                    "hide_xaxis": false, 
+                    "hide_yaxis": false, 
+                    "key_inline": false, 
+                    "key_loc": "noop", 
+                    "key_size": "1", 
+                    "key_wrap": false, 
+                    "label": "{{=cosi.dashboard_item}} commits", 
+                    "period": "2000", 
+                    "realtime": false, 
+                    "show_flags": true
+                }, 
+                "tags" : ["database:commits"],
+                "type": "graph", 
+                "widget_id": "w1", 
+                "width": 2
+            }, 
+            {
+                "active": true, 
+                "height": 1, 
+                "name": "Graph", 
+                "origin": "a2", 
+                "settings": {
+                    "account_id": null, 
+                    "date_window": "2h", 
+                    "graph_id": null, 
+                    "graph_title": "{{=cosi.host_name}} Postgres Connections", 
+                    "hide_xaxis": false, 
+                    "hide_yaxis": false, 
+                    "key_inline": false, 
+                    "key_loc": "noop", 
+                    "key_size": "1", 
+                    "key_wrap": false, 
+                    "label": "{{=cosi.dashboard_item}} connections", 
+                    "period": "2000", 
+                    "realtime": false, 
+                    "show_flags": true
+                }, 
+                "tags" : ["database:connections"],
+                "type": "graph", 
+                "widget_id": "w12", 
+                "width": 6
+            }
+        ]
+    }
+}

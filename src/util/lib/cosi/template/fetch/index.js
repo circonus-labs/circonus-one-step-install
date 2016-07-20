@@ -36,8 +36,12 @@ class Fetch extends Events {
         this.dir = cosi.reg_dir;
         this.force = overwrite;
         this.statsd = cosi.statsd === 1;
-
+        this.extraTemplates = [];
         return this;
+    }
+
+    addExtraTemplate(name) {
+        this.extraTemplates.push(name);
     }
 
 
@@ -131,6 +135,12 @@ class Fetch extends Events {
 
             if (self.statsd) {
                 wantTemplates.push("check-statsd");
+            }
+
+            if (self.extraTemplates) {
+                for (let i = 0; i < self.extraTemplates.length; i++) {
+                    wantTemplates.push(self.extraTemplates[i]);
+                }
             }
 
             for (let i = 0; i < groups.length; i++) {

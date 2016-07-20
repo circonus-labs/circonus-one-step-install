@@ -1,6 +1,6 @@
 {
     "type": "graph",
-    "id": "if",
+    "id": "iflink",
     "description": "Network interface tx/rx and errors",
     "version": "0.1.0",
     "notes": [
@@ -9,13 +9,13 @@
         "What is matched by the first matched group will be available for use",
         "in interpolated fields as '{{=cosi.graph_item}}'.",
         "",
-        "Filters (include/exclude), regular expressions applied to the graph_item value."
+        "Filters (include/exclude) work by matching the value used as graph_item",
+        "this is an equality test not a regular expression. The strings in filter",
+        "lists are evaluated using '==='."
     ],
     "variable_metrics": true,
     "filter": {
-        "exclude": [
-            "^lo0?$"
-        ],
+        "exclude": ["lo","lo0"],
         "include": null
     },
     "graphs": [
@@ -32,9 +32,9 @@
                     "derive": "counter",
                     "hidden": false,
                     "legend_formula": "=round(auto(VAL * 8),2)",
-                    "metric_name": "if`([^`]+)`in_bytes",
+                    "metric_name": "if`([^`]+):rbytes",
                     "metric_type": "numeric",
-                    "name": "rx bps",
+                    "name": "%rx bps",
                     "stack": null
                 },
                 {
@@ -46,7 +46,7 @@
                     "derive": "counter",
                     "hidden": false,
                     "legend_formula": "=round(auto(VAL * 8), 2)",
-                    "metric_name": "if`([^`]+)`out_bytes",
+                    "metric_name": "if`([^`]+):obytes",
                     "metric_type": "numeric",
                     "name": "tx bps",
                     "stack": null
@@ -80,9 +80,9 @@
                     "derive": "counter",
                     "hidden": false,
                     "legend_formula": null,
-                    "metric_name": "if`([^`]+)`in_errors",
+                    "metric_name": "if`([^`]+):rxsdrops",
                     "metric_type": "numeric",
-                    "name": "rx errors",
+                    "name": "rx drops",
                     "stack": null
                 },
                 {
@@ -94,7 +94,7 @@
                     "derive": "counter",
                     "hidden": false,
                     "legend_formula": null,
-                    "metric_name": "if`([^`]+)`out_errors",
+                    "metric_name": "if`([^`]+):oerrors",
                     "metric_type": "numeric",
                     "name": "tx errors",
                     "stack": null

@@ -204,6 +204,7 @@ app.
     option("-a, --all", "Delete all COSI checks, graphs, and worksheets for this host").
     option("-c, --check [id]", "Delete COSI check with [id] or all checks for this host").
     option("-g, --graph [id]", "Delete COSI graph with [id] or all graphs for this host").
+    option("-d, --dashboard [id]", "Delete COSI dashboard with [id] or all dashboards for this host").
     option("-w, --worksheet [id]", "Delete COSI worksheet with [id] or all worksheets for this host").
     option("-r, --ruleset [id]", "Delete COSI ruleset with [id] or all rulesets").
     option("--notemplate", "Keep template files, do not remove with registration and config files.").
@@ -229,6 +230,11 @@ if (app.all || app.worksheet) {
 if (app.all || app.graph) {
     items.push.apply(items, findItems(cosi.reg_dir, "graph", app.graph));
 }
+
+if (app.all || app.dashboard) {
+    items.push.apply(items, findItems(cosi.reg_dir, "dashboard", app.dashboard));
+}
+
 
 if (app.all || app.ruleset) {
     let files = [];
