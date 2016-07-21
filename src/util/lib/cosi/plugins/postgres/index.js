@@ -16,6 +16,9 @@ const chalk = require("chalk");
 
 const cosi = require(path.resolve(path.join(__dirname, "..", "..", "..", "cosi")));
 const Plugin = require(path.resolve(cosi.lib_dir, "plugins"));
+const Check = require(path.resolve(cosi.lib_dir, "check"));
+const Graph = require(path.resolve(cosi.lib_dir, "graph"));
+const Dashboard = require(path.resolve(cosi.lib_dir, "dashboard"));
 
 
 class Postgres extends Plugin {
@@ -59,7 +62,7 @@ class Postgres extends Plugin {
 
     enable() {
         const self = this;
-        this.on("postgres.nad.enabled", (stdout) => {
+        this.once("postgres.nad.enabled", (stdout) => {
             self.emit("config.postgres");
         });
 
@@ -87,6 +90,10 @@ PGDATABASE=${self.params.pgdb}
         const script = path.resolve(path.join(__dirname, "nad-enable.sh"));
         
         self._execShell(script, "postgres.nad.enabled");        
+    }
+
+    disable() {
+        this.disablePlugin("postgres", "postgres", "pg_");
     }
 }
 

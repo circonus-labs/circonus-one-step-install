@@ -17,6 +17,10 @@ const RegSetup = require(path.join(cosi.lib_dir, "registration", "setup"));
 const RegConfig = require(path.join(cosi.lib_dir, "registration", "config"));
 const RegRegister = require(path.join(cosi.lib_dir, "registration", "register"));
 
+const Check = require(path.resolve(cosi.lib_dir, "check"));
+const Graph = require(path.resolve(cosi.lib_dir, "graph"));
+const Dashboard = require(path.resolve(cosi.lib_dir, "dashboard"));
+
 class Plugin extends Events {
 
     constructor(quiet) {
@@ -151,11 +155,131 @@ class Plugin extends Events {
     registerDashboard(cfgFile, quiet) {
         const self = this;
         const regRegister = new RegRegister(quiet);
+
+        regRegister.loadRegConfig();
+
         regRegister.once("dashboard.done", () => {
             self.emit("dashboard.done");
         });
 
         regRegister.dashboard(cfgFile);
+    }
+
+    disablePlugin(pluginName, dashboardPrefix, graphPrefix) {
+        const self = this;
+
+        this.once("deconfig.plugin", () => {
+
+            /* find all related graphs and dashboards for this plugin */
+            let files = null;
+            let removeMetrics = [];
+            let removeFiles = [];
+            let deconfiguredCount = 0;
+            let expectCount = 0;
+
+            try {
+                files = fs.readdirSync(self.regDir);
+            }
+            catch (err) {
+                self.emit(err);
+                return;
+            }
+
+            for (let i = 0; i < files.length; i++) {
+                const file = path.resolve(self.regDir, files[i]);
+                if (files[i].indexOf(`registration-dashboard-${dashboardPrefix}`) != -1) {
+                    const dash = require(file);
+                    for (let j = 0; j < dash.widgets.length; j++) {
+                        const w = dash.widgets[j];
+                        if (w.name == "Gauge") {
+                            removeMetrics.push(w.settings.metric_name);
+                        }
+                    }
+                    removeFiles.push({ "t" : "dash", "file" : file});
+                }
+                if (files[i].indexOf(`registration-graph-${graphPrefix}`) != -1 ) {
+                    const graph = require(file);
+                    for (let j = 0; j < graph.datapoints.length; j++) {
+                        const dp = graph.datapoints[j];
+                        removeMetrics.push(dp.metric_name);
+                    }
+                    removeFiles.push({ "t" : "graph", "file" : file});
+                }
+            }
+            expectCount = removeFiles.length;
+            self.on("item.deconfigured", () => {
+                deconfiguredCount++;
+                if (deconfiguredCount == expectCount) {
+                    self.emit("plugin.done");
+                }
+            });
+
+            const check = new Check(path.resolve(self.regDir, "registration-check-system.json"));
+            let checkMetrics = check.metrics;
+            for (let i = 0; i < checkMetrics.length; i++) {
+                for (let j = 0; j < removeMetrics.length; j++) {
+                    if (checkMetrics[i].name == removeMetrics[j]) {
+                        checkMetrics.splice(i, 1);
+                        i--;
+                    }
+                }
+            }
+            check.metrics = checkMetrics;
+            check.update((err) => {
+                if (err) {
+                    self.emit(err);
+                    return;
+                }
+                console.log("Updated system check with removed metrics");
+
+                /* now remove all the graphs and dashboards we found above */
+                for (let i = 0; i < removeFiles.length; i++) {
+                    console.log(`Removing: ${removeFiles[i].file}`); 
+                    if (removeFiles[i].t == "dash" ) {
+                        const dash = new Dashboard(removeFiles[i].file);
+                        dash.remove((err) => {
+                            // if (err) {
+                            //     console.log(err);
+                            //     self.emit(err);
+                            //     return;
+                            // }
+                            const cfgFile = removeFiles[i].file.replace("registration-", "config-");
+                            console.log(`Removing file: ${removeFiles[i].file}`);
+                            fs.unlinkSync(removeFiles[i].file);
+                            console.log(`Removing file: ${cfgFile}`);
+                            fs.unlinkSync(cfgFile);                            
+                            self.emit("item.deconfigured");
+                        });
+                    }
+                    if (removeFiles[i].t == "graph" ) {
+                        const graph = new Graph(removeFiles[i].file);
+                        graph.remove((err) => {
+                            if (err) {
+                                console.log(err);
+                                self.emit(err);
+                                return;
+                            }
+                            const cfgFile = removeFiles[i].file.replace("registration-", "config-");
+                            console.log(`Removing file: ${removeFiles[i].file}`);
+                            fs.unlinkSync(removeFiles[i].file);
+                            console.log(`Removing file: ${cfgFile}`);
+                            fs.unlinkSync(cfgFile);                            
+                            self.emit("item.deconfigured");
+                        });
+                    }
+                }
+            });
+        });
+
+        this.once("nad.disabled", (stdout) => {
+            self.emit("deconfig.plugin");
+        });
+
+
+        const script = path.resolve(path.join(__dirname, pluginName, "nad-disable.sh"));
+        
+        self._execShell(script, "nad.disabled");
+
     }
 }
 

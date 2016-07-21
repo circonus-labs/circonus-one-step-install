@@ -532,10 +532,9 @@ class Register extends Registration {
             console.log(`\tSaving registration ${regFile}`);
             dash.save(regFile, true);
 
-            console.log(chalk.green("\tDashboard created:"), `${self.regConfig.account.uiUrl}/trending/worksheets/${worksheet._cid.replace("/worksheet/", "")}`);
+            console.log(chalk.green("\tDashboard created:"), `${self.regConfig.account.uiUrl}/dashboards/view/${dash._dashboard_uuid}`);
             self.emit("dashboard.done");
         });
-
     }
 
 

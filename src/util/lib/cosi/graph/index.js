@@ -353,6 +353,39 @@ module.exports = class Graph {
         });
     }
 
+    remove(cb) {
+        assert.strictEqual(typeof cb, "function", "cb must be a callback function");
+
+        const self = this;
+
+        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
+        api.get(self._cid, null, (getCode, getError, getResult) => { //eslint-disable-line consistent-return
+            if (getCode === 404 && (getResult.code && getResult.code === "ObjectError.InstanceNotFound")) {
+                console.log(`\t${self._cid}`, chalk.bold("not found"));
+                return cb(null);
+            }
+
+            if (getCode < 200 || getCode > 299) { //eslint-disable-line no-magic-numbers
+                console.error(chalk.red("API RESULT CODE"), `API ${getCode}`, getError, getResult);
+                return cb(getError);
+            }
+
+            console.log(chalk.bold("\tDeleting"), `Graph ${self._cid}`);
+
+            api.delete(self._cid, (code, errAPI, result) => {
+                if (errAPI) {
+                    return cb(errAPI, result);
+                }
+
+                if (code < 200 || code > 299) { //eslint-disable-line no-magic-numbers
+                    console.error(chalk.red("API RESULT CODE"), `API ${code}`, errAPI, result);
+                    return cb(`unexpected code: ${code}`, result);
+                }
+                return cb(null, result);
+            });
+        });
+    }
+
 
     _init(config) {
         const keys = Object.keys(config);

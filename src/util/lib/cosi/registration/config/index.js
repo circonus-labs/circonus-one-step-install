@@ -516,6 +516,9 @@ class Config extends Registration {
                                 widget.settings.account_id = this.regConfig.account.account_id;
                                 widget.settings.graph_id = graph._cid.replace("/graph/","");
                                 widget.settings.label = self._expand(widget.settings.label, data);
+                                /* tags property is just used to match widgets to graphs, remove before submission */
+                                delete widget.tags;
+                                widget["type"] = "graph";
                                 found_graph = true;
                                 break;
                             }
@@ -562,11 +565,10 @@ class Config extends Registration {
                 widget.settings.account_id = this.regConfig.account.account_id;
                 widget.settings.check_id = registeredCheck._checks[0].replace("/check/","");
                 widget.settings.check_uuid = registeredCheck._check_uuids[0];
+                widget["type"] = "gauge";
             }
 
         }
-        config.notes = this.regConfig.cosiNotes;
-        this._setTags(config, id);
 
         try {
             fs.writeFileSync(
