@@ -394,6 +394,58 @@
                 "type": "graph", 
                 "widget_id": "w12", 
                 "width": 6
+            },
+            {
+                "active": true, 
+                "height": 1, 
+                "name": "Graph", 
+                "origin": "a4", 
+                "settings": {
+                    "account_id": null, 
+                    "date_window": "2w", 
+                    "graph_id": null, 
+                    "graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_item}} Postgres Transaction Detail", 
+                    "hide_xaxis": false, 
+                    "hide_yaxis": false, 
+                    "key_inline": false, 
+                    "key_loc": "noop", 
+                    "key_size": "1", 
+                    "key_wrap": false, 
+                    "label": "{{=cosi.dashboard_item}} database transaction details", 
+                    "period": "2000", 
+                    "realtime": false, 
+                    "show_flags": true
+                }, 
+                "tags" : ["database:transactions"],
+                "type": "graph", 
+                "widget_id": "w14", 
+                "width": 3
+            }, 
+            {
+                "active": true, 
+                "height": 1, 
+                "name": "Graph", 
+                "origin": "d4", 
+                "settings": {
+                    "account_id": null, 
+                    "date_window": "2w", 
+                    "graph_id": null, 
+                    "graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_item}} Postgres Scans", 
+                    "hide_xaxis": false, 
+                    "hide_yaxis": false, 
+                    "key_inline": false, 
+                    "key_loc": "noop", 
+                    "key_size": "1", 
+                    "key_wrap": false, 
+                    "label": "{{=cosi.dashboard_item}} database scans", 
+                    "period": "2000", 
+                    "realtime": false, 
+                    "show_flags": true
+                }, 
+                "tags" : ["database:scans"],
+                "type": "graph", 
+                "widget_id": "w15", 
+                "width": 3
             }
         ]
     }
