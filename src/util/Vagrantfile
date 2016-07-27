@@ -11,9 +11,11 @@ nad_url = 'http://updates.circonus.net/node-agent/packages/nad-omnibus-20160426T
 
 Vagrant.configure(2) do |config|
     config.vm.define 'dev', primary: true, autostart: true do |bx|
-        node_ver = 'v4.4.4'
+        node_ver = 'v4.4.7'
         bx.vm.box = 'maier/centos-7.2.1511-x86_64'
         bx.vm.hostname = 'cosi-cli-dev'
+        bx.vm.synced_folder '.', '/vagrant', disabled: true
+        bx.vm.synced_folder '../..', '/home/vagrant/cosi'
         bx.vm.provider 'virtualbox' do |vb|
             vb.cpus = 2
             vb.memory = 2048
@@ -22,11 +24,12 @@ Vagrant.configure(2) do |config|
             [[ -d /opt/node ]] || mkdir -p /opt/node
             NODE_TGZ="node-#{node_ver}-linux-x64.tar.gz"
             NODE_URL="#{node_base_url}/#{node_ver}/${NODE_TGZ}"
-            echo "$NODE_URL"
-            [[ -f /opt/node/$NODE_TGZ ]] || curl "${NODE_URL}" -o /opt/node/${NODE_TGZ}
+            echo "Installing NodeJS - $NODE_URL"
+            [[ -f /opt/node/$NODE_TGZ ]] || curl -s "${NODE_URL}" -o /opt/node/${NODE_TGZ}
             [[ -x /opt/node/bin/node ]] || {
                 echo "Unpacking $NODE_TGZ"
                 tar -zx -C /opt/node --strip-components=1 -f "/opt/node/${NODE_TGZ}"
+                echo 'export PATH=/opt/node/bin:$PATH' > /etc/profile.d/nodejs.sh
             }
             date > /home/vagrant/provision_node.timestamp
         SHELL
@@ -36,6 +39,8 @@ Vagrant.configure(2) do |config|
         node_ver = 'v0.10.42'
         bx.vm.box = 'maier/centos-7.2.1511-x86_64'
         bx.vm.hostname = 'cosi-cli-sim'
+        bx.vm.synced_folder '.', '/vagrant', disabled: true
+        bx.vm.synced_folder '../..', '/home/vagrant/cosi'
         bx.vm.provider 'virtualbox' do |vb|
             vb.cpus = 2
             vb.memory = 2048
@@ -44,8 +49,8 @@ Vagrant.configure(2) do |config|
             [[ -d /opt/node ]] || mkdir -p /opt/node
             NODE_TGZ="node-#{node_ver}-linux-x64.tar.gz"
             NODE_URL="#{node_base_url}/#{node_ver}/${NODE_TGZ}"
-            echo "$NODE_URL"
-            [[ -f /opt/node/$NODE_TGZ ]] || curl "${NODE_URL}" -o /opt/node/${NODE_TGZ}
+            echo "Installing NodeJS - $NODE_URL"
+            [[ -f /opt/node/$NODE_TGZ ]] || curl -s "${NODE_URL}" -o /opt/node/${NODE_TGZ}
             [[ -x /opt/node/bin/node ]] || {
                 echo "Unpacking $NODE_TGZ"
                 tar -zx -C /opt/node --strip-components=1 -f "/opt/node/${NODE_TGZ}"
@@ -58,16 +63,22 @@ Vagrant.configure(2) do |config|
     # common provision
     #
     config.vm.provision 'common', type: 'shell', inline: <<-SHELL
-        yum makecache fast && \
-            yum update -y && \
-            yum install -y perl
-        [[ -x /opt/circonus/sbin/nad ]] || rpm -ivh "#{nad_url}"
+        echo "Updating cache"
+        yum -q -e 0 makecache fast
+        echo "Updating packages"
+        yum -q update -y
+        echo "Installing git"
+        yum -q install -y git
+        #echo "Installing perl for NAD"
+        #yum -q install -y perl
+        [[ -x /opt/circonus/sbin/nad ]] || {
+            echo "Installing NAD"
+            rpm -U --nodeps "#{nad_url}"
+        }
         [[ $(grep -c "127.0.0.1:2609" /etc/sysconfig/nad) -eq 0 ]] && { \
             echo "NAD_OPTS=\"\${NAD_OPTS} -p 127.0.0.1:2609\"" >> /etc/sysconfig/nad
             service nad restart
         }
-        [[ $(grep -c "/opt/node/bin" /home/vagrant/.bashrc) -eq 0 ]] && \
-            echo "export PATH=/opt/node/bin:\$PATH" >> /home/vagrant/.bashrc
         date > /home/vagrant/provision_common.timestamp
     SHELL
 end
