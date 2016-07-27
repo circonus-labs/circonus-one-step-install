@@ -1,5 +1,9 @@
 /* eslint-env node */
-/* eslint-disable guard-for-in, no-magic-numbers, no-process-exit */
+/* eslint-disable guard-for-in */
+/* eslint-disable no-magic-numbers */
+/* eslint-disable new-cap */
+
+/* eslint-disable max-len */
 
 'use strict';
 
@@ -14,16 +18,6 @@
  * Options in config.js
  *
  * circonus: {
- *
- *  api_token:     required string
- *  api_app:       required string
- *  api_url:       required string
- *
- *  submission_urls:
- *     check:      required string
- *     host:       required string
- *
- *     submission URLs for the instance/host
  *
  *   globalPrefix:         string
  *                         global prefix to use for sending stats to Circonus
@@ -56,29 +50,21 @@
  *
  */
 
-const https = require('https');
-const http = require('http');
-const url = require('url');
-const util = require('util');
 const path = require('path');
 
-const cosi = require(path.resolve(path.join(__dirname, '..', '..', 'cosi')));
-const api = require(path.resolve(path.join(cosi.lib_dir, 'api')));
-const Check = require(path.resolve(path.join(cosi.lib_dir, 'check')));
+const cosi = require(path.resolve(path.join(__dirname, '..', 'cosi')));
+const Trap = require(path.resolve(path.join(__dirname, 'trap')));
 
 const BACKEND_NAME = 'circonus';
 const BACKEND_VERS = cosi.app_version;
-const MAX_REQUEST_TIME = 15; // seconds
 const MILLISECOND = 1000;
-const HTTP_OK = 200;
 const METRIC_DELIM = '`';
-const circonusPrefix = BACKEND_NAME;
 
 let instance = null;
 
-// get_histogram_bucket_id transforms a value into its correct
+// getHistogramBucketID transforms a value into its correct
 // bucket and returns the bucket id as a string
-function get_histogram_bucket_id(origVal) {
+function getHistogramBucketID(origVal) {
     let val = origVal;
     let vString = '';
     let exp = 0;
@@ -107,9 +93,9 @@ function get_histogram_bucket_id(origVal) {
     return vString;
 }
 
-// make_histogram takes a list of raw values and returns a list of bucket
+// makeHistogram takes a list of raw values and returns a list of bucket
 // strings parseable by the broker
-function make_histogram(values) {
+function makeHistogram(values) {
     const temp = {};
     const ret = [];
     let i = null;
@@ -117,7 +103,7 @@ function make_histogram(values) {
     let bucket = null;
 
     for (i = 0; i < values.length; i++) {
-        bucket = get_histogram_bucket_id(values[i]);
+        bucket = getHistogramBucketID(values[i]);
 
         if (!{}.hasOwnProperty.call(temp, bucket)) {
             temp[bucket] = 0;
@@ -134,23 +120,33 @@ function make_histogram(values) {
     return ret;
 }
 
+
+// Circonus is the backend class
 class Circonus {
-    constructor(startup_time, config, logger) {
+
+    // constructor builds a new Circonus backend instance
+    constructor(startup_time, config, events, logger) {
         const cfg = config.circonus || {};
 
-        // initialize the circonus api
-        api.setup(cosi.cosi_api_key, cosi.cosi_api_app, cosi.cosi_api_url);
 
         this.logger = logger;
+        this.eventManager = events;
+
+        // global debugging setting
         this.debug = config.debug;
 
-        // verify API by way of requesting broker certificate
-        this.circonus_get_ca_cert(url.parse(cfg.cert_url || 'http://login.circonus.com/pki/ca.crt'));
+        // circonus backend debug can be toggled independently of main debug
+        if ({}.hasOwnProperty.call(cfg, 'debug')) {
+            this.debug = cfg.debug;
+        }
 
-        this.checks = null;
+        this.checks = {
+            statsd: null,
+            system: null
+        };
 
         // initialize checks
-        this.inititializeChecks();
+        this._initializeChecks();
 
         // metric names prefixed with this string will be sent to the system check
         // rather than the statsd check
@@ -161,18 +157,27 @@ class Circonus {
         // new metrics.
         this.forceMetricActivation = typeof cfg.forceMetricActivation === 'undefined' ?
             false :
-            typeof cfg.forceMetricActivation;
+            cfg.forceMetricActivation;
 
         this.sendTimerDerivatives = true;
         this.sendRawTimers = false;
         this.sendMemoryStats = true;
         this.forceGC = false;
         this.circonusStats = {
-            flush_length: 0,
-            flush_time: 0,
-            last_exception: startup_time,
-            last_flush: startup_time
+            statsd: {
+                flush_length: 0,
+                flush_time: 0,
+                last_exception: startup_time,
+                last_flush: startup_time
+            },
+            system: {
+                flush_length: 0,
+                flush_time: 0,
+                last_exception: startup_time,
+                last_flush: startup_time
+            }
         };
+        this.circonusPrefix = BACKEND_NAME;
 
         // set up namespaces
         this.globalNamespace = [];
@@ -190,6 +195,14 @@ class Circonus {
             true :
             config.flush_counts;
 
+        this.setNamespaces(cfg);
+
+        return this;
+    }
+
+    // setNamespaces configures backend namespaces for each metric type
+    // parameter cfg (circonus portion of global configuration)
+    setNamespaces(cfg) {
         let globalPrefix = null;
         let prefixCounter = null;
         let prefixTimer = null;
@@ -201,12 +214,6 @@ class Circonus {
         prefixTimer = 'timers';
         prefixGauge = 'gauges';
         prefixSet = 'sets';
-
-
-        // circonus backend debug can be toggled independently of main debug
-        if ({}.hasOwnProperty.call(cfg, 'debug')) {
-            this.debug = cfg.debug;
-        }
 
         if ({}.hasOwnProperty.call(cfg, 'sendTimerDerivatives')) {
             this.sendTimerDerivatives = cfg.sendTimerDerivatives;
@@ -251,351 +258,265 @@ class Circonus {
         if (prefixCounter !== '') {
             this.counterNamespace.push(prefixCounter);
         }
+
         if (prefixTimer !== '') {
             this.timerNamespace.push(prefixTimer);
         }
+
         if (prefixGauge !== '') {
             this.gaugesNamespace.push(prefixGauge);
         }
+
         if (prefixSet !== '') {
             this.setsNamespace.push(prefixSet);
         }
-
-        if (this.debug) {
-            this.logger.log(util.format('Backend %s v%s loaded.', BACKEND_NAME, BACKEND_VERS));
-        }
-
-        return this;
     }
 
-    inititializeChecks() {
 
-        this.checks = {
-            statsd: {
-                cfgFile: path.resolve(path.join(cosi.reg_dir, 'registration-statsd.json')),
-                check: null,
-                enabled: false,
-                metrics: null
-            },
-            system: {
-                cfgFile: path.resolve(path.join(cosi.reg_dir, 'registration-system.json')),
-                check: null,
-                enabled: false,
-                metrics: null
-            }
-        };
-
-        try {
-            this.checks.statsd.check = new Check(this.checks.statsd.cfgFile);
-            this.checks.statsd.enabled = true;
-            this.refreshCheck('statsd');
-        }
-        catch (err) {
-            if (err.code === 'MODULE_NOT_FOUND') {
-                this.logger.log('[ERROR] initializing statsd check', err);
-                process.exit(1);
-            }
-        }
-
-        try {
-            this.checks.system.check = new Check(this.checks.system.cfgFile);
-            this.checks.system.enabled = true;
-            this.refreshCheck('system');
-        }
-        catch (err) {
-            if (err.code === 'MODULE_NOT_FOUND') {
-                this.logger.log('[ERROR] initializing system check', err);
-                process.exit(1);
-            }
-        }
-    }
-
-    circonus_get_ca_cert(cert_url) {
+    // _initializeChecks sets up the check instances in the Circonus class
+    _initializeChecks() {
         const self = this;
-        let client = null;
-        let cert_obj = null;
-        let reqTimerId = null;
-        let req = null;
 
-        function onReqError(err) {
-            if (reqTimerId) {
-                clearTimeout(reqTimerId);
+        this.checks.statsd = new Trap('statsd', this.forceMetricActivation, this.debug, this.logger);
+        this.checks.statsd.Initialize((statsdErr) => {
+            if (statsdErr !== null) {
+                self.logger.log('[ERROR] Unable to load statsd check', statsdErr);
+                self.logger.log(`${BACKEND_NAME} backend disabled.`);
+
+                return;
             }
 
-            if (self.debug) {
-                self.logger.log(util.format('Cert request error: %j', err));
-            }
+            self.checks.system = new Trap('system', this.forceMetricActivation, this.debug, this.logger);
+            self.checks.system.Initialize((systemErr) => {
+                if (systemErr !== null) {
+                    console.dir(systemErr);
+                    self.logger.log('[ERROR] Unable to load system check', systemErr);
+                    self.logger.log(`${BACKEND_NAME} backend disabled.`);
 
-            req = null;
-        }
-
-        function onReqTimeout() {
-            if (reqTimerId) {
-                clearTimeout(reqTimerId);
-            }
-
-            req.abort();
-
-            if (self.debug) {
-                self.logger.log('Circonus timeout fetching CA cert');
-            }
-
-            req = null;
-        }
-
-        function onReqResponse(res) {
-            let cert_data = '';
-
-            res.on('data', (data) => {
-                cert_data += data;
-            });
-
-            res.on('end', () => {
-                const circonus_url = url.parse(self.check_url);
-
-                if (reqTimerId) {
-                    clearTimeout(reqTimerId);
+                    return;
                 }
 
-                if (res.statusCode !== HTTP_OK) {
-                    throw new Error(util.format('Unable to retrieve Circonus Broker CA Cert %d', res.statusCode));
-                }
-
-                self.check_cfg = {
-                    hostname: circonus_url.host,
-                    path: circonus_url.path,
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    ca: [ cert_data ]
-                };
-
+                // enable events
+                self.eventManager.on('flush', instance.flushMetrics);
+                self.eventManager.on('status', instance.backendStats);
                 if (self.debug) {
-                    self.logger.log(util.format('Loaded Circonus broker CA cert from %s', cert_url.href));
+                    self.logger.log(`Backend ${BACKEND_NAME} v${BACKEND_VERS} loaded.`);
                 }
 
-                req = null;
             });
-        }
-
-        if (cert_url && this.check_url) {
-            cert_obj = url.parse(cert_url);
-
-            if (cert_obj.protocol === 'https:') {
-                client = https;
-            }
-            else {
-                client = http;
-            }
-
-            reqTimerId = setTimeout(onReqTimeout, MAX_REQUEST_TIME * MILLISECOND);
-            req = client.request(cert_url);
-            req.on('error', onReqError);
-            req.on('response', onReqResponse);
-            req.end();
-        }
-        else {
-            this.logger.log('Missing cert url, circonus backend disabled.');
-        }
+        });
     }
 
-    circonus_post_stats(metrics) {
-        const self = this;
-        const last_flush = this.circonusStats.last_flush || 0;
-        const last_exception = this.circonusStats.last_exception || 0;
-        const flush_time = this.circonusStats.flush_time || 0;
-        const flush_length = this.circonusStats.flush_length || 0;
-        let metric_json = '';
-        const starttime = Date.now();
+
+    // sanitizeKey cleans up a metric name if not already done globally
+    sanitizeKey(key_name) {
+        if (this.globalKeySanitize) {
+            return key_name;
+        }
+
+        return key_name.
+            replace(/\s+/g, '_').
+            replace(/\//g, '-').
+            replace(/[^a-zA-Z_\-0-9\.`]/g, '');
+    }
+
+
+    // submitMetrics sends metrics to circonus
+    submitMetrics(statsdMetrics, systemMetrics) {
+        const startTime = Date.now();
         const namespace = this.globalNamespace.concat(this.prefixInternalMetrics);
-        let req = null;
-        let reqTimerId = null;
+        const self = this;
+
+        const statsdLastFlush = this.circonusStats.statsd.lastFlush || 0;
+        const statsdLastException = this.circonusStats.statsd.lastException || 0;
+        const statsdFlushTime = this.circonusStats.statsd.flushTime || 0;
+        const statsdFlushLength = this.circonusStats.statsd.flushLength || 0;
+
+        const systemLastFlush = this.circonusStats.system.lastFlush || 0;
+        const systemLastException = this.circonusStats.system.lastException || 0;
+        const systemFlushTime = this.circonusStats.system.flushTime || 0;
+        const systemFlushLength = this.circonusStats.system.flushLength || 0;
+
+        statsdMetrics[namespace.concat([ this.circonusPrefix, 'last_flush' ]).join(METRIC_DELIM)] = statsdLastFlush; // eslint-disable-line no-param-reassign
+        statsdMetrics[namespace.concat([ this.circonusPrefix, 'last_exception' ]).join(METRIC_DELIM)] = statsdLastException; // eslint-disable-line no-param-reassign
+        statsdMetrics[namespace.concat([ this.circonusPrefix, 'flush_time' ]).join(METRIC_DELIM)] = statsdFlushTime; // eslint-disable-line no-param-reassign
+        statsdMetrics[namespace.concat([ this.circonusPrefix, 'flush_length' ]).join(METRIC_DELIM)] = statsdFlushLength; // eslint-disable-line no-param-reassign
+        statsdMetrics[namespace.concat('num_stats').join(METRIC_DELIM)] = Object.keys(statsdMetrics).length + 1; // eslint-disable-line no-param-reassign
+
+        systemMetrics[namespace.concat([ this.circonusPrefix, 'last_flush' ]).join(METRIC_DELIM)] = systemLastFlush; // eslint-disable-line no-param-reassign
+        systemMetrics[namespace.concat([ this.circonusPrefix, 'last_exception' ]).join(METRIC_DELIM)] = systemLastException; // eslint-disable-line no-param-reassign
+        systemMetrics[namespace.concat([ this.circonusPrefix, 'flush_time' ]).join(METRIC_DELIM)] = systemFlushTime; // eslint-disable-line no-param-reassign
+        systemMetrics[namespace.concat([ this.circonusPrefix, 'flush_length' ]).join(METRIC_DELIM)] = systemFlushLength; // eslint-disable-line no-param-reassign
+        systemMetrics[namespace.concat('num_stats').join(METRIC_DELIM)] = Object.keys(systemMetrics).length + 1; // eslint-disable-line no-param-reassign
 
         if (this.debug) {
-            this.logger.log('post');
+            this.logger.log('Calling statsd check submitter');
         }
+        this.checks.statsd.Submit(statsdMetrics, (err, stats) => {
+            if (err !== null) {
+                self.circonusStats.statsd.lastException = Math.round(new Date().getTime() / MILLISECOND);
+                if (self.debug) {
+                    self.logger.log(err);
+                }
 
-        function onReqError(err) {
-            if (reqTimerId) {
-                clearTimeout(reqTimerId);
+                return;
             }
+
             if (self.debug) {
-                self.logger.log(util.format('Error sending to circonus: %j', err));
+                self.logger.log(`${stats} submitted to statsd check`);
             }
-            req = null;
-        }
 
-        function onReqTimeout() {
-            if (reqTimerId) {
-                clearTimeout(reqTimerId);
+            const metrics = JSON.stringify(statsdMetrics);
+
+            self.circonusStats.statsd.flushTime = Date.now() - startTime;
+            self.circonusStats.statsd.flushLength = metrics.length;
+            self.circonusStats.statsd.lastFlush = Math.round(new Date().getTime() / MILLISECOND);
+        });
+
+        if (this.debug) {
+            this.logger.log('Calling system check submitter');
+        }
+        this.checks.system.Submit(systemMetrics, (err, stats) => {
+            if (err !== null) {
+                self.circonusStats.system.lastException = Math.round(new Date().getTime() / MILLISECOND);
+                self.logger.log(err);
+
+                return;
             }
-            req.abort();
+
             if (self.debug) {
-                self.logger.log('Timeout sending metrics to Circonus');
+                self.logger.log(`${stats} submitted to system check`);
             }
-            req = null;
-        }
 
-        function onReqResponse(res) {
-            let result_json = '';
+            const metrics = JSON.stringify(systemMetrics);
 
-            res.on('data', (chunk) => {
-                result_json += chunk;
-            });
-
-            res.on('end', () => {
-                let result = null;
-
-                if (reqTimerId) {
-                    clearTimeout(reqTimerId);
-                }
-
-                if (self.debug) {
-                    result = JSON.parse(result_json);
-                    self.logger.log(util.format('%d metrics recieved by circonus', result.stats));
-                }
-
-                if (res.statusCode === HTTP_OK) {
-                    self.circonusStats.flush_time = Date.now() - starttime;
-                    self.circonusStats.flush_length = metric_json.length;
-                    self.circonusStats.last_flush = Math.round(new Date().getTime() / MILLISECOND);
-                }
-                else {
-                    self.logger.log(util.format('Unable to send metrics to Circonus http:%d (%s)', res.statusCode, result_json));
-                }
-
-                req = null;
-                metric_json = null;
-
-                if (self.forceGC && global.gc) {
-                    global.gc();
-                }
-            });
-        }
-
-        if (self.check_cfg) {
-            try {
-                const newMetrics = metrics;
-
-                newMetrics[namespace.concat([ self.circonusPrefix, 'last_exception' ]).join(METRIC_DELIM)] = last_exception;
-                newMetrics[namespace.concat([ self.circonusPrefix, 'last_flush' ]).join(METRIC_DELIM)] = last_flush;
-                newMetrics[namespace.concat([ self.circonusPrefix, 'flush_time' ]).join(METRIC_DELIM)] = flush_time;
-                newMetrics[namespace.concat([ self.circonusPrefix, 'flush_length' ]).join(METRIC_DELIM)] = flush_length;
-                newMetrics[namespace.concat('num_stats').join(METRIC_DELIM)] = Object.keys(metrics).length + 1; // +1 for this one...
-
-                metric_json = JSON.stringify(newMetrics);
-                if (self.debug) {
-                    self.logger.log(util.format('Metrics: %j', newMetrics));
-                }
-
-                reqTimerId = setTimeout(onReqTimeout, MAX_REQUEST_TIME * MILLISECOND);
-                req = https.request(self.check_cfg);
-                req.on('error', onReqError);
-                req.on('response', onReqResponse);
-                req.write(metric_json);
-                req.end();
-            }
-            catch (err) {
-                if (self.debug) {
-                    self.logger.log(util.format('Post error: %j', err));
-                }
-                self.circonusStats.last_exception = Math.round(new Date().getTime() / MILLISECOND);
-            }
-        }
+            self.circonusStats.system.flushTime = Date.now() - startTime;
+            self.circonusStats.system.flushLength = metrics.length;
+            self.circonusStats.system.lastFlush = Math.round(new Date().getTime() / MILLISECOND);
+        });
     }
 
 
-    circonus_flush_stats(ts, metrics) {
+    // flushMetrics resopnds to the 'flush' event to aggregate metrics
+    // start a submission to circonus
+    flushMetrics(ts, metrics) { // eslint-disable-line complexity
         const starttime = new Date(ts * MILLISECOND);
-        let key = null;
-        let timer_data_key = null;
         const counters = metrics.counters;
         const gauges = metrics.gauges;
         const timers = metrics.timers;
         const sets = metrics.sets;
         const counter_rates = metrics.counter_rates;
         const timer_data = metrics.timer_data;
-        const statsd_metrics = metrics.statsd_metrics;
-        let sk = null;
-        let namespace = null;
-        let the_key = null;
-        const stats = {};
-        let value = null;
-        let valuePerSecond = null;
-        let timer_data_sub_key = null;
-        const self = this;
+        const statsd_stats = metrics.statsd_metrics;
+        const statsd_metrics = {};
+        const system_metrics = {};
 
-        if (this.debug) {
-            this.logger.log('flush');
+        if (instance.forceGC && global.gc) {
+            global.gc();
         }
 
-        // Sanitize key if not done globally
-        sk = function sanitize_key(key_name) {
-            if (self.globalKeySanitize) {
-                return key_name;
+        if (instance.debug) {
+            instance.logger.log('flush.counters');
+        }
+        for (const key in counters) {
+            let stats = null;
+            let isSystemMetric = false;
+            let the_key = instance.sanitizeKey(key);
+
+            if (the_key.substr(0, 5) === 'host.') {
+                the_key = the_key.substr(5);
+                isSystemMetric = true;
             }
 
-            return key_name.
-                replace(/\s+/g, '_').
-                replace(/\//g, '-').
-                replace(/[^a-zA-Z_\-0-9\.`]/g, '');
-        };
+            if (isSystemMetric) {
+                stats = system_metrics;
+            }
+            else {
+                stats = statsd_metrics;
+            }
 
+            const namespace = instance.counterNamespace.concat(the_key);
+            const value = counters[key];
+            const valuePerSecond = counter_rates[key]; // pre-calculated "per second" rate
 
-        if (this.debug) {
-            this.logger.log('flush.counters');
-        }
-        for (key in counters) {
-            value = counters[key];
-            valuePerSecond = counter_rates[key]; // pre-calculated "per second" rate
-
-            the_key = sk(key);
-            namespace = this.counterNamespace.concat(the_key);
             stats[namespace.concat('rate').join(METRIC_DELIM)] = valuePerSecond;
-            if (this.flush_counts) {
+            if (instance.flush_counts) {
                 stats[namespace.concat('count').join(METRIC_DELIM)] = value;
             }
         }
 
-
-        if (this.debug) {
-            this.logger.log('flush.timers');
+        if (instance.debug) {
+            instance.logger.log('flush.timers');
         }
-        for (key in timers) {
-            namespace = this.timerNamespace.concat(sk(key));
-            the_key = namespace.join(METRIC_DELIM);
-            if (this.sendRawTimers) {
-                stats[the_key] = {
+        for (const key in timers) {
+            let stats = null;
+            let isSystemMetric = false;
+            let the_key = instance.sanitizeKey(key);
+
+            if (the_key.substr(0, 5) === 'host.') {
+                the_key = the_key.substr(5);
+                isSystemMetric = true;
+            }
+
+            if (isSystemMetric) {
+                stats = system_metrics;
+            }
+            else {
+                stats = statsd_metrics;
+            }
+
+            const namespace = instance.timerNamespace.concat(the_key);
+            const metricName = namespace.join(METRIC_DELIM);
+
+            if (instance.sendRawTimers) {
+                stats[metricName] = {
                     _type: 'i',
                     _value: timers[key]
                 };
             }
             else {
-                stats[the_key] = {
-                    _type: 'n',
-                    _value: make_histogram(timers[key])
-                };
+                stats[metricName] = makeHistogram(timers[key]);
+
+                // stats[metricName] = {
+                //     _type: 'n',
+                //     _value: makeHistogram(timers[key])
+                // };
             }
         }
 
-        if (this.sendTimerDerivatives) {
-            if (this.debug) {
-                this.logger.log('flush.timerDerivatives');
+        if (instance.sendTimerDerivatives) {
+            if (instance.debug) {
+                instance.logger.log('flush.timerDerivatives');
             }
 
             // the derivative metrics from timers
-            for (key in timer_data) {
-                namespace = this.timerNamespace.concat(sk(key));
-                the_key = namespace.join(METRIC_DELIM);
-                for (timer_data_key in timer_data[key]) {
+            for (const key in timer_data) {
+                let stats = null;
+                let isSystemMetric = false;
+                let the_key = instance.sanitizeKey(key);
+
+                if (the_key.substr(0, 5) === 'host.') {
+                    the_key = the_key.substr(5);
+                    isSystemMetric = true;
+                }
+
+                if (isSystemMetric) {
+                    stats = system_metrics;
+                }
+                else {
+                    stats = statsd_metrics;
+                }
+
+                const namespace = instance.timerNamespace.concat(the_key);
+                const metricName = namespace.join(METRIC_DELIM);
+
+                for (const timer_data_key in timer_data[key]) {
                     if (typeof timer_data[key][timer_data_key] === 'number') {
-                        stats[the_key + METRIC_DELIM + timer_data_key] = timer_data[key][timer_data_key];
+                        stats[metricName + METRIC_DELIM + timer_data_key] = timer_data[key][timer_data_key];
                     }
                     else {
-                        for (timer_data_sub_key in timer_data[key][timer_data_key]) {
-                            stats[the_key + METRIC_DELIM + timer_data_key + METRIC_DELIM + timer_data_sub_key] =
+                        for (const timer_data_sub_key in timer_data[key][timer_data_key]) {
+                            stats[metricName + METRIC_DELIM + timer_data_key + METRIC_DELIM + timer_data_sub_key] =
                                 timer_data[key][timer_data_key][timer_data_sub_key];
                         }
                     }
@@ -603,64 +524,111 @@ class Circonus {
             }
         }
 
-        if (this.debug) {
-            this.logger.log('flush.gauges');
+        if (instance.debug) {
+            instance.logger.log('flush.gauges');
         }
-        for (key in gauges) {
-            stats[this.gaugesNamespace.concat(sk(key)).join(METRIC_DELIM)] = gauges[key];
+        for (const key in gauges) {
+            let stats = null;
+            let isSystemMetric = false;
+            let the_key = instance.sanitizeKey(key);
+
+            if (the_key.substr(0, 5) === 'host.') {
+                the_key = the_key.substr(5);
+                isSystemMetric = true;
+            }
+
+            if (isSystemMetric) {
+                stats = system_metrics;
+            }
+            else {
+                stats = statsd_metrics;
+            }
+
+            const namespace = instance.gaugesNamespace.concat(the_key);
+            const metricName = namespace.join(METRIC_DELIM);
+
+            stats[metricName] = gauges[key];
         }
 
-        if (this.debug) {
-            this.logger.log('flush.sets');
+        if (instance.debug) {
+            instance.logger.log('flush.sets');
         }
-        for (key in sets) {
-            stats[this.setsNamespace.concat([ sk(key), 'count' ]).join(METRIC_DELIM)] = sets[key].size();
+        for (const key in sets) {
+            let stats = null;
+            let isSystemMetric = false;
+            let the_key = instance.sanitizeKey(key);
+
+            if (the_key.substr(0, 5) === 'host.') {
+                the_key = the_key.substr(5);
+                isSystemMetric = true;
+            }
+
+            if (isSystemMetric) {
+                stats = system_metrics;
+            }
+            else {
+                stats = statsd_metrics;
+            }
+
+            const namespace = instance.setsNamespace.concat(the_key);
+            const metricName = namespace.join(METRIC_DELIM);
+
+            stats[metricName] = sets[key].size();
         }
 
-        if (this.debug) {
-            this.logger.log('flush.internal');
-        }
-        namespace = this.globalNamespace.concat(this.prefixInternalMetrics);
-        stats[namespace.concat([ circonusPrefix, 'calculation_time' ]).join(METRIC_DELIM)] = Date.now() - starttime;
-        for (key in statsd_metrics) {
-            stats[namespace.concat(key).join(METRIC_DELIM)] = statsd_metrics[key];
+        if (instance.debug) {
+            instance.logger.log('flush.internal');
         }
 
-        if (this.sendMemoryStats) {
-            stats[namespace.concat('memory').join(METRIC_DELIM)] = process.memoryUsage();
+        const internalNamespace = instance.globalNamespace.concat(instance.prefixInternalMetrics);
+
+        statsd_metrics[
+            internalNamespace.concat([
+                instance.circonusPrefix,
+                'calculation_time' ]).join(METRIC_DELIM)
+            ] = Date.now() - starttime;
+
+        for (const key in statsd_stats) {
+            const metricName = internalNamespace.concat(key).join(METRIC_DELIM);
+
+            statsd_metrics[metricName] = statsd_stats[key];
         }
 
-        if (this.debug) {
-            this.logger.log('flush.call_post');
+        if (instance.sendMemoryStats) {
+            const mem = process.memoryUsage();
+
+            for (const key in mem) {
+                const metricName = internalNamespace.concat('memory', key).join(METRIC_DELIM);
+
+                statsd_metrics[metricName] = mem[key];
+            }
         }
-        this.circonus_post_stats(stats);
+
+        instance.submitMetrics(statsd_metrics, system_metrics);
     }
 
-    circonus_backend_status(writeCb) {
-        let stat = null;
 
-        for (stat in this.circonusStats) {
-            if ({}.hasOwnProperty.call(this.circonusStats, stat)) {
-                writeCb(null, BACKEND_NAME, stat, this.circonusStats[stat]);
+    // backendStats exposes stats specific to thie backend in response to the 'status' event
+    backendStats(writeCb) {
+        for (const check in instance.circonusStats) {
+            const stats = instance.circonusStats[check];
+
+            for (const stat in stats) {
+                writeCb(null, BACKEND_NAME, `${check}_${stat}`, stats[stat]);
             }
         }
     }
 }
 
-/*
-read registrations and refresh check configs (untraced changes)
-inventory metrics (in each)
-on flush, activate new metrics
-then flush stats
-*/
-
-exports.init = function circonus_init(startup_time, config, events, logger) {
+// circonus_init is the exported function to initialize the circonus backend
+function circonus_init(startup_time, config, events, logger) {
     if (instance === null) {
-        instance = new Circonus(startup_time, config, logger);
-
-        events.on('flush', instance.circonus_flush_stats);
-        events.on('status', instance.circonus_backend_status);
+        instance = new Circonus(startup_time, config, events, logger);
     }
 
     return true;
-};
+}
+
+module.exports.init = circonus_init;
+
+// END
