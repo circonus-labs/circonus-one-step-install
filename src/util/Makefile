@@ -7,6 +7,8 @@ LIB_SRC  	:= $(shell git ls-files lib)
 UTILS 		:= cosi-util.tar.gz
 STATSD   	:= cosi-statsd.tar.gz
 
+install:
+	@echo "There is no 'default' target, try 'package' or 'dev-install'"
 
 $(UTILS): $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
 	-rm -rf .modules
@@ -77,27 +79,64 @@ $(STATSD):
 
 
 ##
-### the following are for use in the vagrant box during development
-### testing node v0.10.x
-### e.g. ''' cd /vagrant/build && make install '''
-###
-### active dev v4.3.x
-### e.g. ''' cd /vagrant && make links '''
-###
-### sets up links to *binaries* e.g. cosi.js -> cosi
-### so that 'cosi noun verb' - 'cosi check list'
-### commands will work correctly.
+### the following are for use in development
 ##
+# note: the os settings below are for the boxes defined
+#       in the Vagrantfile from this directory. To use
+#       different boxes, set these variables accordingly.
+define COSI_JSON
+{
+    "api_key": "",
+    "api_app": "cosi",
+    "api_url": "https://api.circonus.com/v2/",
+    "cosi_url": "https://onestep.circonus.com/",
+    "agent_mode": "reverse",
+    "agent_url": "http://127.0.0.1:2609/",
+    "statsd": 1,
+    "statsd_port": 8125,
+    "custom_options_file": "",
+    "cosi_host_target": "",
+    "cosi_broker_id": "",
+    "cosi_os_dist": "CentOS",
+    "cosi_os_vers": "7.2.1511",
+    "cosi_os_arch": "x86_64",
+    "cosi_os_type": "Linux",
+    "cosi_os_dmi": "VirtualBox"
+}
+endef
 
-.PHONY: modules
-modules:
-	mkdir -p node_modules
-	for f in .modules/*.tgz; do tar -zxf "$$f" -C node_modules/; done
-	npm rebuild
+export COSI_JSON
 
-.PHONY: links
-links:
-	cd bin && for f in cosi*.js; do chmod 755 "$$f"; [[ -h "$${f%.js}" ]] || ln -s "$$f" "$${f%.js}"; done
+dev-install:
+	install -d -m 0755 /opt/circonus
+	install -d -m 0755 /opt/circonus/cosi
+	install -d -m 0755 /opt/circonus/cosi/etc
+	install -d -m 0755 /opt/circonus/cosi/registration
+	install -d -m 0755 /opt/circonus/cosi/rulesets
+	install -d -m 0755 /opt/circonus/cosi/bin
+	install -t /opt/circonus/cosi/bin bin/*
+	@cd /opt/circonus/cosi/bin && for f in cosi*.js; do chmod 755 "$$f"; [[ -h "$${f%.js}" ]] || ln -s "$$f" "$${f%.js}"; done
+	rsync -r lib /opt/circonus/cosi
+	install package.json /opt/circonus/cosi
+	cd /opt/circonus/cosi && /opt/node/bin/npm install --production
+ifeq (,$(wildcard /opt/circonus/cosi/etc/.cosi_id))
+	@# generate a cosi id if one does not exist
+	cat /proc/sys/kernel/random/uuid > /opt/circonus/cosi/etc/.cosi_id
+endif
+ifeq (,$(wildcard /opt/circonus/cosi/statsd))
+	@# install an up-to-date (from github) statsd
+	cd /opt/circonus/cosi && git clone https://github.com/etsy/statsd.git && cd statsd && /opt/node/bin/npm install --no-optional --production
+endif
+ifeq (,$(wildcard /opt/circonus/cosi/etc/cosi.json))
+	@# create a stub cosi config if one does not exist
+	echo "$$COSI_JSON" > /opt/circonus/cosi/etc/cosi.json
+	@echo -e "\n!!!Important!!!\nIt is up to you to *manually* modify /opt/circonus/cosi/etc/cosi.json accordingly. (eg. a valid api token)\n"
+endif
+	@chown -R root:root /opt/circonus
 
-.PHONY: install
-install: modules links
+dev-clean:
+ifneq (,$(wildcard /opt/circonus/cosi))
+	-/opt/circonus/cosi/bin/cosi reset -a
+	@echo "Removing /opt/circonus/cosi"
+	-@rm -rf /opt/circonus/cosi
+endif
