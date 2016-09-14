@@ -21,8 +21,27 @@ done
 SIZE=`./pg_db_size.sh | grep postgres`
 if [ -z "$SIZE" ]; then
     echo "Could not execute a test script.  Please configure /opt/circonus/etc/pg-conf.sh appropriately and re-run"
+    for i in $PG_SCRIPTS_DIR/*; do
+        rm `basename $i`
+    done    
+    echo "{\"enabled\": false}"    
     exit 1
 fi
+
+POPATH=`which protocol_observer`
+PROTOCOL_OBSERVER="false"
+if [ -n "$POPATH" ]; then
+  PROTOCOL_OBSERVER="true"
+fi
+
+# pull in the plugin settings
+source /opt/circonus/etc/pg-conf.sh
+
+# find where the postgres data is stored
+DATA_DIR=`psql -U $PGUSER -d $PGDATABASE -c "show data_directory;" -q -t`
+DATA_DIR="$(echo -e "${DATA_DIR}" | tr -d '[[:space:]]')"
+echo "{\"enabled\": true, \"data_dir\": \"${DATA_DIR}\", \"protocol_observer\": ${PROTOCOL_OBSERVER} }"
+
 popd >/dev/null
 
 # if we have arrived here, the postgres plugin in NAD is installed and operating 

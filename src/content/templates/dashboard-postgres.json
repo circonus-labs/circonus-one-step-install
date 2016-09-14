@@ -4,129 +4,7 @@
     "config": {
         "account_default": false, 
         "grid_layout": {
-            "cells": [
-                {
-                    "cell_coordinates": "a0", 
-                    "cell_type": "left-single"
-                }, 
-                {
-                    "cell_coordinates": "a1", 
-                    "cell_type": "left-single"
-                }, 
-                {
-                    "cell_coordinates": "a2", 
-                    "cell_type": "left-single"
-                }, 
-                {
-                    "cell_coordinates": "a3", 
-                    "cell_type": "left-single"
-                }, 
-                {
-                    "cell_coordinates": "a4", 
-                    "cell_type": "left-single"
-                }, 
-                {
-                    "cell_coordinates": "b0", 
-                    "cell_type": "right-single"
-                }, 
-                {
-                    "cell_coordinates": "b1", 
-                    "cell_type": "right-single"
-                }, 
-                {
-                    "cell_coordinates": "b2", 
-                    "cell_type": "mid-single"
-                }, 
-                {
-                    "cell_coordinates": "b3", 
-                    "cell_type": "mid-single"
-                }, 
-                {
-                    "cell_coordinates": "b4", 
-                    "cell_type": "mid-single"
-                }, 
-                {
-                    "cell_coordinates": "c0", 
-                    "cell_type": "single-single"
-                }, 
-                {
-                    "cell_coordinates": "c1", 
-                    "cell_type": "left-single"
-                }, 
-                {
-                    "cell_coordinates": "c2", 
-                    "cell_type": "mid-single"
-                }, 
-                {
-                    "cell_coordinates": "c3", 
-                    "cell_type": "mid-single"
-                }, 
-                {
-                    "cell_coordinates": "c4", 
-                    "cell_type": "mid-single"
-                }, 
-                {
-                    "cell_coordinates": "d0", 
-                    "cell_type": "single-single"
-                }, 
-                {
-                    "cell_coordinates": "d1", 
-                    "cell_type": "right-single"
-                }, 
-                {
-                    "cell_coordinates": "d2", 
-                    "cell_type": "mid-single"
-                }, 
-                {
-                    "cell_coordinates": "d3", 
-                    "cell_type": "mid-single"
-                }, 
-                {
-                    "cell_coordinates": "d4", 
-                    "cell_type": "mid-single"
-                }, 
-                {
-                    "cell_coordinates": "e0", 
-                    "cell_type": "left-single"
-                }, 
-                {
-                    "cell_coordinates": "e1", 
-                    "cell_type": "left-single"
-                }, 
-                {
-                    "cell_coordinates": "e2", 
-                    "cell_type": "mid-single"
-                }, 
-                {
-                    "cell_coordinates": "e3", 
-                    "cell_type": "mid-single"
-                }, 
-                {
-                    "cell_coordinates": "e4", 
-                    "cell_type": "mid-single"
-                }, 
-                {
-                    "cell_coordinates": "f0", 
-                    "cell_type": "right-single"
-                }, 
-                {
-                    "cell_coordinates": "f1", 
-                    "cell_type": "right-single"
-                }, 
-                {
-                    "cell_coordinates": "f2", 
-                    "cell_type": "right-single"
-                }, 
-                {
-                    "cell_coordinates": "f3", 
-                    "cell_type": "right-single"
-                }, 
-                {
-                    "cell_coordinates": "f4", 
-                    "cell_type": "right-single"
-                }
-            ], 
-            "height": 5, 
+            "height": 6, 
             "width": 6
         }, 
         "options": {
@@ -404,6 +282,32 @@
                     "account_id": null, 
                     "date_window": "2w", 
                     "graph_id": null, 
+                    "graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_item}} Postgres File System Space", 
+                    "hide_xaxis": false, 
+                    "hide_yaxis": false, 
+                    "key_inline": false, 
+                    "key_loc": "noop", 
+                    "key_size": "1", 
+                    "key_wrap": false, 
+                    "label": "{{=cosi.dashboard_item}} file system space", 
+                    "period": "2000", 
+                    "realtime": false, 
+                    "show_flags": true
+                }, 
+                "tags" : ["database:file_system_space"],
+                "type": "graph", 
+                "widget_id": "w16", 
+                "width": 6
+            }, 
+            {
+                "active": true, 
+                "height": 1, 
+                "name": "Graph", 
+                "origin": "a5", 
+                "settings": {
+                    "account_id": null, 
+                    "date_window": "2w", 
+                    "graph_id": null, 
                     "graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_item}} Postgres Transaction Detail", 
                     "hide_xaxis": false, 
                     "hide_yaxis": false, 
@@ -425,7 +329,7 @@
                 "active": true, 
                 "height": 1, 
                 "name": "Graph", 
-                "origin": "d4", 
+                "origin": "d5", 
                 "settings": {
                     "account_id": null, 
                     "date_window": "2w", 

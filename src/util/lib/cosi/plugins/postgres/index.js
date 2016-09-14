@@ -31,7 +31,7 @@ class Postgres extends Plugin {
             version(cosi.app_version).
             option("-e, --enable", "enable the postgres plugin").
             option("-d, --disable", "disable the postgres plugin").
-            option("-b, --pgdb [databases]", "comma separated list of databases to enable", "").
+            option("-b, --pgdb [database]", "the postgres database name to enable", "").
             option("-u, --pguser [user]", "the postgres user to run as", "postgres").
             option("-a, --pgpass [pass]", "the pass of the postgres user", "").
             option("-o, --pgport [port]", "port to connect to", 5432).
@@ -39,33 +39,116 @@ class Postgres extends Plugin {
         this.params = app;
     }
 
-    _configPostgres() {
+    addCustomMetrics(regSetup) {
         const self = this;
-        /* if we have gotten here, nad-enable.sh has flipped on the postgres plugin and tested it to work */
-        console.log("postgres/nad-enable.sh successful");
-        
+        if (self.protocol_observer) {
+            /* 
+               in addition to what was discovered through the node-agent query, we will
+               have additional metrics provided by the protocol_observer for postgres.
+               
+               since the arrival of these additional metrics is based on stimulus to
+               the postgres server itself, we have to fake their existence into the
+               setup-metrics.json file
+            */
+            var metrics = require(regSetup.regConfig.metricsFile);
+            var po = metrics["pg_protocol_observer"];
+            if (po == undefined) {
+                po = {};
+            }
+            var types = ["Query", "Execute", "Bind"];
+            var seps = ["`", "`SELECT`", "`INSERT`", "`UPDATE`", "`DELETE`"];
+            var atts = ["latency", "request_bytes", "response_bytes", "response_rows"];
+            for (var type in types) {
+                for (var sep in seps ) {
+                    for (var att in atts) {
+                        if (po[types[type] + seps[sep] + atts[att]] == undefined) {
+                            po[types[type] + seps[sep] + atts[att]] = {"_type": "n", "_value": "0"};
+                        }
+                    }
+                }
+            }
+            metrics["pg_protocol_observer"] = po;
+            fs.writeFile(
+                regSetup.regConfig.metricsFile,
+                JSON.stringify(metrics, null, 4),
+                { encoding: "utf8", mode: 0o600, flag: "w" },
+                (saveError) => {
+                    if (saveError) {
+                        self.emit("error", saveError);
+                        return;
+                    }
+                    console.log(chalk.green("Metrics saved", regSetup.regConfig.metricsFile));
+                }
+            );            
+        }
+    }
+
+    _configPostgres(stdout) {
+        const self = this;
+        /* if we have gotten here, nad-enable.sh has flipped on the postgres plugin and tested it to work.. it has passed us the output of nad-enable.sh which should contain the data_dir */
+        console.log("postgres/nad-enable.sh successful");       
+
         /* now we need to re-register this box as there are new metrics to collect and graphs to create */
+
+        const nadPluginOutput = JSON.parse(stdout);
+        
         console.log("NAD portion of plugin complete.  Re-registering this host");
         this.once("register.done", () => {
-            self.emit("dashboard.create");
+            const files = fs.readdirSync(self.regDir);
+
+            /* algorithm here is to substring search for the nadPluginOutput.data_dir in 
+               each registered graph's datapoints's metric_names.  If we find a substring 
+               match then that is our filesystem graph choice.
+
+               If we don't get a match, slice off the last folder and redo search until 
+               we find some reasonable matching filesystem graph
+               */
+            var dataDir = nadPluginOutput.data_dir;
+            
+            while (dataDir.length) {
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    if (file.match(/^registration-graph-([^.]+)+\.json?$/)) {
+                        try {
+                            const configFile = path.resolve(this.regDir, file);
+                            const graph = require(configFile);
+                            // for (let j = 0; j < graph.datapoints.length; j++) {
+                            //     if (graph.datapoints[j].metric_name.contains(dataDir)) {
+                                    
+
+                        }
+                        catch (err) {
+                            this.emit("error", err);
+                        }
+                    }
+                }
+                dataDir = dataDir.slice(0, dataDir.lastIndexOf("/"));
+            }
         });
 
         this.once("dashboard.create", () => {
             self.once("dashboard.done", () => {
                 self.emit("plugin.done");
             });
-            self.configDashboard("postgres", self.params.quiet, [self.params.pgdb]);
+            self.configDashboard("postgres", self.params.quiet, [self.params.pgdb], fsGraphId);
         });
 
-        this.reregisterHost();        
+        if (nadPluginOutput.enabled) {    
+            this.protocol_observer = nadPluginOutput.protocol_observer;
+            this.reregisterHost();        
+        }
     }
 
     enable() {
         const self = this;
+        /* stdout will contain the path to the data storage for the database */
         this.once("postgres.nad.enabled", (stdout) => {
-            self.emit("config.postgres");
+            self.emit("config.postgres", stdout);
         });
 
+        const check = new Check(path.resolve(self.regDir, "registration-check-system.json"));        
+ 
         const stdout = execSync('psql -V');
         if (!stdout.indexOf("PostgreSQL") == -1) {
             self.emit("error", "Cannot find 'psql' in your path, postgres nad plugin will not work");

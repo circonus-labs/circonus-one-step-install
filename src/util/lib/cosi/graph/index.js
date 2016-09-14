@@ -9,6 +9,7 @@ const fs = require("fs");
 const path = require("path");
 
 const chalk = require("chalk");
+const dot = require("dot");
 
 const cosi = require(path.resolve(path.join(__dirname, "..")));
 const api = require(path.resolve(cosi.lib_dir, "api"));
@@ -66,12 +67,19 @@ module.exports = class Graph {
         return false;
     }
 
-    preToConfig(checkId) {
+    preToConfig(checkId, checkUuid) {
         assert.strictEqual(typeof checkId, "string", "checkId is required");
+        assert.strictEqual(typeof checkUuid, "string", "checkUuid is required");
 
         if (this.isPreConfig()) {
+            var data = {"check_id": checkId, "check_uuid": checkUuid};
             for (let i = 0; i < this.datapoints.length; i++) {
                 this.datapoints[i].check_id = checkId;
+                if (this.datapoints[i].hasOwnProperty("caql") && this.datapoints[i].caql != null) {
+                    console.log("Applying template to [" + this.datapoints[i].caql + "]");
+                    var fn = dot.template(this.datapoints[i].caql);
+                    this.datapoints[i].caql = fn(data);
+                }
             }
         }
     }

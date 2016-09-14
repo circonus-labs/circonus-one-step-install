@@ -53,6 +53,7 @@ class Register extends Registration {
 
             // original code from systemCheck
             self.checkId = check._checks[0].replace("/check/", "");
+            self.checkUuid = check._check_uuids[0];
             self.checkBundleId = check._cid.replace("/check_bundle/", "");
 
             if (self.agentMode === "push") {
@@ -404,10 +405,10 @@ class Register extends Registration {
         const graph = new Graph(configFile);
 
         if (graph.isPreConfig()) {
-            console.log(`\tUpdating pre-config with check ID ${this.checkId}`);
+            console.log(`\tUpdating pre-config with check ID ${this.checkId} and check uuid: ${this.checkUuid}`);
 
             cfgFile = configFile.replace(".pre", "");
-            graph.preToConfig(this.checkId);
+            graph.preToConfig(this.checkId, this.checkUuid);
 
             console.log("\tSaving config", cfgFile);
             try {
