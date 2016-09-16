@@ -1,3 +1,7 @@
+### 0.8.3 2016-09-16
+
+* new: RedHat 6 x86_64 support (tested w/RHEL 6.5.0.1 Santiago)
+
 ### 0.8.1 2016-07-13
 
 * new: Oracle Linux v7.2 x86_64 support
