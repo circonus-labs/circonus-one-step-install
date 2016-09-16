@@ -39,7 +39,7 @@ class Postgres extends Plugin {
         this.params = app;
     }
 
-    addCustomMetrics(regSetup) {
+    addCustomMetrics() {
         const self = this;
         if (self.protocol_observer) {
             /* 
@@ -47,14 +47,10 @@ class Postgres extends Plugin {
                have additional metrics provided by the protocol_observer for postgres.
                
                since the arrival of these additional metrics is based on stimulus to
-               the postgres server itself, we have to fake their existence into the
-               setup-metrics.json file
+               the postgres server itself, we have to fake their existence into the node agent
+               by writing blank values.
             */
-            var metrics = require(regSetup.regConfig.metricsFile);
-            var po = metrics["pg_protocol_observer"];
-            if (po == undefined) {
-                po = {};
-            }
+            var po = {};
             var types = ["Query", "Execute", "Bind"];
             var seps = ["`", "`SELECT`", "`INSERT`", "`UPDATE`", "`DELETE`"];
             var atts = ["latency", "request_bytes", "response_bytes", "response_rows"];
@@ -62,24 +58,25 @@ class Postgres extends Plugin {
                 for (var sep in seps ) {
                     for (var att in atts) {
                         if (po[types[type] + seps[sep] + atts[att]] == undefined) {
-                            po[types[type] + seps[sep] + atts[att]] = {"_type": "n", "_value": "0"};
+                            po[types[type] + seps[sep] + atts[att]] = {"_type": "n", "_value": null};
                         }
                     }
                 }
             }
-            metrics["pg_protocol_observer"] = po;
-            fs.writeFile(
-                regSetup.regConfig.metricsFile,
-                JSON.stringify(metrics, null, 4),
-                { encoding: "utf8", mode: 0o600, flag: "w" },
-                (saveError) => {
-                    if (saveError) {
-                        self.emit("error", saveError);
-                        return;
-                    }
-                    console.log(chalk.green("Metrics saved", regSetup.regConfig.metricsFile));
+
+            var url = cosi.agent_url;
+            if (!url.endsWith("/")) {
+                url += "/";
+            }
+            url += "write/postgres_protocol_observer";
+            console.log("Posting to: " + url);
+
+            var client = require('request');
+            client.post(url, {"json": po}, function(error, response, body) {
+                if (error || response.statusCode != 200) {
+                    console.log(error);
                 }
-            );            
+            });
         }
     }
 
@@ -125,9 +122,10 @@ class Postgres extends Plugin {
                 }
                 dataDir = dataDir.slice(0, dataDir.lastIndexOf("/"));
             }
+            self.emit("dashboard.create", dataDir);
         });
 
-        this.once("dashboard.create", () => {
+        this.once("dashboard.create", (fsGraphId) => {
             self.once("dashboard.done", () => {
                 self.emit("plugin.done");
             });
@@ -142,6 +140,7 @@ class Postgres extends Plugin {
 
     enable() {
         const self = this;
+
         /* stdout will contain the path to the data storage for the database */
         this.once("postgres.nad.enabled", (stdout) => {
             self.emit("config.postgres", stdout);

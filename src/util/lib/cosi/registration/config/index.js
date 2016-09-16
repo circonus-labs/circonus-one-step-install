@@ -530,6 +530,8 @@ class Config extends Registration {
                 }
                 if (found_graph == false) {
                     console.log("Could not find matching graph for: " + JSON.stringify(widget.tags));
+                    /* pull this graph out of the dashboard */
+                    config.widgets.splice(i, 1);
                 }
             } else if (widget.name == "Gauge") {
                 /* find the matching metric on this system */
@@ -686,7 +688,6 @@ class Config extends Registration {
                     // for (const dp of graph.datapoints) {
                     for (let dpIdx = 0; dpIdx < graph.datapoints.length; dpIdx++) {
                         const dp = graph.datapoints[dpIdx];
-
                         console.log("\t\t\tAdding required metric:", dp.metric_name);
                         checkMetrics.push({
                             name: dp.metric_name,

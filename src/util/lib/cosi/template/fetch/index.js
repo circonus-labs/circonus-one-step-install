@@ -117,7 +117,7 @@ class Fetch extends Events {
         assert.strictEqual(typeof cb, "function", "cb must be a callback function");
 
         const self = this;
-        const metrics = new Metrics(self.agentUrl);
+        const metrics = new Metrics("file://" + path.join(this.dir, "setup-metrics.json"));
 
         function log(msg) {
             if (!quiet) {

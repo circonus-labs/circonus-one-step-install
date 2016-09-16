@@ -87,21 +87,18 @@ class Plugin extends Events {
         });
     }
 
-    addCustomMetrics(regSetup) {
+    addCustomMetrics() {
         /* noop in base class */
     }
 
     reregisterHost(quiet) {
         const self = this;
+        
         this.once("reg-setup", () => {
             const regSetup = new RegSetup(quiet);
 
             regSetup.once("setup.done", () => {
                 self.emit("reg-config");
-            });
-
-            regSetup.once("metrics.fetch.done", () => {
-                self.addCustomMetrics(regSetup);
             });
 
             regSetup.setup();
@@ -133,6 +130,9 @@ class Plugin extends Events {
             // metrics likely changed, delete cache of metrics to force a reget
             fs.unlinkSync(path.resolve(this.regDir, "setup-metrics.json"));
         }
+
+        console.log("Adding custom metrics");
+        self.addCustomMetrics();
         
         // nad has a delay to pick up the newly linked metrics as the file system
         // watch takes a bit to trigger and then nad needs a moment to refresh 

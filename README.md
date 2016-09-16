@@ -38,4 +38,58 @@ The [provision/](provision/) directory contains everything needed to provision c
 
 The [test/](test/) directory contains a test suite for cosi-site. (See [README](test/) in the directory.)
 
+## Development
 
+Environment:
+
+```sh
+ansible --version && vagrant -v && vboxmanage --version
+
+ansible 2.1.0 (devel 9bb069f873) last updated 2016/04/18 12:42:14 (GMT -400)
+  lib/ansible/modules/core: (detached HEAD 5409ed1b28) last updated 2016/04/18 12:42:15 (GMT -400)
+  lib/ansible/modules/extras: (detached HEAD 3afe117730) last updated 2016/04/18 12:42:15 (GMT -400)
+  config file =
+  configured module search path = Default w/o overrides
+Vagrant 1.8.1
+5.0.20r106931
+```
+
+> Note: Vagrant is used in the build process to create an RPM for RHEL systems. Supported OSes for building cosi are CentOS, Ubuntu and OSX (what Vagrant supports).
+
+```sh
+# get the source, change the URL if you're using a forked copy
+git clone https://github.com/circonus-labs/circonus-one-step-install
+
+# install global NPM packages (if you will be using 'make check' or want linting in an editor supporting eslint)
+npm install -g eslint npm-check-updates
+
+# install local development and production NPM packages
+cd circonus-one-step-install/src
+make init
+
+# build the cosi-site package for deployment
+make package
+```
+
+The `demo/` directory contains a full working cosi-site and several cosi client VM definitions. The cosi-site VM will be provisioned from what is built locally.
+
+```sh
+# from repo root
+cd demo
+vagrant up site
+```
+
+Select a client to test with (CentOS `c7`, Ubuntu `u14`, OmniOS `omnios`).
+
+```sh
+vagrant up c7
+```
+
+Once the client is up you can ssh into it (e.g. `vagrant ssh c7`) and run a cosi install command.
+
+To test changes made to the local source tree on a running cosi-site VM:
+
+```sh
+# from the demo/ subdirectory
+cd ../src && make package && cd ../demo && vagrant provision site
+```

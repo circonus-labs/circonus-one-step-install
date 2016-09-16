@@ -1,5 +1,7 @@
 
 BABEL	 	:= ./node_modules/.bin/babel
+SED     := /usr/bin/sed
+TAR     := /usr/bin/tar
 
 BIN_SRC  	:= $(shell git ls-files bin/*.{js,sh})
 LIB_SRC  	:= $(shell git ls-files lib)
@@ -23,10 +25,10 @@ $(UTILS): $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
 	tail -n +3 build/bin/circonus-nadpush.js >> build/bin/circonus-nadpush && \
 	chmod 0755 build/bin/circonus-nadpush && \
 	rm build/bin/circonus-nadpush.js
-	for f in ./build/bin/*.js; do \
-		sed -e 's#/usr/bin/env node#%%NODE_BIN%%#' -i '' "$$f"; \
-		chmod 0755 "$$f"; \
-		mv "$$f" "$${f%.js}"; \
+	for f in build/bin/*.js; do \
+		$(SED) -e 's#/usr/bin/env node#%%NODE_BIN%%#' -i $${f}; \
+		chmod 0755 $${f}; \
+		mv $${f} $${f%.js}; \
 	done
 	$(BABEL) lib -d build/lib
 	pac --production
@@ -42,9 +44,7 @@ $(UTILS): $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
 	if [ -d etc ]; then cp -r etc build/. ; fi
 	if [ -d registration ]; then cp -r registration build/.; fi
 	cp cosi-statsd.tar.gz build/.
-	cd build
-	COPYFILE_DISABLE=true tar -czf $@ bin lib service rulesets .modules package.json README.md LICENSE $(STATSD)
-	cd ..
+	$(TAR) -czvf $@ -C build bin lib service rulesets .modules package.json README.md LICENSE $(STATSD)
 
 
 .PHONY: check
@@ -53,6 +53,8 @@ check:
 	eslint $(BIN_SRC) $(LIB_SRC)
 	@ncu --prod
 
+init:
+	test -d node_modules || npm install
 
 .PHONY: clean
 clean:

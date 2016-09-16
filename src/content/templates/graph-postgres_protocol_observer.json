@@ -1,6 +1,6 @@
 {
     "type": "graph",
-    "id": "pg_protocol_observer",
+    "id": "postgres_protocol_observer",
     "description": "Postgres protocol_observer visualizations",
     "version": "0.1.0",
     "notes": [],
@@ -11,7 +11,7 @@
             "datapoints": [
                 {
                     "legend_formula": null,
-                    "caql": "metric:histogram(\"{{=cosi.check_uuid}}\",\"Execute`latency\") | histogram:rate()",
+                    "caql": "metric:histogram(\"{{=cosi.check_uuid}}\",\"postgres_protocol_observer`Execute`latency\") | histogram:rate()",
                     "check_id": null,
                     "metric_type": "caql",
                     "stack": null,
@@ -26,7 +26,7 @@
                 },
                 {
                     "legend_formula": null,
-                    "caql": "metric:histogram(\"{{=cosi.check_uuid}}\",\"Execute`latency\") | histogram:percentile(0,25,50,75,100)",
+                    "caql": "metric:histogram(\"{{=cosi.check_uuid}}\",\"postgres_protocol_observer`Execute`latency\") | histogram:percentile(0,25,50,75,100)",
                     "check_id": null,
                     "metric_type": "caql",
                     "stack": null,
@@ -49,9 +49,9 @@
                     "axis": "l",
                     "data_formula": null,
                     "color": "#4fa18e",
-                    "metric_name": "Execute`latency",
+                    "metric_name": "postgres_protocol_observer`Execute`latency",
                     "alpha": "0.3",
-                    "derive": "histogram",
+                    "derive": false,
                     "hidden": false
                 }
             ],
@@ -67,7 +67,7 @@
             "min_right_y": null,
             "notes": null,
             "style": "area",
-            "tags": ["db:postgres", "database:latency"],
+            "tags": ["db:postgres", "db:latency"],
             "title": "{{=cosi.host_name}} Postgres Execute Latency"
         },
         {
@@ -76,7 +76,7 @@
             "datapoints": [
                 {
                     "legend_formula": null,
-                    "caql": "metric:histogram(\"{{=cosi.check_uuid}}\",\"Query`latency\") | histogram:rate()",
+                    "caql": "metric:histogram(\"{{=cosi.check_uuid}}\",\"postgres_protocol_observer`Query`latency\") | histogram:rate()",
                     "check_id": null,
                     "metric_type": "caql",
                     "stack": null,
@@ -91,7 +91,7 @@
                 },
                 {
                     "legend_formula": null,
-                    "caql": "metric:histogram(\"{{=cosi.check_uuid}}\",\"Query`latency\") | histogram:percentile(0,25,50,75,100)",
+                    "caql": "metric:histogram(\"{{=cosi.check_uuid}}\",\"postgres_protocol_observer`Query`latency\") | histogram:percentile(0,25,50,75,100)",
                     "check_id": null,
                     "metric_type": "caql",
                     "stack": null,
@@ -114,9 +114,9 @@
                     "axis": "l",
                     "data_formula": null,
                     "color": "#4fa18e",
-                    "metric_name": "Query`latency",
+                    "metric_name": "postgres_protocol_observer`Query`latency",
                     "alpha": "0.3",
-                    "derive": "histogram",
+                    "derive": false,
                     "hidden": false
                 }
             ],
@@ -132,7 +132,7 @@
             "min_right_y": null,
             "notes": null,
             "style": "area",
-            "tags": ["db:postgres", "database:latency"],
+            "tags": ["db:postgres", "db:latency"],
             "title": "{{=cosi.host_name}} Postgres Query Latency"
         },
         {
@@ -141,7 +141,7 @@
             "datapoints": [
                 {
                     "legend_formula": null,
-                    "caql": "metric:histogram(\"{{=cosi.check_uuid}}\",\"Bind`latency\") | histogram:rate()",
+                    "caql": "metric:histogram(\"{{=cosi.check_uuid}}\",\"postgres_protocol_observer`Bind`latency\") | histogram:rate()",
                     "check_id": null,
                     "metric_type": "caql",
                     "stack": null,
@@ -156,7 +156,7 @@
                 },
                 {
                     "legend_formula": null,
-                    "caql": "metric:histogram(\"{{=cosi.check_uuid}}\",\"Bind`latency\") | histogram:percentile(0,25,50,75,100)",
+                    "caql": "metric:histogram(\"{{=cosi.check_uuid}}\",\"postgres_protocol_observer`Bind`latency\") | histogram:percentile(0,25,50,75,100)",
                     "check_id": null,
                     "metric_type": "caql",
                     "stack": null,
@@ -179,9 +179,9 @@
                     "axis": "l",
                     "data_formula": null,
                     "color": "#4fa18e",
-                    "metric_name": "Bind`latency",
+                    "metric_name": "postgres_protocol_observer`Bind`latency",
                     "alpha": "0.3",
-                    "derive": "histogram",
+                    "derive": false,
                     "hidden": false
                 }
             ],
@@ -197,7 +197,7 @@
             "min_right_y": null,
             "notes": null,
             "style": "area",
-            "tags": ["db:postgres", "database:latency"],
+            "tags": ["db:postgres", "db:latency"],
             "title": "{{=cosi.host_name}} Postgres Bound Query Latency"
         }
     ]

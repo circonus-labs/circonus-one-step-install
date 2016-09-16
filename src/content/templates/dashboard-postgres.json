@@ -1,6 +1,15 @@
 {
     "description" : "The standard dashboard for monitoring postgres.",
-    "notes" : "This will create an instance of a dashboard.  A name will be passed to this dashboard for inclusion in templated output.  This will be made available to the dashboard as {{=cosi.dashboard_item}}.  Each graph widget is mapped to an existing registered graph based on matching tags in the widget:tags field.",
+    "notes" : [
+        "This will create an instance of a dashboard.  A name will be ",
+        "passed to this dashboard for inclusion in templated output.  This will be ",
+        "made available to the dashboard as {{=cosi.dashboard_item}}.  Each graph ", 
+        "widget is mapped to an existing registered graph based on matching tags in ",
+        "the widget:tags field.",
+        "",
+        "If a match cannot be found for a widget:tag field to an existing graph, ",
+        "the graph will be removed from the dashboard."
+    ],
     "config": {
         "account_default": false, 
         "grid_layout": {
