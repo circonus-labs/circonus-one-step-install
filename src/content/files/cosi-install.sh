@@ -205,7 +205,7 @@ __detect_os() {
     set +e
     dmi=$(type -P dmidecode)
     if [[ $? -eq 0 ]]; then
-        result=$($dmi -s bios-version 2>/dev/null)
+        result=$($dmi -s bios-version 2>/dev/null | tr "\n" " ")
         [[ $? -eq 0 ]] && cosi_os_dmi=$result
     fi
     set -e
