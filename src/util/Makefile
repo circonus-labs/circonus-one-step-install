@@ -31,7 +31,7 @@ $(UTILS): $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
 		mv $${f} $${f%.js}; \
 	done
 	$(BABEL) lib -d build/lib
-	pac --production
+	node_modules/.bin/pac --production
 	cp -r .modules build/.
 	cp -r service build/.
 	cp -r rulesets build/.

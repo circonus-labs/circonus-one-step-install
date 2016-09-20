@@ -158,7 +158,9 @@ class Postgres extends Plugin {
         const contents = `#!/bin/bash
         
 PGUSER=${self.params.pguser}
-PGDATABASE=${self.params.pgdb}        
+PGDATABASE=${self.params.pgdb}
+PGPASS=${self.params.pgpass}
+PGPORT=${self.params.pgport}
         `;
 
         fs.writeFileSync(

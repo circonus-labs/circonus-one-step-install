@@ -55,7 +55,7 @@ const DEFAULT_BROKER_LIST = {
 let instance = null;
 const defaults = {
     listen: "0.0.0.0",
-    port: 8000,
+    port: 80,
     user: null,
     group: null,
     log_dir: path.join(".", "log"),

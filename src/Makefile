@@ -51,7 +51,6 @@ install:
 init:
 	test -d node_modules || npm install
 	make -C util init
-	
 
 package: utils $(SITE_TGZ)
 	@echo "Copy cosi-site package to provisioning directory"
@@ -75,7 +74,7 @@ $(SITE_TGZ): $(ALL_SRC) $(UTIL_PKG) $(RPM_FILE)
 	@echo "Create cosi-site package"
 	-rm -rf .modules
 	test -d node_modules || npm install
-	pac --production
+	#pac --production
 	install -vC $(UTIL_PKG) content/files
 	install -vC $(RPM_FILE) content/files
 	COPYFILE_DISABLE=true tar -czf $@ $(BIN_SRC) $(LIB_SRC) $(ETC_SRC) $(MOD_SRC) $(OTH_SRC) $(DOC_SRC)

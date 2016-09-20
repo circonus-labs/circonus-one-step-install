@@ -159,11 +159,9 @@ class Templates {
         log.info("Loading default templates");
 
         for (const file of files) {
-            log.info("Checking file: " + file + " for templateness");
             const matches = file.match(/^([a-z]+)\-([a-z_]+)\.json$/);
 
             if (matches && matches.length === 3) {
-                log.info("File is template");
 
                 const templateCategory = matches[1];
                 const templateName = matches[2];
