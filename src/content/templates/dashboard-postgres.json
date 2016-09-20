@@ -286,7 +286,7 @@
                 "origin": "a5", 
                 "settings": {
                     "account_id": null, 
-                    "date_window": "2w", 
+                    "date_window": "2w:2w", 
                     "graph_id": null, 
                     "_graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_item}} Postgres Database Size", 
                     "hide_xaxis": false, 

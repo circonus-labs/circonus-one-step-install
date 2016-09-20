@@ -29,7 +29,23 @@
                     "metric_type": "numeric",
                     "name": "db size",
                     "stack": null
+                },
+                {
+                    "alpha": null,
+                    "axis": "l",
+                    "caql" : "metric:average(\"{{=cosi.check_uuid}}\",\"pg_db_size`{{=cosi.graph_item}}\") | forecasting:dewma(0.2, 0.001, fill=2)",
+                    "check_id": null,
+                    "color": "#4fa18e",
+                    "data_formula": null,
+                    "derive": false,
+                    "hidden": false,
+                    "legend_formula": null,
+                    "metric_name": null,
+                    "metric_type": "caql",
+                    "name": "db size forecast",
+                    "stack": null
                 }
+
             ],
             "description": "Postgres {{=cosi.graph_item}} database size",
             "guides": [],
