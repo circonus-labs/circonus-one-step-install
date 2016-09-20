@@ -487,10 +487,11 @@ class Config extends Registration {
 
     }
 
-    _writeDashboardConfig(template, config, id, data, registeredGraphs, registeredCheck, checkMetrics) {
+    _writeDashboardConfig(template, config, id, data, registeredGraphs, registeredCheck) {
         const configFile = path.resolve(this.regDir, `config-${id}.json`);
         const self = this;
         var check_dirty = false;
+        var checkMetrics = [];
 
         if (this._fileExists(configFile)) {
             console.log("\tDashboard configuration already exists", configFile);
@@ -501,7 +502,7 @@ class Config extends Registration {
         config.title = self._expand(config.title, data);
 
         // for (const widget of config.widgets)
-        for (let i = 0; i < config.widgets.length; i++ ) {
+        for (let i = config.widgets.length - 1; i >= 0; i-- ) {
             const widget = config.widgets[i];
             if (widget.name == "Graph") {
                 /* find the matching graph based on tags in registeredGraphs */
@@ -512,7 +513,7 @@ class Config extends Registration {
                         for (let j = 0; j < widget.tags.length; j++) {
                             if (graph.tags.indexOf(widget.tags[j]) != -1) {
                                 /* need to fill the account_id and graph_id fields */
-                                widget.settings.graph_title = self._expand(widget.settings.graph_title, data);
+                                widget.settings._graph_title = self._expand(widget.settings._graph_title, data);
                                 widget.settings.account_id = this.regConfig.account.account_id;
                                 widget.settings.graph_id = graph._cid.replace("/graph/","");
                                 widget.settings.label = self._expand(widget.settings.label, data);
@@ -547,26 +548,15 @@ class Config extends Registration {
                     metric = this.metrics[metric_name];
                 }
 
-                // ensure it's not already turned on
-                var haveit = false;
-                for (let j = 0; j < checkMetrics.length; j++) {
-                    if (checkMetrics[j].name == metric_name) {
-                        haveit = true;
-                        break;
-                    }
-                }
                 /* need to ensure the needed metric is active in the check */
-                if (haveit == false) {
-                    checkMetrics.push({
-                        name: metric_name, 
-                        type: (metric._type == "s" ? "text" : "numeric"), 
-                        status: "active"
-                    });
-                    check_dirty = true;
-                }
+                checkMetrics.push({
+                    name: metric_name, 
+                    type: (metric._type == "s" ? "text" : "numeric"), 
+                    status: "active"
+                });
                 widget.settings.account_id = this.regConfig.account.account_id;
-                widget.settings.check_id = registeredCheck._checks[0].replace("/check/","");
                 widget.settings.check_uuid = registeredCheck._check_uuids[0];
+                widget.settings["type"] = widget.settings._type;
                 widget["type"] = "gauge";
             }
 
@@ -585,33 +575,42 @@ class Config extends Registration {
         }
         console.log("\tSaved configuration", configFile);
 
-        if (check_dirty == true) {
-            /* re-save the check config since it changed */
-            registeredCheck.metrics = checkMetrics;
-            const checkConfigFile = path.resolve(this.regDir, "config-check-system.json");
-            fs.writeFileSync(
-                checkConfigFile,
-                JSON.stringify(registeredCheck, null, 4),
-                { encoding: "utf8", mode: 0o644, flag: "w" }
-            );
+        this.resaveCheck(registeredCheck, checkMetrics);
 
-            const regFile = path.resolve(this.regDir, "registration-check-system.json");
-            
-            const check = new Check(checkConfigFile);
+        this.emit("dashboard.config.done", configFile);
+    }
 
-            console.log("\tSending altered check configuration to Circonus API");
-            check.update((err, result) => {
-                if (err) {
-                    self.emit("error", `Cannot re-save check config "${err}"`);
-                    return;
-                }
+    resaveCheck(registeredCheck, extraMetrics) {
 
-                console.log(`\tSaving registration ${regFile}`);
-                check.save(regFile, true);
-
+        const checkMetrics = this._extractMetricsFromGraphConfigs();
+        if (extraMetrics) {
+            extraMetrics.forEach(function(item) {
+                checkMetrics.push(item);
             });
         }
-        this.emit("dashboard.config.done", configFile);
+        registeredCheck.metrics = checkMetrics;
+
+        /* re-save the check config since it changed */
+        const checkConfigFile = path.resolve(this.regDir, "config-check-system.json");
+        fs.writeFileSync(
+            checkConfigFile,
+            JSON.stringify(registeredCheck, null, 4),
+            { encoding: "utf8", mode: 0o644, flag: "w" }
+        );
+
+        const regFile = path.resolve(this.regDir, "registration-check-system.json");
+        
+        const check = new Check(checkConfigFile);
+
+        console.log("\tSending altered check configuration to Circonus API");
+        check.update((err, result) => {
+            if (err) {
+                self.emit("error", `Cannot re-save check config "${err}"`);
+                return;
+            }
+            console.log(`\tSaving registration ${regFile}`);
+            check.save(regFile, true);
+        });
     }
 
     configDashboard(name, dashboard_items) {
@@ -653,14 +652,12 @@ class Config extends Registration {
 
         const registeredCheck = require(path.resolve(this.regDir, "registration-check-system.json"));
 
-        const checkMetrics = this._extractMetricsFromGraphConfigs();
-
         for (let di = 0; di < dashboard_items.length; di++) {
             const item = dashboard_items[di];
             var data = this.regConfig.templateData;
             data.dashboard_item = item;
             this._writeDashboardConfig(template, config, id + "-" + item, data, 
-                                       registeredGraphs, registeredCheck, checkMetrics);
+                                       registeredGraphs, registeredCheck);
         }
     }
 

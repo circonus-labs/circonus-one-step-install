@@ -50,7 +50,7 @@
             "min_right_y": null,
             "notes": null,
             "style": "line",
-            "tags": ["db:postgres", "database:connections"],
+            "tags": ["database:postgres", "database:connections"],
             "title": "{{=cosi.host_name}} Postgres Connections"
         }
     ]

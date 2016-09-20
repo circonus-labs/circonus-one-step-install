@@ -48,6 +48,7 @@ class Plugin extends Events {
         this.cosiId = cosi.cosi_id;
         this.quiet = quiet;
         this.customOptions = cosi.custom_options;
+        this.agentURL = cosi.agent_url;
 
         this.regConfigFile = path.resolve(cosi.reg_dir, "setup-config.json");
 
@@ -120,6 +121,7 @@ class Plugin extends Events {
             const regRegister = new RegRegister(quiet);
 
             regRegister.once("register.done", () => {
+
                 self.emit("register.done");
             });
 

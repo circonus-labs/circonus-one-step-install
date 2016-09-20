@@ -1,10 +1,6 @@
 {
     "type": "graph",
-<<<<<<< HEAD
-    "id": "iflink",
-=======
     "id": "if",
->>>>>>> e0599ed6e46e318deb107d0e1c776d77f20b42f5
     "description": "Network interface tx/rx and errors",
     "version": "0.1.0",
     "notes": [
@@ -13,7 +9,6 @@
         "What is matched by the first matched group will be available for use",
         "in interpolated fields as '{{=cosi.graph_item}}'.",
         "",
-<<<<<<< HEAD
         "Filters (include/exclude) work by matching the value used as graph_item",
         "this is an equality test not a regular expression. The strings in filter",
         "lists are evaluated using '==='."
@@ -21,15 +16,6 @@
     "variable_metrics": true,
     "filter": {
         "exclude": ["lo","lo0"],
-=======
-        "Filters (include/exclude), regular expressions applied to the graph_item value."
-    ],
-    "variable_metrics": true,
-    "filter": {
-        "exclude": [
-            "^lo0?$"
-        ],
->>>>>>> e0599ed6e46e318deb107d0e1c776d77f20b42f5
         "include": null
     },
     "graphs": [
@@ -46,15 +32,9 @@
                     "derive": "counter",
                     "hidden": false,
                     "legend_formula": "=round(auto(VAL * 8),2)",
-<<<<<<< HEAD
                     "metric_name": "if`([^`]+):rbytes",
                     "metric_type": "numeric",
-                    "name": "%rx bps",
-=======
-                    "metric_name": "if`([^`]+)`rbytes",
-                    "metric_type": "numeric",
                     "name": "rx bps",
->>>>>>> e0599ed6e46e318deb107d0e1c776d77f20b42f5
                     "stack": null
                 },
                 {
@@ -66,11 +46,7 @@
                     "derive": "counter",
                     "hidden": false,
                     "legend_formula": "=round(auto(VAL * 8), 2)",
-<<<<<<< HEAD
                     "metric_name": "if`([^`]+):obytes",
-=======
-                    "metric_name": "if`([^`]+)`obytes",
->>>>>>> e0599ed6e46e318deb107d0e1c776d77f20b42f5
                     "metric_type": "numeric",
                     "name": "tx bps",
                     "stack": null
@@ -88,11 +64,7 @@
             "min_right_y": null,
             "notes": null,
             "style": "area",
-<<<<<<< HEAD
             "tags": ["network:bandwidth"],
-=======
-            "tags": [],
->>>>>>> e0599ed6e46e318deb107d0e1c776d77f20b42f5
             "title": "{{=cosi.host_name}} {{=cosi.graph_item}} bps"
         },
         {
@@ -108,15 +80,9 @@
                     "derive": "counter",
                     "hidden": false,
                     "legend_formula": null,
-<<<<<<< HEAD
                     "metric_name": "if`([^`]+):rxsdrops",
                     "metric_type": "numeric",
                     "name": "rx drops",
-=======
-                    "metric_name": "if`([^`]+)`rerrors",
-                    "metric_type": "numeric",
-                    "name": "rx errors",
->>>>>>> e0599ed6e46e318deb107d0e1c776d77f20b42f5
                     "stack": null
                 },
                 {
@@ -128,11 +94,7 @@
                     "derive": "counter",
                     "hidden": false,
                     "legend_formula": null,
-<<<<<<< HEAD
                     "metric_name": "if`([^`]+):oerrors",
-=======
-                    "metric_name": "if`([^`]+)`oerrors",
->>>>>>> e0599ed6e46e318deb107d0e1c776d77f20b42f5
                     "metric_type": "numeric",
                     "name": "tx errors",
                     "stack": null

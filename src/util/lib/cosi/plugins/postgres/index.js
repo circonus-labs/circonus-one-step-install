@@ -85,8 +85,6 @@ class Postgres extends Plugin {
         /* if we have gotten here, nad-enable.sh has flipped on the postgres plugin and tested it to work.. it has passed us the output of nad-enable.sh which should contain the data_dir */
         console.log("postgres/nad-enable.sh successful");       
 
-        /* now we need to re-register this box as there are new metrics to collect and graphs to create */
-
         const nadPluginOutput = JSON.parse(stdout);
         
         console.log("NAD portion of plugin complete.  Re-registering this host");
@@ -101,7 +99,7 @@ class Postgres extends Plugin {
                we find some reasonable matching filesystem graph
                */
             var dataDir = nadPluginOutput.data_dir;
-            
+            var fsGraphId;
             while (dataDir.length) {
 
                 for (let i = 0; i < files.length; i++) {
@@ -110,10 +108,11 @@ class Postgres extends Plugin {
                         try {
                             const configFile = path.resolve(this.regDir, file);
                             const graph = require(configFile);
-                            // for (let j = 0; j < graph.datapoints.length; j++) {
-                            //     if (graph.datapoints[j].metric_name.contains(dataDir)) {
-                                    
-
+                            for (let j = 0; j < graph.datapoints.length; j++) {
+                                if (graph.datapoints[j].metric_name != null && graph.datapoints[j].metric_name.indexOf(dataDir) > -1) {
+                                    fsGraphId = graph._cid.replace("/graph/","");
+                                }
+                            }
                         }
                         catch (err) {
                             this.emit("error", err);
@@ -122,7 +121,7 @@ class Postgres extends Plugin {
                 }
                 dataDir = dataDir.slice(0, dataDir.lastIndexOf("/"));
             }
-            self.emit("dashboard.create", dataDir);
+            self.emit("dashboard.create", fsGraphId);
         });
 
         this.once("dashboard.create", (fsGraphId) => {
@@ -146,8 +145,6 @@ class Postgres extends Plugin {
             self.emit("config.postgres", stdout);
         });
 
-        const check = new Check(path.resolve(self.regDir, "registration-check-system.json"));        
- 
         const stdout = execSync('psql -V');
         if (!stdout.indexOf("PostgreSQL") == -1) {
             self.emit("error", "Cannot find 'psql' in your path, postgres nad plugin will not work");
@@ -157,6 +154,7 @@ class Postgres extends Plugin {
         /* write a pg-conf.sh file for the nad plugin to operate..
            this belongs in /opt/circonus/etc/ */
         const pg_conf_file = "/opt/circonus/etc/pg-conf.sh";
+        const pg_po_conf_file = "/opt/circonus/etc/pg-po-conf.sh";
         const contents = `#!/bin/bash
         
 PGUSER=${self.params.pguser}
@@ -166,6 +164,17 @@ PGDATABASE=${self.params.pgdb}
         fs.writeFileSync(
             pg_conf_file,
             contents,
+            { encoding: "utf8", mode: 0o644, flag: "w" }
+        );        
+
+        const po_contents = `#!/bin/bash
+        
+NADURL="${self.agentURL}"
+        `;
+
+        fs.writeFileSync(
+            pg_po_conf_file,
+            po_contents,
             { encoding: "utf8", mode: 0o644, flag: "w" }
         );        
 

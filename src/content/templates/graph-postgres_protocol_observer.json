@@ -67,7 +67,7 @@
             "min_right_y": null,
             "notes": null,
             "style": "area",
-            "tags": ["db:postgres", "db:latency"],
+            "tags": ["database:postgres", "database:execute_latency"],
             "title": "{{=cosi.host_name}} Postgres Execute Latency"
         },
         {
@@ -132,7 +132,7 @@
             "min_right_y": null,
             "notes": null,
             "style": "area",
-            "tags": ["db:postgres", "db:latency"],
+            "tags": ["database:postgres", "database:query_latency"],
             "title": "{{=cosi.host_name}} Postgres Query Latency"
         },
         {
@@ -197,7 +197,7 @@
             "min_right_y": null,
             "notes": null,
             "style": "area",
-            "tags": ["db:postgres", "db:latency"],
+            "tags": ["database:postgres", "database:bind_latency"],
             "title": "{{=cosi.host_name}} Postgres Bound Query Latency"
         }
     ]

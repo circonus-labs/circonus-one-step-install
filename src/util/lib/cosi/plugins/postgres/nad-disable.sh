@@ -12,5 +12,4 @@ done
 
 popd >/dev/null
 
-# if we have arrived here, the postgres plugin in NAD is installed and operating 
 exit 0

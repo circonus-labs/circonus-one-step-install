@@ -78,7 +78,7 @@
             "min_right_y": null,
             "notes": null,
             "style": "line",
-            "tags": ["db:postgres", "database:bgwriters"],
+            "tags": ["database:postgres", "database:bgwriters"],
             "title": "{{=cosi.host_name}} Postgres Bgwriters"
         }
     ]

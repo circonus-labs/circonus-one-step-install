@@ -43,7 +43,7 @@
             "min_right_y": null,
             "notes": null,
             "style": "line",
-            "tags": ["db:postgres", "database:size"],
+            "tags": ["database:postgres", "database:size"],
             "title": "{{=cosi.host_name}} {{=cosi.graph_item}} Postgres Database Size"
         }
     ]

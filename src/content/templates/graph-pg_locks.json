@@ -64,7 +64,7 @@
             "min_right_y": null,
             "notes": null,
             "style": "line",
-            "tags": ["db:postgres", "database:locks"],
+            "tags": ["database:postgres", "database:locks"],
             "title": "{{=cosi.host_name}} Postgres Locks"
         }
     ]

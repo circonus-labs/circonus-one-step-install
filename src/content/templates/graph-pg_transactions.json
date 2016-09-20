@@ -36,7 +36,7 @@
             "min_right_y": null,
             "notes": null,
             "style": "line",
-            "tags": ["db:postgres", "database:commits"],
+            "tags": ["database:postgres", "database:commits"],
             "title": "{{=cosi.host_name}} Postgres Commits"
         }
     ]

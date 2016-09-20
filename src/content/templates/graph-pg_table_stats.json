@@ -67,7 +67,7 @@
             "min_right_y": null,
             "notes": null,
             "style": "area",
-            "tags": ["db:postgres", "database:transactions"],
+            "tags": ["database:postgres", "database:transactions"],
             "title": "{{=cosi.host_name}} table stats"
         },
         {
@@ -147,7 +147,7 @@
             "min_right_y": null,
             "notes": null,
             "style": "area",
-            "tags": ["db:postgres", "database:scans"],
+            "tags": ["database:postgres", "database:scans"],
             "title": "circonus seq/index scans"
         }
     ]
