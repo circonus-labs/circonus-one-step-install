@@ -68,7 +68,7 @@
             "notes": null,
             "style": "area",
             "tags": ["database:cassandra", "cassandra:heap"],
-            "title": "{{=cosi.host_name}} cassandra heap stats"
+            "title": "{{=cosi.host_name}} Cassandra heap stats"
         },
         {
             "access_keys": [],
