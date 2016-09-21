@@ -79,12 +79,14 @@ class Plugin extends Events {
     }
 
     _execShell(path, doneEvent) {
+        const self = this;
+
         exec(path, (error, stdout, stderr) => {
             if (error) {
-                this.emit("error", error);
+                self.emit("error", error);
                 return;
             }
-            this.emit(doneEvent, stdout);
+            self.emit(doneEvent, stdout);
         });
     }
 
@@ -94,7 +96,7 @@ class Plugin extends Events {
 
     reregisterHost(quiet) {
         const self = this;
-        
+
         this.once("reg-setup", () => {
             const regSetup = new RegSetup(quiet);
 
@@ -135,11 +137,11 @@ class Plugin extends Events {
 
         console.log("Adding custom metrics");
         self.addCustomMetrics();
-        
+
         // nad has a delay to pick up the newly linked metrics as the file system
-        // watch takes a bit to trigger and then nad needs a moment to refresh 
+        // watch takes a bit to trigger and then nad needs a moment to refresh
         // the modules it needs to execute
-        setTimeout(function() {
+        setTimeout(() => {
             self.emit("reg-setup");
         }, 5000);
     }
@@ -159,9 +161,9 @@ class Plugin extends Events {
 
         regSetup.once("templates.fetch.done", () => {
             regConfig.configDashboard(name, dashboard_items, fsGraphId);
-        });        
+        });
 
-        regSetup.fetchTemplates([`dashboard-${name}`]);
+        regSetup.fetchTemplates([ `dashboard-${name}` ]);
     }
 
     registerDashboard(cfgFile, quiet) {
@@ -184,8 +186,8 @@ class Plugin extends Events {
 
             /* find all related graphs and dashboards for this plugin */
             let files = null;
-            let removeMetrics = [];
-            let removeFiles = [];
+            const removeMetrics = [];
+            const removeFiles = [];
             let deconfiguredCount = 0;
             let expectCount = 0;
 
@@ -207,7 +209,7 @@ class Plugin extends Events {
                             removeMetrics.push(w.settings.metric_name);
                         }
                     }
-                    removeFiles.push({ "t" : "dash", "file" : file});
+                    removeFiles.push({ "t" : "dash", file });
                 }
                 if (files[i].indexOf(`registration-graph-${graphPrefix}`) != -1 ) {
                     const graph = require(file);
@@ -215,7 +217,7 @@ class Plugin extends Events {
                         const dp = graph.datapoints[j];
                         removeMetrics.push(dp.metric_name);
                     }
-                    removeFiles.push({ "t" : "graph", "file" : file});
+                    removeFiles.push({ "t" : "graph", file });
                 }
             }
             expectCount = removeFiles.length;
@@ -227,7 +229,7 @@ class Plugin extends Events {
             });
 
             const check = new Check(path.resolve(self.regDir, "registration-check-system.json"));
-            let checkMetrics = check.metrics;
+            const checkMetrics = check.metrics;
             for (let i = 0; i < checkMetrics.length; i++) {
                 for (let j = 0; j < removeMetrics.length; j++) {
                     if (checkMetrics[i].name == removeMetrics[j]) {
@@ -246,7 +248,7 @@ class Plugin extends Events {
 
                 /* now remove all the graphs and dashboards we found above */
                 for (let i = 0; i < removeFiles.length; i++) {
-                    console.log(`Removing: ${removeFiles[i].file}`); 
+                    console.log(`Removing: ${removeFiles[i].file}`);
                     if (removeFiles[i].t == "dash" ) {
                         const dash = new Dashboard(removeFiles[i].file);
                         dash.remove((err) => {
@@ -259,7 +261,7 @@ class Plugin extends Events {
                             console.log(`Removing file: ${removeFiles[i].file}`);
                             fs.unlinkSync(removeFiles[i].file);
                             console.log(`Removing file: ${cfgFile}`);
-                            fs.unlinkSync(cfgFile);                            
+                            fs.unlinkSync(cfgFile);
                             self.emit("item.deconfigured");
                         });
                     }
@@ -275,7 +277,7 @@ class Plugin extends Events {
                             console.log(`Removing file: ${removeFiles[i].file}`);
                             fs.unlinkSync(removeFiles[i].file);
                             console.log(`Removing file: ${cfgFile}`);
-                            fs.unlinkSync(cfgFile);                            
+                            fs.unlinkSync(cfgFile);
                             self.emit("item.deconfigured");
                         });
                     }
@@ -289,7 +291,7 @@ class Plugin extends Events {
 
 
         const script = path.resolve(path.join(__dirname, pluginName, "nad-disable.sh"));
-        
+
         self._execShell(script, "nad.disabled");
 
     }
