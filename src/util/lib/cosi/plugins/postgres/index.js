@@ -162,24 +162,38 @@ class Postgres extends Plugin {
         /* write a pg-conf.sh file for the nad plugin to operate..
            this belongs in /opt/circonus/etc/ */
         const pg_conf_file = "/opt/circonus/etc/pg-conf.sh";
-        const pg_po_conf_file = "/opt/circonus/etc/pg-po-conf.sh";
+        let contents = [];
+
+        if (this.params.pguser !== "") {
+            contents.push(`export PGUSER=${this.params.pguser}`);
+        }
+        if (this.params.pgdb !== "") {
+            contents.push(`export PGDATABASE=${this.params.pgdb}`);
+        }
+        if (this.params.pgport !== "") {
+            contents.push(`export PGPORT=${this.params.pgport}`);
+        }
+        if (this.params.pgpass !== "") {
+            contents.push(`export PGPASSWORD=${this.params.pgpass}`);
+        }
 
         fs.writeFileSync(
             pg_conf_file,
-            [
-                `PGUSER=${this.params.pguser}`,
-                `PGDATABASE=${this.params.pgdb}`,
-                `PGPASS=${this.params.pgpass}`,
-                `PGPORT=${this.params.pgport}`
-            ].join("\n"),
+            contents.join("\n"),
             { encoding: "utf8", mode: 0o644, flag: "w" }
         );
 
+        // protocol observer config file
+        const pg_po_conf_file = "/opt/circonus/etc/pg-po-conf.sh";
+
+        contents = [];
+        if (this.agentURL !== "") {
+            contents.push(`NADURL="${this.agentURL}"`);
+        }
+
         fs.writeFileSync(
             pg_po_conf_file,
-            [
-                `NADURL="${this.agentURL}"`
-            ].join("\n"),
+            contents.join("\n"),
             { encoding: "utf8", mode: 0o644, flag: "w" }
         );
 
