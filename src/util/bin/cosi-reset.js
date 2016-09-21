@@ -177,6 +177,8 @@ function removeConfigs() {
         path.resolve(path.join(cosi.etc_dir, "circonus-nadreversesh")),
         path.resolve(path.join(cosi.etc_dir, "statsd.json")),
         path.resolve(path.join(cosi.cosi_dir, "..", "etc", "circonus-nadpush.json")),
+        path.resolve(path.join(cosi.cosi_dir, "..", "etc", "pg-conf.sh")),
+        path.resolve(path.join(cosi.cosi_dir, "..", "etc", "pg-po-conf.sh")),
         path.resolve(path.join(cosi.reg_dir, "setup-config.json")),
         path.resolve(path.join(cosi.reg_dir, "setup-metrics.json"))
     ];
