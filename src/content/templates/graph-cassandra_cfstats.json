@@ -1,0 +1,98 @@
+{
+    "type": "graph",
+    "id": "cassandra_cfstats",
+    "description": "Column family statistics in Cassandra",
+    "version": "0.1.0",
+    "notes": [
+        "Graphs with variable metrics use regular expressions for the datapoint",
+        "metric_name. The regular expression should include a grouping ().",
+        "What is matched by the first matched group will be available for use",
+        "in interpolated fields as '{{=cosi.graph_item}}'.",
+        "",
+        "Filters (include/exclude) work by matching the value used as graph_item",
+        "this is an equality test not a regular expression. The strings in filter",
+        "lists are evaluated using '==='."
+    ],
+    "variable_metrics": true,
+    "graphs": [
+        {
+            "access_keys": [],
+            "composites": [],
+            "datapoints": [
+                {
+                    "alpha": "0.3",
+                    "axis": "l",
+                    "check_id": null,
+                    "color": "#657aa6",
+                    "data_formula": "=VAL*8",
+                    "derive": "counter",
+                    "hidden": false,
+                    "legend_formula": null,
+                    "metric_name": "cassandra_cfstats`([^`]+)`read_count",
+                    "metric_type": "numeric",
+                    "name": "read count",
+                    "stack": null
+                },
+                {
+                    "alpha": "0.3",
+                    "axis": "l",
+                    "check_id": null,
+                    "color": "#4fa18e",
+                    "data_formula": null,
+                    "derive": "counter",
+                    "hidden": false,
+                    "legend_formula": null,
+                    "metric_name": "cassandra_cfstats`([^`]+)`write_count",
+                    "metric_type": "numeric",
+                    "name": "write count",
+                    "stack": null
+                },
+                {
+                    "legend_formula": null,
+                    "caql": null,
+                    "check_id": null,
+                    "metric_type": "numeric",
+                    "stack": null,
+                    "name": "read latency",
+                    "axis": "r",
+                    "data_formula": null,
+                    "color": "#b5c52d",
+                    "metric_name": "cassandra_cfstats`([^`]+)`read_latency",
+                    "alpha": "0.3",
+                    "derive": false,
+                    "hidden": false
+                },
+                {
+                    "legend_formula": null,
+                    "caql": null,
+                    "check_id": null,
+                    "metric_type": "numeric",
+                    "stack": null,
+                    "name": "write latency",
+                    "axis": "r",
+                    "data_formula": null,
+                    "color": "#8e69a2",
+                    "metric_name": "cassandra_cfstats`([^`]+)`write_latency",
+                    "alpha": "0.3",
+                    "derive": false,
+                    "hidden": false
+                }
+
+            ],
+            "description": "Column Family stats for the {{=cosi.graph_item}} CF",
+            "guides": [],
+            "line_style": "interpolated",
+            "logarithmic_left_y": null,
+            "logarithmic_right_y": null,
+            "max_left_y": null,
+            "max_right_y": null,
+            "metric_clusters": [],
+            "min_left_y": null,
+            "min_right_y": null,
+            "notes": null,
+            "style": "area",
+            "tags": ["database:cassandra", "cassandra:cfstats"],
+            "title": "{{=cosi.host_name}} Cassandra {{=cosi.graph_item}} column family stats"
+        }
+    ]
+}

@@ -1,38 +1,25 @@
 "use strict";
 
 /*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers, global-require */
+/*eslint-disable no-magic-numbers, global-require, camelcase */
 
-const assert = require("assert");
-const Events = require("events").EventEmitter;
 const fs = require("fs");
 const path = require("path");
-const execSync = require("child_process").execSync;
-
-/* just using this to parse argv */
-const app = require("commander");
+const child = require("child_process");
 
 const chalk = require("chalk");
+const client = require("request");
 
 const cosi = require(path.resolve(path.join(__dirname, "..", "..", "..", "cosi")));
 const Plugin = require(path.resolve(cosi.lib_dir, "plugins"));
-const Check = require(path.resolve(cosi.lib_dir, "check"));
-const Graph = require(path.resolve(cosi.lib_dir, "graph"));
-const Dashboard = require(path.resolve(cosi.lib_dir, "dashboard"));
-
 
 class Cassandra extends Plugin {
 
-    constructor(quiet, argv) {
-        super(quiet);
+    constructor(params) {
+        super(params.quiet);
         this.name = "cassandra";
         this.on("config.cassandra", this._configCassandra);
-        app.
-            version(cosi.app_version).
-            option("-e, --enable", "enable the cassandra plugin").
-            option("-d, --disable", "disable the cassandra plugin").
-            parse(argv);
-        this.params = app;
+        this.params = params;
     }
 
     addCustomMetrics() {
@@ -65,12 +52,11 @@ class Cassandra extends Plugin {
                 url += "/";
             }
             url += "write/cassandra_protocol_observer";
-            console.log("Posting to: " + url);
+            console.log(`Posting to: ${url}`);
 
-            var client = require('request');
             client.post(url, {"json": po}, function(error, response, body) {
                 if (error || response.statusCode != 200) {
-                    console.log(error);
+                    console.error(chalk.red("ERROR"), error, body);
                 }
             });
         }
@@ -78,7 +64,11 @@ class Cassandra extends Plugin {
 
     _configCassandra(stdout) {
         const self = this;
-        /* if we have gotten here, nad-enable.sh has flipped on the postgres plugin and tested it to work.. it has passed us the output of nad-enable.sh which should contain the data_dir */
+        /* 
+           if we have gotten here, nad-enable.sh has flipped on the postgres plugin 
+           and tested it to work.. it has passed us the output of nad-enable.sh which 
+           should contain the data_dir 
+        */
         console.log("cassandra/nad-enable.sh successful");       
 
         const nadPluginOutput = JSON.parse(stdout);
@@ -94,18 +84,19 @@ class Cassandra extends Plugin {
                If we don't get a match, slice off the last folder and redo search until 
                we find some reasonable matching filesystem graph
                */
-            var dataDir = nadPluginOutput.data_dir;
-            var fsGraphId;
+            let dataDir = nadPluginOutput.data_dir;
+            let fsGraphId = null;
             while (dataDir.length) {
-
+                // for (const file of files) {
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
                     if (file.match(/^registration-graph-([^.]+)+\.json?$/)) {
                         try {
                             const configFile = path.resolve(this.regDir, file);
                             const graph = require(configFile);
+
                             for (let j = 0; j < graph.datapoints.length; j++) {
-                                if (graph.datapoints[j].metric_name != null && graph.datapoints[j].metric_name.indexOf(dataDir) > -1) {
+                                if (graph.datapoints[j].metric_name !== null && graph.datapoints[j].metric_name.indexOf(dataDir) > -1) {
                                     fsGraphId = graph._cid.replace("/graph/","");
                                 }
                             }
@@ -134,6 +125,18 @@ class Cassandra extends Plugin {
     }
 
     enable() {
+        try {
+            const nodetool_test_stdout = child.execSync("nodetool version");
+            if (!nodetool_test_stdout || nodetool_test_stdout.indexOf("ReleaseVersion") === -1) {
+                this.emit("error", "Cannot find 'nodetool' in PATH, cassandra plugin will not work");
+                return;
+            }
+        }
+        catch(err) {
+            this.emit("error", err);
+            return;
+        }
+
         const self = this;
 
         /* stdout will contain the path to the data storage for the database */
@@ -148,20 +151,28 @@ class Cassandra extends Plugin {
         }        
 
         const cass_po_conf_file = "/opt/circonus/etc/cass-po-conf.sh";
-        const po_contents = `#!/bin/bash
-        
-NADURL="${self.agentURL}"
-        `;
+        let contents = [];
+        if (this.agentURL !== "") {
+            contents.push(`NADURL="${this.agentURL}"`);
+        }
 
         fs.writeFileSync(
             cass_po_conf_file,
-            po_contents,
+            contents.join("\n"),
             { encoding: "utf8", mode: 0o644, flag: "w" }
-        );        
+        );
+
+        const self = this;
 
         const script = path.resolve(path.join(__dirname, "nad-enable.sh"));
+
+        /* stdout will contain the path to the data storage for the database */
+        this.once("cassandra.nad.enabled", (stdout) => {
+            self.emit("config.cassandra", stdout);
+        });
+
         
-        self._execShell(script, "cassandra.nad.enabled");        
+        this._execShell(script, "cassandra.nad.enabled");        
     }
 
     disable() {
@@ -169,5 +180,5 @@ NADURL="${self.agentURL}"
     }
 }
 
-module.exports = Postgres;
+module.exports = Cassandra;
 

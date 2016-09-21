@@ -121,11 +121,11 @@
                 },
                 {
                     "legend_formula": null,
-                    "caql": "metric:average(\"{{=cosi.check_uuid}}\",\"cassandra_info`key_cache_hits\") / metric:average(\"{{cosi.check_uuid}}\",\"cassandra_info`key_cache_requests\")",
+                    "caql": "(metric:average(\"{{=cosi.check_uuid}}\",\"cassandra_info`key_cache_hits\") / metric:average(\"{{cosi.check_uuid}}\",\"cassandra_info`key_cache_requests\")) * 100.0",
                     "check_id": null,
                     "metric_type": "numeric",
                     "stack": null,
-                    "name": "key cache hit ratio",
+                    "name": "key cache hit percentage",
                     "axis": "r",
                     "data_formula": null,
                     "color": "#8e69a2",
@@ -148,8 +148,8 @@
             "notes": null,
             "style": "area",
             "tags": ["database:cassandra", "cassandra:key_cache"],
-            "title": ""
-        },
+            "title": "{{=cosi.host_name}} Cassandra key cache"
+       },
         {
             "access_keys": [],
             "composites": [],
@@ -201,11 +201,11 @@
                 },
                 {
                     "legend_formula": null,
-                    "caql": "metric:average(\"{{=cosi.check_uuid}}\",\"cassandra_info`row_cache_hits\") / metric:average(\"{{cosi.check_uuid}}\",\"cassandra_info`row_cache_requests\")",
+                    "caql": "(metric:average(\"{{=cosi.check_uuid}}\",\"cassandra_info`row_cache_hits\") / metric:average(\"{{cosi.check_uuid}}\",\"cassandra_info`row_cache_requests\")) * 100.0",
                     "check_id": null,
                     "metric_type": "numeric",
                     "stack": null,
-                    "name": "row cache hit ratio",
+                    "name": "row cache hit percentage",
                     "axis": "r",
                     "data_formula": null,
                     "color": "#8e69a2",
@@ -228,7 +228,7 @@
             "notes": null,
             "style": "area",
             "tags": ["database:cassandra", "cassandra:row_cache"],
-            "title": ""
+            "title": "{{=cosi.host_name}} Cassandra row cache"
         },
         {
             "access_keys": [],
@@ -281,7 +281,7 @@
                 },
                 {
                     "legend_formula": null,
-                    "caql": "metric:average(\"{{=cosi.check_uuid}}\",\"cassandra_info`counter_cache_hits\") / metric:average(\"{{cosi.check_uuid}}\",\"cassandra_info`counter_cache_requests\")",
+                    "caql": "(metric:average(\"{{=cosi.check_uuid}}\",\"cassandra_info`counter_cache_hits\") / metric:average(\"{{cosi.check_uuid}}\",\"cassandra_info`counter_cache_requests\")) * 100.0",
                     "check_id": null,
                     "metric_type": "numeric",
                     "stack": null,
@@ -308,7 +308,7 @@
             "notes": null,
             "style": "area",
             "tags": ["database:cassandra", "cassandra:counter_cache"],
-            "title": ""
+            "title": "{{=cosi.host_name}} Cassandra counter cache"
         },
         {
             "access_keys": [],
@@ -358,7 +358,7 @@
             "notes": null,
             "style": "area",
             "tags": ["database:cassandra", "cassandra:generation"],
-            "title": ""
+            "title": "{{=cosi.host_name}} Cassandra info"
         }
     ]
 }
