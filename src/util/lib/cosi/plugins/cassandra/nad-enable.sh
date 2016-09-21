@@ -5,13 +5,13 @@ NAD_SCRIPTS_DIR=/opt/circonus/etc/node-agent.d
 CASS_SCRIPTS_DIR=$NAD_SCRIPTS_DIR/cassandra
 
 # determine if postgres is running
-CASSPID=`pgrep cassandra`
-if [ -z "$CASSPID" ]; then
+CASSREL=`nodetool version 2>/dev/null | grep ReleaseVersion`
+if [ -z "$CASSREL" ]; then
     echo "Cassandra not detected, skipping setup"
     exit 1;
 fi
 
-# turn on all postgres stuff
+# turn on all cassandra stuff
 pushd $NAD_SCRIPTS_DIR >/dev/null
 for i in $CASS_SCRIPTS_DIR/*; do
     ln -s $i .

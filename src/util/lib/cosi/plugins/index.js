@@ -94,6 +94,12 @@ class Plugin extends Events {
         /* noop in base class */
     }
 
+    /* if your plugin wants to muck around with the generated dashboard, override this and do so here */
+    customDashboardConfig(cfgFile) {
+        /* noop in base class */
+    }
+
+
     reregisterHost(quiet) {
         const self = this;
 
@@ -156,6 +162,7 @@ class Plugin extends Events {
 
         /* this can get emitted multiple times */
         regConfig.on("dashboard.config.done", (cfgFile) => {
+            self.customDashboardConfig(cfgFile);
             self.registerDashboard(cfgFile, self.params.quiet);
         });
 

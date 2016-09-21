@@ -62,6 +62,61 @@ class Cassandra extends Plugin {
         }
     }
 
+    customDashboardConfig(cfgFile) {
+        const self = this;
+        let dash = require(cfgFile);
+        let height = dash.grid_layout.height;
+        const width = dash.grid_layout.width;
+
+        /* find the column family graphs */
+        const files = fs.readdirSync(self.regDir);
+
+        // for (const file of files) {
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (file.match(/^registration-graph-cassandra_cfstats-([^.]+)+\.json?$/)) {
+                const configFile = path.resolve(this.regDir, file);
+                const graph = require(configFile);
+                height++;
+                const graph_uuid = graph._cid.replace("/graph/", "");
+                const title = graph.title;
+                const added_graph = {
+                    "width" : width,
+                    "name" : "Graph",
+                    "active" : true,
+                    "origin" : "a" + (height - 1),
+                    "height" : 1,
+                    "settings" : {
+                        "hide_yaxis" : false,
+                        "graph_id" : graph_uuid,
+                        "show_flags" : true,
+                        "_graph_title" : title,
+                        "key_inline" : false,
+                        "period": 2000,
+                        "key_size": 1,
+                        "overlay_set_id": "",
+                        "account_id": cosi.account_id,
+                        "date_window": "2h",
+                        "key_wrap": false,
+                        "hide_xaxis": false,
+                        "label": title,
+                        "key_loc": "noop",
+                        "realtime": false                            
+                    },
+                    "type" : "graph",
+                    "widget_id" : "w" + (width * height)
+                };
+                dash.widgets.push(added_graph);
+            }
+            dash.grid_layout.height = height;
+        }
+        fs.writeFileSync(
+            cfgFile,
+            JSON.stringify(dash),
+            { encoding: "utf8", mode: 0o644, flag: "w" }
+        );
+    }
+
     _configCassandra(stdout) {
         const self = this;
         /* 
@@ -136,19 +191,6 @@ class Cassandra extends Plugin {
             this.emit("error", err);
             return;
         }
-
-        const self = this;
-
-        /* stdout will contain the path to the data storage for the database */
-        this.once("cassandra.nad.enabled", (stdout) => {
-            self.emit("config.cassandra", stdout);
-        });
-
-        const stdout = execSync('nodetool version');
-        if (!stdout.indexOf("ReleaseVersion") == -1) {
-            self.emit("error", "Cannot find 'nodetool' in your path, cassandra nad plugin will not work");
-            return;
-        }        
 
         const cass_po_conf_file = "/opt/circonus/etc/cass-po-conf.sh";
         let contents = [];
