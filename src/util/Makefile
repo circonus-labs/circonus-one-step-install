@@ -29,6 +29,10 @@ $(UTILS): $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
 	cp -r .modules build/.
 	cp -r service build/.
 	cp -r rulesets build/.
+	# install plugin helpers (non-javascript files)
+	# postgres
+	install -m 0700 lib/cosi/plugins/postgres/nad-enable.sh build/lib/cosi/plugins/postgres/.
+	install -m 0700 lib/cosi/plugins/postgres/nad-disable.sh build/lib/cosi/plugins/postgres/.
 	install package.json build/.
 	install Makefile build/.
 	install README.md build/.
