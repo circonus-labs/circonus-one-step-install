@@ -6,12 +6,14 @@
 const fs = require("fs");
 const path = require("path");
 const child = require("child_process");
+const yaml = require("js-yaml");
 
 const chalk = require("chalk");
 const client = require("request");
 
 const cosi = require(path.resolve(path.join(__dirname, "..", "..", "..", "cosi")));
 const Plugin = require(path.resolve(cosi.lib_dir, "plugins"));
+const RegConfig = require(path.join(cosi.lib_dir, "registration", "config"));
 
 class Cassandra extends Plugin {
 
@@ -67,6 +69,30 @@ class Cassandra extends Plugin {
         let dash = require(cfgFile);
         let height = dash.grid_layout.height;
         const width = dash.grid_layout.width;
+        const regConfig = new RegConfig(true);
+        const metricTagsFile = path.resolve(self.regDir, "metric-tags.json");
+
+        const metrics = regConfig._extractMetricsFromGraphConfigs();
+        let metric_tags = {};
+        if (fs.existsSync(metricTagsFile)) {
+            metric_tags = require(metricTagsFile);
+        }
+
+        // for (const metric of metrics) {
+        for (let i = 0; i < metrics.length; i++) {
+            let mt = metric_tags[metrics[i].name];
+            if (mt === undefined) {
+                mt = [];
+            }
+            mt.push("cluster:" + self.cluster_name);
+            metric_tags[metrics[i].name] = mt;
+        }
+
+         fs.writeFileSync(
+            metricTagsFile,
+            JSON.stringify(metric_tags),
+            { encoding: "utf8", mode: 0o644, flag: "w" }
+        );
 
         /* find the column family graphs */
         const files = fs.readdirSync(self.regDir);
@@ -170,7 +196,7 @@ class Cassandra extends Plugin {
             self.once("dashboard.done", () => {
                 self.emit("plugin.done");
             });
-            self.configDashboard("cassandra", self.params.quiet, ["cassandra"], fsGraphId);
+            self.configDashboard("cassandra_node", self.params.quiet, ["cassandra"], fsGraphId);
         });
 
         if (nadPluginOutput.enabled) {    
@@ -186,6 +212,23 @@ class Cassandra extends Plugin {
                 this.emit("error", "Cannot find 'nodetool' in PATH, cassandra plugin will not work");
                 return;
             }
+
+            const cluster_info = child.execSync("nodetool describecluster");
+            if (!cluster_info) {
+                this.emit("error", "Cannot find cluster name via 'nodetool describecluster'");
+                return;
+            }
+            
+            try {
+                var doc = yaml.safeLoad(cluster_info);
+                var d = JSON.stringify(doc);
+                console.log(`yaml: ${d}`);
+                this.cluster_name = doc["Name"];
+                console.log(`Cluster name: ${this.cluster_name}`);
+                 
+            } catch (e) {
+                this.emit("error", e);
+            }            
         }
         catch(err) {
             this.emit("error", err);
