@@ -12,7 +12,9 @@
     "dot": "1.0.3",
     "https-proxy-agent": "1.0.0",
     "ora": "0.2.3",
-    "sprintf-js": "1.0.3"
+    "sprintf-js": "1.0.3",
+    "request": "2.74.0",
+    "js-yaml" : "3.6.1"
   },
   "devDependencies": {
     "babel-cli": "6.10.1",

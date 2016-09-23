@@ -21,9 +21,9 @@ const cosi = require(path.resolve(path.resolve(__dirname, "..", "..", "..", "cos
 const Registration = require(path.resolve(cosi.lib_dir, "registration"));
 const Template = require(path.join(cosi.lib_dir, "template"));
 const templateList = require(path.join(cosi.lib_dir, "template", "list"));
+const Check = require(path.resolve(cosi.lib_dir, "check"));
 
 class Config extends Registration {
-
 
     constructor(quiet) {
         super(quiet);
@@ -31,6 +31,7 @@ class Config extends Registration {
         this.regConfig = null;
         this.metrics = null;
         this.templateList = null;
+        this.checkMetrics = null;
 
         dot.templateSettings.varname = "cosi";
 
@@ -361,6 +362,7 @@ class Config extends Registration {
         }
 
         console.log(chalk.green("\tSaved configuration"), configFile);
+        this.checkMetrics = checkMetrics;
         this.emit("check.config.done");
 
     }
@@ -485,6 +487,179 @@ class Config extends Registration {
 
     }
 
+    _writeDashboardConfig(template, config, id, data, registeredGraphs, registeredCheck) {
+        const configFile = path.resolve(this.regDir, `config-${id}.json`);
+        const self = this;
+        var check_dirty = false;
+        var checkMetrics = [];
+
+        if (this._fileExists(configFile)) {
+            console.log("\tDashboard configuration already exists", configFile);
+            self.emit("dashboard.config.done", configFile);
+            return;
+        }
+
+        config.title = self._expand(config.title, data);
+
+        // for (const widget of config.widgets)
+        for (let i = config.widgets.length - 1; i >= 0; i-- ) {
+            const widget = config.widgets[i];
+            if (widget.name == "Graph") {
+                /* find the matching graph based on tags in registeredGraphs */
+                var found_graph = false;
+                for (let gi = 0; gi < registeredGraphs.length; gi++) {
+                    const graph  = registeredGraphs[gi];
+                    if (graph && graph.tags && graph.tags.length > 0) {
+                        for (let j = 0; j < widget.tags.length; j++) {
+                            if (graph.tags.indexOf(widget.tags[j]) != -1) {
+                                /* need to fill the account_id and graph_id fields */
+                                widget.settings._graph_title = self._expand(widget.settings._graph_title, data);
+                                widget.settings.account_id = this.regConfig.account.account_id;
+                                widget.settings.graph_id = graph._cid.replace("/graph/","");
+                                widget.settings.label = self._expand(widget.settings.label, data);
+                                /* tags property is just used to match widgets to graphs, remove before submission */
+                                delete widget.tags;
+                                widget["type"] = "graph";
+                                found_graph = true;
+                                break;
+                            }
+                        }
+                        if (found_graph) {
+                            break;
+                        }
+                    }
+                }
+                if (found_graph == false) {
+                    console.log("Could not find matching graph for: " + JSON.stringify(widget.tags));
+                    /* pull this graph out of the dashboard */
+                    config.widgets.splice(i, 1);
+                }
+            } else if (widget.name == "Gauge") {
+                /* find the matching metric on this system */
+                const metric_name = self._expand(widget.settings.metric_name, data);
+                widget.settings.metric_name = metric_name;
+                var metric;
+                if (metric_name.search("`") != -1) {
+                    const mg = metric_name.split("`")[0];
+                    const metric_group = this.metrics[mg];
+                    const m = metric_name.replace(`${mg}\``, "");
+                    metric = metric_group[m];
+                } else {
+                    metric = this.metrics[metric_name];
+                }
+
+                /* need to ensure the needed metric is active in the check */
+                checkMetrics.push({
+                    name: metric_name, 
+                    type: (metric._type == "s" ? "text" : "numeric"), 
+                    status: "active"
+                });
+                widget.settings.account_id = this.regConfig.account.account_id;
+                widget.settings.check_uuid = registeredCheck._check_uuids[0];
+                widget.settings["type"] = widget.settings._type;
+                widget["type"] = "gauge";
+            }
+
+        }
+
+        try {
+            fs.writeFileSync(
+                configFile,
+                JSON.stringify(config, null, 4),
+                { encoding: "utf8", mode: 0o644, flag: "w" }
+            );
+        }
+        catch (err) {
+            this.emit("error", err);
+            return;
+        }
+        console.log("\tSaved configuration", configFile);
+
+        this.resaveCheck(registeredCheck, checkMetrics);
+
+        this.emit("dashboard.config.done", configFile);
+    }
+
+    resaveCheck(registeredCheck, extraMetrics) {
+
+        const checkMetrics = this._extractMetricsFromGraphConfigs();
+        if (extraMetrics) {
+            extraMetrics.forEach(function(item) {
+                checkMetrics.push(item);
+            });
+        }
+        registeredCheck.metrics = checkMetrics;
+
+        /* re-save the check config since it changed */
+        const checkConfigFile = path.resolve(this.regDir, "config-check-system.json");
+        fs.writeFileSync(
+            checkConfigFile,
+            JSON.stringify(registeredCheck, null, 4),
+            { encoding: "utf8", mode: 0o644, flag: "w" }
+        );
+
+        const regFile = path.resolve(this.regDir, "registration-check-system.json");
+        
+        const check = new Check(checkConfigFile);
+
+        console.log("\tSending altered check configuration to Circonus API");
+        check.update((err, result) => {
+            if (err) {
+                self.emit("error", `Cannot re-save check config "${err}"`);
+                return;
+            }
+            console.log(`\tSaving registration ${regFile}`);
+            check.save(regFile, true);
+        });
+    }
+
+    configDashboard(name, dashboard_items) {
+        const id = "dashboard-" + name;
+        const self = this;
+
+        console.log(chalk.blue(this.marker));
+        console.log(`Configuring Dashboard (${id})`);
+
+        const templateFile = path.resolve(this.regDir, `template-${id}.json`);
+
+        if (!this._fileExists(templateFile)) {
+            console.log("\tNo template for dashboard", templateFile);
+            return;
+        }
+
+        const template = require(templateFile);
+        const config = template.config;
+        var registeredGraphs = [];
+
+        /* read all the registered graphs because the dashboard might need
+           graph UUID's */
+        const files = fs.readdirSync(self.regDir);
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (file.match(/^registration-graph-([^.]+)+\.json?$/)) {
+                try {
+                    const configFile = path.resolve(this.regDir, file);
+
+                    const graph = require(configFile);
+
+                    registeredGraphs.push(graph);
+                }
+                catch (err) {
+                    this.emit("error", err);
+                }
+            }
+        }
+
+        const registeredCheck = require(path.resolve(this.regDir, "registration-check-system.json"));
+
+        for (let di = 0; di < dashboard_items.length; di++) {
+            const item = dashboard_items[di];
+            var data = this.regConfig.templateData;
+            data.dashboard_item = item;
+            this._writeDashboardConfig(template, config, id + "-" + item, data, 
+                                       registeredGraphs, registeredCheck);
+        }
+    }
 
     _extractMetricsFromGraphConfigs() {
         const checkMetrics = [];
@@ -510,7 +685,6 @@ class Config extends Registration {
                     // for (const dp of graph.datapoints) {
                     for (let dpIdx = 0; dpIdx < graph.datapoints.length; dpIdx++) {
                         const dp = graph.datapoints[dpIdx];
-
                         console.log("\t\t\tAdding required metric:", dp.metric_name);
                         checkMetrics.push({
                             name: dp.metric_name,

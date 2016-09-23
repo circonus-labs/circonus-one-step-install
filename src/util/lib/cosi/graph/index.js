@@ -9,6 +9,7 @@ const fs = require("fs");
 const path = require("path");
 
 const chalk = require("chalk");
+const dot = require("dot");
 
 const cosi = require(path.resolve(path.join(__dirname, "..")));
 const api = require(path.resolve(cosi.lib_dir, "api"));
@@ -66,12 +67,19 @@ module.exports = class Graph {
         return false;
     }
 
-    preToConfig(checkId) {
+    preToConfig(checkId, checkUuid) {
         assert.strictEqual(typeof checkId, "string", "checkId is required");
+        assert.strictEqual(typeof checkUuid, "string", "checkUuid is required");
 
         if (this.isPreConfig()) {
+            var data = {"check_id": checkId, "check_uuid": checkUuid};
             for (let i = 0; i < this.datapoints.length; i++) {
                 this.datapoints[i].check_id = checkId;
+                if (this.datapoints[i].hasOwnProperty("caql") && this.datapoints[i].caql != null) {
+                    console.log("Applying template to [" + this.datapoints[i].caql + "]");
+                    var fn = dot.template(this.datapoints[i].caql);
+                    this.datapoints[i].caql = fn(data);
+                }
             }
         }
     }
@@ -350,6 +358,39 @@ module.exports = class Graph {
             self._init(result);
 
             return cb(null, result);
+        });
+    }
+
+    remove(cb) {
+        assert.strictEqual(typeof cb, "function", "cb must be a callback function");
+
+        const self = this;
+
+        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
+        api.get(self._cid, null, (getCode, getError, getResult) => { //eslint-disable-line consistent-return
+            if (getCode === 404 && (getResult.code && getResult.code === "ObjectError.InstanceNotFound")) {
+                console.log(`\t${self._cid}`, chalk.bold("not found"));
+                return cb(null);
+            }
+
+            if (getCode < 200 || getCode > 299) { //eslint-disable-line no-magic-numbers
+                console.error(chalk.red("API RESULT CODE"), `API ${getCode}`, getError, getResult);
+                return cb(getError);
+            }
+
+            console.log(chalk.bold("\tDeleting"), `Graph ${self._cid}`);
+
+            api.delete(self._cid, (code, errAPI, result) => {
+                if (errAPI) {
+                    return cb(errAPI, result);
+                }
+
+                if (code < 200 || code > 299) { //eslint-disable-line no-magic-numbers
+                    console.error(chalk.red("API RESULT CODE"), `API ${code}`, errAPI, result);
+                    return cb(`unexpected code: ${code}`, result);
+                }
+                return cb(null, result);
+            });
         });
     }
 

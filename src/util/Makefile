@@ -23,16 +23,19 @@ $(UTILS): $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
 	tail -n +3 build/bin/circonus-nadpush.js >> build/bin/circonus-nadpush && \
 	chmod 0755 build/bin/circonus-nadpush && \
 	rm build/bin/circonus-nadpush.js
-	for f in ./build/bin/*.js; do \
-		sed -e 's#/usr/bin/env node#%%NODE_BIN%%#' -i '' "$$f"; \
-		chmod 0755 "$$f"; \
-		mv "$$f" "$${f%.js}"; \
-	done
+	for f in build/bin/*.js; do sed -e 's#/usr/bin/env node#%%NODE_BIN%%#' "$$f" > "$${f%.js}" && chmod 0755 "$${f%.js}" && rm "$$f"; done
 	$(BABEL) lib -d build/lib
 	node_modules/.bin/pac --production
 	cp -r .modules build/.
 	cp -r service build/.
 	cp -r rulesets build/.
+	# install plugin helpers (non-javascript files)
+	# postgres
+	install -m 0700 lib/cosi/plugins/postgres/nad-enable.sh build/lib/cosi/plugins/postgres/.
+	install -m 0700 lib/cosi/plugins/postgres/nad-disable.sh build/lib/cosi/plugins/postgres/.
+	# cassandra
+	install -m 0700 lib/cosi/plugins/cassandra/nad-enable.sh build/lib/cosi/plugins/cassandra/.
+	install -m 0700 lib/cosi/plugins/cassandra/nad-disable.sh build/lib/cosi/plugins/cassandra/.
 	install package.json build/.
 	install Makefile build/.
 	install README.md build/.
@@ -42,7 +45,7 @@ $(UTILS): $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
 	if [ -d etc ]; then cp -r etc build/. ; fi
 	if [ -d registration ]; then cp -r registration build/.; fi
 	cp cosi-statsd.tar.gz build/.
-	COPYFILE_DISABLE=true tar -C build -czf $@ bin lib service rulesets .modules package.json README.md LICENSE $(STATSD)
+	tar -czf $@ -C build bin lib service rulesets .modules package.json README.md LICENSE $(STATSD)
 
 
 .PHONY: check

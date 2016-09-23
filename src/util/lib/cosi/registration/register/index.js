@@ -19,6 +19,7 @@ const Check = require(path.resolve(cosi.lib_dir, "check"));
 const Broker = require(path.resolve(cosi.lib_dir, "broker"));
 const Graph = require(path.resolve(cosi.lib_dir, "graph"));
 const Worksheet = require(path.resolve(cosi.lib_dir, "worksheet"));
+const Dashboard = require(path.resolve(cosi.lib_dir, "dashboard"));
 
 class Register extends Registration {
 
@@ -52,6 +53,7 @@ class Register extends Registration {
 
             // original code from systemCheck
             self.checkId = check._checks[0].replace("/check/", "");
+            self.checkUuid = check._check_uuids[0];
             self.checkBundleId = check._cid.replace("/check_bundle/", "");
 
             if (self.agentMode === "push") {
@@ -155,7 +157,7 @@ class Register extends Registration {
 
         this.once("worksheet", this.worksheet);
         this.once("worksheet.done", () => {
-            self.emit("registration.done");
+            self.emit("register.done");
         });
 
         this.loadRegConfig();
@@ -403,10 +405,10 @@ class Register extends Registration {
         const graph = new Graph(configFile);
 
         if (graph.isPreConfig()) {
-            console.log(`\tUpdating pre-config with check ID ${this.checkId}`);
+            console.log(`\tUpdating pre-config with check ID ${this.checkId} and check uuid: ${this.checkUuid}`);
 
             cfgFile = configFile.replace(".pre", "");
-            graph.preToConfig(this.checkId);
+            graph.preToConfig(this.checkId, this.checkUuid);
 
             console.log("\tSaving config", cfgFile);
             try {
@@ -494,6 +496,48 @@ class Register extends Registration {
         });
 
     }
+
+    dashboard(cfgFile) {
+        console.log(chalk.blue(this.marker));
+
+        const self = this;
+        const regFile = cfgFile.replace("config-", "registration-");
+        
+        console.log("Creating COSI dashboard");
+
+        if (this._fileExists(regFile)) {
+            console.log(chalk.bold("Registration exists"), `using ${regFile}`);
+            this.emit("dashboard.done");
+            return;
+        }
+
+        if (!this._fileExists(cfgFile)) {
+            this.emit("error", new Error(`Missing worksheet configuration file '${cfgFile}'`));
+            return;
+        }
+
+        const dash = new Dashboard(cfgFile);
+
+        if (dash.verifyConfig()) {
+            console.log("\tValid dashboard config");
+        }
+
+        console.log("\tSending dashboard configuration to Circonus API");
+
+        dash.create((err) => {
+            if (err) {
+                self.emit("error", err);
+                return;
+            }
+
+            console.log(`\tSaving registration ${regFile}`);
+            dash.save(regFile, true);
+
+            console.log(chalk.green("\tDashboard created:"), `${self.regConfig.account.uiUrl}/dashboards/view/${dash._dashboard_uuid}`);
+            self.emit("dashboard.done");
+        });
+    }
+
 
     _getTrapBrokerCn(trapUrl) {
         const urlInfo = url.parse(trapUrl);
