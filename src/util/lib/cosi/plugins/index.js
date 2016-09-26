@@ -78,9 +78,6 @@ class Plugin extends Events {
         console.log(chalk.blue(this.marker));
         console.log('Updating registration');
 
-        console.log('run by hand for testing');
-        process.exit(0);
-
         const self = this;
         const script = path.resolve(path.join(cosi.cosi_dir, 'bin', 'cosi'));
         const reg = child.spawn(script, [ 'register' ]);
@@ -154,49 +151,6 @@ class Plugin extends Events {
             self.emit(doneEvent, stdout);
         });
     }
-
-
-    // reregisterHost() {
-    //     const self = this;
-    //
-    //     if (!this.quiet) {
-    //         console.log("Adding custom metrics");
-    //     }
-    //
-    // }
-
-    // configDashboard(name, quiet, dashboard_items, fsGraphId) {
-    //     const self = this;
-    //     const regConfig = new RegConfig(quiet);
-    //     const regSetup = new RegSetup(quiet);
-    //
-    //     regConfig.loadRegConfig();
-    //     regConfig.loadMetrics();
-    //
-    //     /* this can get emitted multiple times */
-    //     regConfig.on('dashboard.config.done', (cfgFile) => {
-    //         self.registerDashboard(cfgFile, self.params.quiet);
-    //     });
-    //
-    //     regSetup.once('templates.fetch.done', () => {
-    //         regConfig.configDashboard(name, dashboard_items, fsGraphId);
-    //     });
-    //
-    //     regSetup.fetchTemplates([ `dashboard-${name}` ]);
-    // }
-    //
-    // registerDashboard(cfgFile, quiet) {
-    //     const self = this;
-    //     const regRegister = new RegRegister(quiet);
-    //
-    //     regRegister.loadRegConfig();
-    //
-    //     regRegister.once('dashboard.done', () => {
-    //         self.emit('dashboard.done');
-    //     });
-    //
-    //     regRegister.dashboard(cfgFile);
-    // }
 
 
     disablePlugin(pluginName, dashboardPrefix, graphPrefix) {

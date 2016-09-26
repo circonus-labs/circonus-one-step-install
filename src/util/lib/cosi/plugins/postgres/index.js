@@ -179,84 +179,6 @@ class Postgres extends Plugin {
 
     }
 
-    // _configPostgres(stdout) {
-    //     console.log(chalk.blue(this.marker));
-    //     console.log('Configuring visuals for plugin');
-    //
-    //     const self = this;
-    //
-    //     /*
-    //     if we have gotten here, nad-enable.sh has flipped on the postgres plugin and
-    //     tested it to work.. it has passed us the output of nad-enable.sh which should
-    //     contain the data_dir
-    //     */
-    //
-    //     const nadPluginOutput = JSON.parse(stdout);
-    //
-    //     this.once('register.done', () => {
-    //         const files = fs.readdirSync(cosi.reg_dir);
-    //
-    //         /* algorithm here is to substring search for the nadPluginOutput.data_dir in
-    //            each registered graph's datapoints's metric_names.  If we find a substring
-    //            match then that is our filesystem graph choice.
-    //
-    //            If we don't get a match, slice off the last folder and redo search until
-    //            we find some reasonable matching filesystem graph
-    //            */
-    //         let dataDir = nadPluginOutput.data_dir;
-    //         let fsGraphId = null;
-    //
-    //         while (dataDir.length) {
-    //             // for (const file of files) {
-    //             for (let i = 0; i < files.length; i++) {
-    //                 const file = files[i];
-    //
-    //                 if (!file.match(/^registration-graph-fs-([^.]+)+\.json?$/)) {
-    //                     continue;
-    //                 }
-    //
-    //                 const configFile = path.resolve(cosi.reg_dir, file);
-    //                 let graph = null;
-    //
-    //                 try {
-    //                     graph = require(configFile);
-    //                 } catch (err) {
-    //                     console.log(chalk.yellow('WARN'), `${err}, skipping ${configFile}`);
-    //                     continue;
-    //                 }
-    //
-    //                 for (let j = 0; j < graph.datapoints.length; j++) {
-    //                     if (graph.datapoints[j].metric_name !== null && graph.datapoints[j].metric_name.indexOf(dataDir) > -1) {
-    //                         fsGraphId = graph._cid.replace('/graph/', '');
-    //                         break;
-    //                     }
-    //                 }
-    //
-    //                 if (fsGraphId !== null) {
-    //                     break;
-    //                 }
-    //             }
-    //             if (fsGraphId !== null) {
-    //                 break;
-    //             }
-    //             dataDir = dataDir.slice(0, dataDir.lastIndexOf('/'));
-    //         }
-    //         self.emit('dashboard.create', fsGraphId);
-    //     });
-    //
-    //     this.once('dashboard.create', (fsGraphId) => {
-    //         self.once('dashboard.done', () => {
-    //             self.emit('plugin.done');
-    //         });
-    //         self.configDashboard('postgres', self.params.quiet, [ self.params.pgdb ], fsGraphId);
-    //     });
-    //
-    //     if (nadPluginOutput.enabled) {
-    //         this.protocol_observer = nadPluginOutput.protocol_observer;
-    //         this.reregisterHost();
-    //     }
-    // }
-
 
     _test_psql() {
         let psql_test_stdout = null;
@@ -273,6 +195,7 @@ class Postgres extends Plugin {
 
         return null;
     }
+
 
     _create_meta_conf() {
         const metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-${this.name}.json`));
