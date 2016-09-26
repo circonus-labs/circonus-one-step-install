@@ -140,6 +140,9 @@ class Checks extends Registration {
 
         console.log(`\tUpdating system check`);
         check.metrics = visualMetrics;
+        if (!{}.hasOwnProperty.call(check, 'metric_limit')) {
+            check.metric_limit = 0;
+        }
         check.update((err, result) => {
             if (err !== null) {
                 self.emit('error', err);

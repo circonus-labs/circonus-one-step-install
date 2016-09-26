@@ -30,6 +30,7 @@ class Graphs extends Registration {
 
         this.metrics = null;
         this.templates = null;
+        this.checkMeta = null;
     }
 
     create(cb) {

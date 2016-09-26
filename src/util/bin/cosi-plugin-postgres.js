@@ -1,28 +1,28 @@
 #!/usr/bin/env node
 
-/*eslint-env node, es6 */
-/*eslint-disable no-process-exit */
-/*eslint-disable no-magic-numbers */
+/* eslint-env node, es6 */
 
-"use strict";
+/* eslint-disable no-process-exit */
 
-const path = require("path");
+'use strict';
 
-const app = require("commander");
-const chalk = require("chalk");
+const path = require('path');
 
-const cosi = require(path.resolve(path.join(__dirname, "..", "lib", "cosi")));
-const Postgres = require(path.resolve(path.join(cosi.lib_dir, "plugins", "postgres")));
+const app = require('commander');
+const chalk = require('chalk');
+
+const cosi = require(path.resolve(path.join(__dirname, '..', 'lib', 'cosi')));
+const Postgres = require(path.resolve(path.join(cosi.lib_dir, 'plugins', 'postgres')));
 
 app.
     version(cosi.app_version).
-    option("-e, --enable", "enable the postgres plugin").
-    option("-d, --disable", "disable the postgres plugin").
-    option("-b, --pgdb [database]", "the postgres database name to enable", "postgres").
-    option("-u, --pguser [user]", "the postgres user to run as", "postgres").
-    option("-a, --pgpass [pass]", "the pass of the postgres user", "").
-    option("-o, --pgport [port]", "port to connect to", 5432).
-    option("-q, --quiet", "less output").
+    option('--enable', 'enable the postgres plugin').
+    option('--disable', 'disable the postgres plugin').
+    option('--database <name>', 'the postgres database name to enable, default [postgres]', 'postgres').
+    option('--user <user>', 'the postgres user to run as, default [postgres]', 'postgres').
+    option('--pass <pass>', 'the pass of the postgres user, default none', '').
+    option('--port <port>', 'postgres server port, default [5432]', 5432).
+    option('-q, --quiet', 'less output').
     parse(process.argv);
 
 if (!app.quiet) {
@@ -30,29 +30,31 @@ if (!app.quiet) {
 }
 
 if (app.enable && app.disable) {
-    console.error(chalk.red("ERROR"), "enable and disable are mutually exclusive");
+    app.outputHelp();
+    console.error(chalk.red('ERROR'), chalk.bold('enable'), 'and', chalk.bold('disable'), 'are mutually exclusive');
     process.exit(1);
 }
 
 if (!app.enable && !app.disable) {
-    console.error(chalk.red("ERROR"), "must specify enable or disable");
+    app.outputHelp();
+    console.error(chalk.red('ERROR'), 'must specify one of', chalk.bold('enable'), 'or', chalk.bold('disable'));
     process.exit(1);
 }
 
+
 const plugin = new Postgres(app);
 
-plugin.once("plugin.done", (err) => {
+plugin.once('plugin.done', (err) => {
     if (err !== null) {
-        console.error(chalk.red("ERROR"), err);
+        console.error(chalk.red('ERROR'), err);
         process.exit(1);
     }
-    console.log(chalk.blue("SUCCESS"), "PostgreSQL plugin was", app.enable ? "enabled" : "disabled");
+    console.log(chalk.blue('SUCCESS'), 'PostgreSQL plugin was', app.enable ? 'enabled' : 'disabled');
 });
 
 if (app.enable) {
     plugin.enable();
-}
-else {
+} else {
     plugin.disable();
 }
 

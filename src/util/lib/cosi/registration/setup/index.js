@@ -75,6 +75,12 @@ class Setup extends Registration {
 
         this.once('verify.statsd', this.checkStatsdPort);
         this.once('verify.statsd.done', () => {
+            self.emit('save.config');
+        });
+
+        this.once('save.config', () => {
+            self.regConfig.setup_done = true;
+            self.saveRegConfig();
             self.emit('metrics.fetch');
         });
 
@@ -86,20 +92,11 @@ class Setup extends Registration {
 
         this.once('templates.fetch', this.fetchTemplates);
         this.once('templates.fetch.done', () => {
-            self.emit('save.config');
-        });
-
-        this.once('save.config', () => {
-            self.regConfig.setup_done = true;
-            self.saveRegConfig();
             self.emit('setup.done');
         });
 
-        if (this._fileExists(this.regConfigFile)) {
-            this.emit('metrics.fetch');
-        } else {
-            this.emit('verify.api');
-        }
+
+        this.emit('verify.api');
     }
 
     verifyCirconusAPI() {

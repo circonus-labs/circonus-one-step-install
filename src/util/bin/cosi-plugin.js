@@ -1,20 +1,18 @@
 #!/usr/bin/env node
 
-/*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers */
+/* eslint-env node, es6 */
 
-"use strict";
+'use strict';
 
-const path = require("path");
+const path = require('path');
 
-const app = require("commander");
+const app = require('commander');
 
-const cosi = require(path.resolve(path.join(__dirname, "..", "lib", "cosi")));
+const cosi = require(path.resolve(path.join(__dirname, '..', 'lib', 'cosi')));
 
 app.
     version(cosi.app_version).
-    command("postgres", "Manage PostgreSQL plugin").
-    option("-q, --quiet", "less output").
+    command('postgres', 'Manage PostgreSQL plugin').
     parse(process.argv);
 
 // END

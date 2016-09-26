@@ -15,12 +15,14 @@ function templatePropertyFilter(key, value) {
     if (typeof value === 'function') {
         return undefined;   // eslint-disable-line no-undefined
     }
+    /*
     if (key === 'id') {     // created when parsed/loaded, ignore
         return undefined;   // eslint-disable-line no-undefined
     }
     if (key === 'type') {   // created when parsed/loaded, ignore
         return undefined;   // eslint-disable-line no-undefined
     }
+    */
     return value;
 }
 

@@ -1,188 +1,208 @@
-"use strict";
+'use strict';
 
-/*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers, global-require */
+/* eslint-env node, es6 */
+/* eslint-disable no-magic-numbers, global-require, camelcase */
 
-const assert = require("assert");
-const Events = require("events").EventEmitter;
-const fs = require("fs");
-const path = require("path");
+const assert = require('assert');
+const Events = require('events').EventEmitter;
+const fs = require('fs');
+const path = require('path');
+const child = require('child_process');
 
-const chalk = require("chalk");
+const chalk = require('chalk');
 
-const cosi = require(path.resolve(path.join(__dirname, "..")));
-const exec = require("child_process").exec;
-
-const RegSetup = require(path.join(cosi.lib_dir, "registration", "setup"));
-const RegConfig = require(path.join(cosi.lib_dir, "registration", "config"));
-const RegRegister = require(path.join(cosi.lib_dir, "registration", "register"));
-
-const Check = require(path.resolve(cosi.lib_dir, "check"));
-const Graph = require(path.resolve(cosi.lib_dir, "graph"));
-const Dashboard = require(path.resolve(cosi.lib_dir, "dashboard"));
+const cosi = require(path.resolve(path.join(__dirname, '..')));
+const TemplateFetcher = require(path.resolve(path.join(cosi.lib_dir, 'template', 'fetch')));
+const Check = require(path.resolve(cosi.lib_dir, 'check'));
+const Graph = require(path.resolve(cosi.lib_dir, 'graph'));
+const Dashboard = require(path.resolve(cosi.lib_dir, 'dashboard'));
 
 class Plugin extends Events {
 
-    constructor(quiet) {
+    constructor(params) {
         super();
 
-        this.marker = "==========";
+        this.params = params;
+        this.quiet = params.quiet;
+        this.name = null; // set/override in subclass
+        this.dashboardPrefix = null; // set/override in subclass
+        this.graphPrefix = null; // set/override in subclass
+        this.state = null; // set/override in subclass
 
-        this.circonusAPI = {
-            url: cosi.api_url,
-            key: cosi.api_key,
-            app: cosi.api_app
-        };
-
-        this.cosiAPI = {
-            url: cosi.cosi_url,
-            args: {
-                type: cosi.cosi_os_type,
-                dist: cosi.cosi_os_dist,
-                vers: cosi.cosi_os_vers,
-                arch: cosi.cosi_os_arch
-            }
-        };
-
-        this.regDir = cosi.reg_dir;
-        this.cosiId = cosi.cosi_id;
-        this.quiet = quiet;
-        this.customOptions = cosi.custom_options;
-        this.agentURL = cosi.agent_url;
-
-        this.regConfigFile = path.resolve(cosi.reg_dir, "setup-config.json");
-
-        this.on("error", (err) => {
-            console.log(chalk.red("***************"));
+        this.marker = '==========';
+        this.on('error', (err) => {
+            console.log(chalk.red('***************'));
             console.dir(err);
-            console.log(chalk.red("***************"));
-            process.exit(1); //eslint-disable-line no-process-exit
+            console.log(chalk.red('***************'));
+            process.exit(1); // eslint-disable-line no-process-exit
         });
     }
 
+    enablePlugin() {
+        throw new Error('not overridden by plugin subclass');
+    }
+    configurePlugin() {
+        throw new Error('not overridden by plugin subclass');
+    }
+
+    enable() {
+        const self = this;
+
+        this.once('enable.done', this.configure);
+        this.once('configure.done', this.register);
+
+        this.enablePlugin((err) => {
+            if (err !== null) {
+                self.emit('error', err);
+                return;
+            }
+            self.emit('enable.done');
+        });
+    }
+
+
+    configure() {
+        const self = this;
+
+        this.configurePlugin((err) => {
+            if (err !== null) {
+                self.emit('error', err);
+                return;
+            }
+            self.emit('configure.done');
+        });
+    }
+
+
+    register() {
+        console.log(chalk.blue(this.marker));
+        console.log('Updating registration');
+
+        console.log('run by hand for testing');
+        process.exit(0);
+
+        const self = this;
+        const script = path.resolve(path.join(cosi.cosi_dir, 'bin', 'cosi'));
+        const reg = child.spawn(script, [ 'register' ]);
+
+        reg.stdout.on('data', (data) => {
+            console.log(data);
+        });
+        reg.stderr.on('data', (data) => {
+            console.log(chalk.red('stderr:'), data);
+        });
+        reg.on('error', (spawnErr) => {
+            console.error(spawnErr);
+            process.exit(1); // eslint-disable-line no-process-exit
+        });
+        reg.on('close', (code) => {
+            console.log('reg finished with code', code);
+            if (code !== 0) {
+                process.exit(code); // eslint-disable-line no-process-exit
+            }
+            self.emit('register.done');
+        });
+    }
+
+    // override in subclass if there are multiple templates to fetch
+    fetchTemplates() {
+        const self = this;
+        const templateId = `dashboard-${this.name}`;
+        const cfgFile = path.resolve(path.join(cosi.reg_dir, `template-${templateId}.json`));
+        const fetcher = new TemplateFetcher();
+
+        console.log(`\tFetching templates for ${templateId}`);
+
+        fetcher.template(templateId, (err, template) => {
+            if (err !== null) {
+                self.emit('error', err);
+                return;
+            }
+
+            template.save(cfgFile, true);
+            console.log(chalk.green('\tSaved'), `template ${cfgFile}`);
+            self.emit('fetch.done');
+        });
+    }
+
+
     _fileExists(cfgFile) {
-        assert.equal(typeof cfgFile, "string", "cfgFile is required");
+        assert.equal(typeof cfgFile, 'string', 'cfgFile is required');
 
         try {
             const stats = fs.statSync(cfgFile);
 
             return stats.isFile();
-
-        }
-        catch (err) {
-            if (err.code !== "ENOENT") {
-                this.emit("error", err);
+        } catch (err) {
+            if (err.code !== 'ENOENT') {
+                this.emit('error', err);
             }
         }
 
         return false;
     }
 
-    _execShell(path, doneEvent) {
+
+    _execShell(cmd, doneEvent) {
         const self = this;
 
-        exec(path, (error, stdout, stderr) => {
+        child.exec(cmd, (error, stdout, stderr) => {
             if (error) {
-                self.emit("error", error);
+                self.emit('error', new Error(`${error} ${stderr}`));
                 return;
             }
             self.emit(doneEvent, stdout);
         });
     }
 
-    addCustomMetrics() {
-        /* noop in base class */
-    }
 
-    reregisterHost(quiet) {
-        const self = this;
+    // reregisterHost() {
+    //     const self = this;
+    //
+    //     if (!this.quiet) {
+    //         console.log("Adding custom metrics");
+    //     }
+    //
+    // }
 
-        this.once("reg-setup", () => {
-            const regSetup = new RegSetup(quiet);
+    // configDashboard(name, quiet, dashboard_items, fsGraphId) {
+    //     const self = this;
+    //     const regConfig = new RegConfig(quiet);
+    //     const regSetup = new RegSetup(quiet);
+    //
+    //     regConfig.loadRegConfig();
+    //     regConfig.loadMetrics();
+    //
+    //     /* this can get emitted multiple times */
+    //     regConfig.on('dashboard.config.done', (cfgFile) => {
+    //         self.registerDashboard(cfgFile, self.params.quiet);
+    //     });
+    //
+    //     regSetup.once('templates.fetch.done', () => {
+    //         regConfig.configDashboard(name, dashboard_items, fsGraphId);
+    //     });
+    //
+    //     regSetup.fetchTemplates([ `dashboard-${name}` ]);
+    // }
+    //
+    // registerDashboard(cfgFile, quiet) {
+    //     const self = this;
+    //     const regRegister = new RegRegister(quiet);
+    //
+    //     regRegister.loadRegConfig();
+    //
+    //     regRegister.once('dashboard.done', () => {
+    //         self.emit('dashboard.done');
+    //     });
+    //
+    //     regRegister.dashboard(cfgFile);
+    // }
 
-            regSetup.once("setup.done", () => {
-                self.emit("reg-config");
-            });
-
-            regSetup.setup();
-        });
-
-
-        this.once("reg-config", () => {
-            const regConfig = new RegConfig(quiet);
-
-            regConfig.once("config.done", () => {
-                self.emit("reg-register");
-            });
-
-            regConfig.config();
-        });
-
-
-        this.once("reg-register", () => {
-            const regRegister = new RegRegister(quiet);
-
-            regRegister.once("register.done", () => {
-
-                self.emit("register.done");
-            });
-
-            regRegister.register();
-        });
-
-        if (fs.existsSync(path.resolve(this.regDir, "setup-metrics.json"))) {
-            // metrics likely changed, delete cache of metrics to force a reget
-            fs.unlinkSync(path.resolve(this.regDir, "setup-metrics.json"));
-        }
-
-        console.log("Adding custom metrics");
-        self.addCustomMetrics();
-
-        // nad has a delay to pick up the newly linked metrics as the file system
-        // watch takes a bit to trigger and then nad needs a moment to refresh
-        // the modules it needs to execute
-        setTimeout(() => {
-            self.emit("reg-setup");
-        }, 5000);
-    }
-
-    configDashboard(name, quiet, dashboard_items, fsGraphId) {
-        const self = this;
-        const regConfig = new RegConfig(quiet);
-        const regSetup = new RegSetup(quiet);
-
-        regConfig.loadRegConfig();
-        regConfig.loadMetrics();
-
-        /* this can get emitted multiple times */
-        regConfig.on("dashboard.config.done", (cfgFile) => {
-            self.registerDashboard(cfgFile, self.params.quiet);
-        });
-
-        regSetup.once("templates.fetch.done", () => {
-            regConfig.configDashboard(name, dashboard_items, fsGraphId);
-        });
-
-        regSetup.fetchTemplates([ `dashboard-${name}` ]);
-    }
-
-    registerDashboard(cfgFile, quiet) {
-        const self = this;
-        const regRegister = new RegRegister(quiet);
-
-        regRegister.loadRegConfig();
-
-        regRegister.once("dashboard.done", () => {
-            self.emit("dashboard.done");
-        });
-
-        regRegister.dashboard(cfgFile);
-    }
 
     disablePlugin(pluginName, dashboardPrefix, graphPrefix) {
         const self = this;
 
-        this.once("deconfig.plugin", () => {
+        this.once('deconfig.plugin', () => {
 
             /* find all related graphs and dashboards for this plugin */
             let files = null;
@@ -192,49 +212,56 @@ class Plugin extends Events {
             let expectCount = 0;
 
             try {
-                files = fs.readdirSync(self.regDir);
-            }
-            catch (err) {
+                files = fs.readdirSync(cosi.reg_dir);
+            } catch (err) {
                 self.emit(err);
                 return;
             }
 
             for (let i = 0; i < files.length; i++) {
-                const file = path.resolve(self.regDir, files[i]);
-                if (files[i].indexOf(`registration-dashboard-${dashboardPrefix}`) != -1) {
+                const file = path.resolve(cosi.reg_dir, files[i]);
+
+                if (files[i].indexOf(`registration-dashboard-${dashboardPrefix}`) !== -1) {
                     const dash = require(file);
+
                     for (let j = 0; j < dash.widgets.length; j++) {
-                        const w = dash.widgets[j];
-                        if (w.name == "Gauge") {
-                            removeMetrics.push(w.settings.metric_name);
+                        const widget = dash.widgets[j];
+
+                        if (widget.name === 'Gauge') {
+                            removeMetrics.push(widget.settings.metric_name);
                         }
                     }
-                    removeFiles.push({ "t" : "dash", file });
+                    removeFiles.push({ type : 'dash', file });
                 }
-                if (files[i].indexOf(`registration-graph-${graphPrefix}`) != -1 ) {
+
+                if (files[i].indexOf(`registration-graph-${graphPrefix}`) !== -1) {
                     const graph = require(file);
+
                     for (let j = 0; j < graph.datapoints.length; j++) {
                         const dp = graph.datapoints[j];
+
                         removeMetrics.push(dp.metric_name);
                     }
-                    removeFiles.push({ "t" : "graph", file });
+                    removeFiles.push({ type : 'graph', file });
                 }
             }
+
             expectCount = removeFiles.length;
-            self.on("item.deconfigured", () => {
-                deconfiguredCount++;
-                if (deconfiguredCount == expectCount) {
-                    self.emit("plugin.done");
+            self.on('item.deconfigured', () => {
+                deconfiguredCount += 1;
+                if (deconfiguredCount === expectCount) {
+                    self.emit('plugin.done');
                 }
             });
 
-            const check = new Check(path.resolve(self.regDir, "registration-check-system.json"));
+            const check = new Check(path.resolve(cosi.reg_dir, 'registration-check-system.json'));
             const checkMetrics = check.metrics;
+
             for (let i = 0; i < checkMetrics.length; i++) {
                 for (let j = 0; j < removeMetrics.length; j++) {
-                    if (checkMetrics[i].name == removeMetrics[j]) {
+                    if (checkMetrics[i].name === removeMetrics[j]) {
                         checkMetrics.splice(i, 1);
-                        i--;
+                        i -= 1;
                     }
                 }
             }
@@ -244,55 +271,58 @@ class Plugin extends Events {
                     self.emit(err);
                     return;
                 }
-                console.log("Updated system check with removed metrics");
+                console.log('Updated system check with removed metrics');
 
                 /* now remove all the graphs and dashboards we found above */
                 for (let i = 0; i < removeFiles.length; i++) {
                     console.log(`Removing: ${removeFiles[i].file}`);
-                    if (removeFiles[i].t == "dash" ) {
+                    if (removeFiles[i].type === 'dash') {
                         const dash = new Dashboard(removeFiles[i].file);
-                        dash.remove((err) => {
-                            // if (err) {
-                            //     console.log(err);
-                            //     self.emit(err);
-                            //     return;
-                            // }
-                            const cfgFile = removeFiles[i].file.replace("registration-", "config-");
-                            console.log(`Removing file: ${removeFiles[i].file}`);
-                            fs.unlinkSync(removeFiles[i].file);
-                            console.log(`Removing file: ${cfgFile}`);
-                            fs.unlinkSync(cfgFile);
-                            self.emit("item.deconfigured");
-                        });
-                    }
-                    if (removeFiles[i].t == "graph" ) {
-                        const graph = new Graph(removeFiles[i].file);
-                        graph.remove((err) => {
-                            if (err) {
-                                console.log(err);
-                                self.emit(err);
+
+                        dash.remove((dashboardRemoveErr) => {
+                            if (dashboardRemoveErr) {
+                                self.emit('error', dashboardRemoveErr);
                                 return;
                             }
-                            const cfgFile = removeFiles[i].file.replace("registration-", "config-");
+
+                            const cfgFile = removeFiles[i].file.replace('registration-', 'config-');
+
                             console.log(`Removing file: ${removeFiles[i].file}`);
                             fs.unlinkSync(removeFiles[i].file);
                             console.log(`Removing file: ${cfgFile}`);
                             fs.unlinkSync(cfgFile);
-                            self.emit("item.deconfigured");
+                            self.emit('item.deconfigured');
+                        });
+                    }
+
+                    if (removeFiles[i].type === 'graph') {
+                        const graph = new Graph(removeFiles[i].file);
+
+                        graph.remove((graphRemoveErr) => {
+                            if (graphRemoveErr) {
+                                self.emit('error', graphRemoveErr);
+                                return;
+                            }
+                            const cfgFile = removeFiles[i].file.replace('registration-', 'config-');
+
+                            console.log(`Removing file: ${removeFiles[i].file}`);
+                            fs.unlinkSync(removeFiles[i].file);
+                            console.log(`Removing file: ${cfgFile}`);
+                            fs.unlinkSync(cfgFile);
+                            self.emit('item.deconfigured');
                         });
                     }
                 }
             });
         });
 
-        this.once("nad.disabled", (stdout) => {
-            self.emit("deconfig.plugin");
+        this.once('nad.disabled', (stdout) => {
+            self.emit('deconfig.plugin', stdout);
         });
 
+        const script = path.resolve(path.join(__dirname, pluginName, 'nad-disable.sh'));
 
-        const script = path.resolve(path.join(__dirname, pluginName, "nad-disable.sh"));
-
-        self._execShell(script, "nad.disabled");
+        self._execShell(script, 'nad.disabled');
 
     }
 }

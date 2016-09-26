@@ -219,6 +219,12 @@ class Registration extends Events {
             host_target: defaults.host_target
         };
 
+        // add relevant check meta data if checkMeta set by subclass
+        if (this.checkMeta !== null && {}.hasOwnProperty.call(this, 'checkMeta')) {
+            data.check_uuid = this.checkMeta.system.uuid;
+            data.check_id = this.checkMeta.system.id;
+        }
+
         function propAdd(target, source) {
             for (const prop in source) {
                 if ({}.hasOwnProperty.call(source, prop)) {
