@@ -99,38 +99,32 @@ class Checks extends Registration {
             return;
         }
 
-        console.log(chalk.bold('Registration found'), `using ${regFile}`);
+        console.log(chalk.bold('\tRegistration found'), `using ${regFile}`);
 
         const check = new Check(regFile);
         const checkMetrics = check.metrics;
         const visualMetrics = this._extractMetricsFromVisuals();
         let updateCheck = false;
 
-        if (checkMetrics.length !== visualMetrics.length) {
-            console.log(chalk.bold('Found new metrics'), `current metrics ${checkMetrics.length}, active metrics from visuals ${visualMetrics.length} - updating check`);
-            updateCheck = true;
-        }
+        console.log(chalk.bold('\tChecking metrics'), 'from visuals against currently active metrics');
+        for (let i = 0; i < visualMetrics.length; i++) {
+            let active = false;
 
-        if (!updateCheck) {
-            // then check each individual metric, note arrays are not sorted
-            for (let i = 0; i < visualMetrics.length; i++) {
-                let found = false;
-
-                for (let j = 0; j < checkMetrics.length; j++) {
-                    if (checkMetrics[j].name === visualMetrics[i].name) {
-                        found = true;
-                        break;
-                    }
+            for (let j = 0; j < checkMetrics.length; j++) {
+                if (checkMetrics[j].name === visualMetrics[i].name) {
+                    active = true;
+                    break;
                 }
-                if (!found) {
-                    console.log(chalk.bold('Found a new metric'), `${visualMetrics[i].name}, updating check`);
-                    updateCheck = true;
-                }
+            }
+            if (!active) {
+                console.log(chalk.bold('\t\tFound'), `new metric ${visualMetrics[i].name}`);
+                updateCheck = true;
+                // not breaking on first new metric, so we have a list in log of all new metrics
             }
         }
 
         if (!updateCheck) {
-            console.log(chalk.green('SKIPPING'), 'check update, no new metrics found');
+            console.log(chalk.green('\tSKIPPING'), 'check update, no new metrics found');
             this.emit('check.update.done');
             cb();
             return;
@@ -138,7 +132,7 @@ class Checks extends Registration {
 
         const self = this;
 
-        console.log(`\tUpdating system check`);
+        console.log(chalk.bold(`\tUpdating system check`), 'new metrics found');
         check.metrics = visualMetrics;
         if (!{}.hasOwnProperty.call(check, 'metric_limit')) {
             check.metric_limit = 0;
@@ -180,7 +174,7 @@ class Checks extends Registration {
                 try {
                     graph = require(configFile);
                 } catch (err) {
-                    console.log(chalk.yellow('WARN'), `Unable to load ${configFile} ${err}, skipping`);
+                    console.log(chalk.yellow('\tWARN'), `Unable to load ${configFile} ${err}, skipping`);
                     continue;
                 }
 
@@ -213,7 +207,7 @@ class Checks extends Registration {
                 try {
                     dashboard = require(configFile);
                 } catch (err) {
-                    console.log(chalk.yellow('WARN'), `Unable to load ${configFile} ${err}, skipping`);
+                    console.log(chalk.yellow('\tWARN'), `Unable to load ${configFile} ${err}, skipping`);
                     continue;
                 }
 
