@@ -47,6 +47,55 @@ class Postgres extends Plugin {
         this.activatePluginScripts(cb);
     }
 
+
+    configurePlugin(cb) {
+        console.log(chalk.blue(this.marker));
+        console.log('Configuring plugin for registration');
+
+        const self = this;
+
+        this.once('newmetrics.done', this.fetchTemplates);
+        this.once('fetch.done', this.preConfigDashboard);
+        this.once('preconfig.done', (err) => {
+            if (err !== null) {
+                cb(err);
+                return;
+            }
+            cb(null);
+            return;
+        });
+
+        this.addCustomMetrics((err) => {
+            if (err !== null) {
+                cb(err);
+                return;
+            }
+            self.emit('newmetrics.done');
+        });
+    }
+
+
+    disablePlugin(cb) {
+        console.log(chalk.blue(this.marker));
+        console.log('Disabling agent plugin for PostgreSQL');
+
+        // disable the postgres plugin scripts and attempt to stop protocol observer if applicable
+        const script = path.resolve(path.join(__dirname, 'nad-disable.sh'));
+
+        child.exec(script, (error, stdout, stderr) => {
+            if (error) {
+                cb(new Error(`${error} ${stdout} ${stderr}`), null);
+                return;
+            }
+
+            console.log(chalk.green('\tDisabled'), 'agent plugin for PostgreSQL');
+
+            cb(null);
+            return;
+        });
+    }
+
+
     activatePluginScripts(cb) {
         console.log('\tActivating PostgreSQL plugin scripts');
 
@@ -84,31 +133,6 @@ class Postgres extends Plugin {
         });
     }
 
-    configurePlugin(cb) {
-        console.log(chalk.blue(this.marker));
-        console.log('Configuring plugin for registration');
-
-        const self = this;
-
-        this.once('newmetrics.done', this.fetchTemplates);
-        this.once('fetch.done', this.preConfigDashboard);
-        this.once('preconfig.done', (err) => {
-            if (err !== null) {
-                cb(err);
-                return;
-            }
-            cb(null);
-            return;
-        });
-
-        this.addCustomMetrics((err) => {
-            if (err !== null) {
-                cb(err);
-                return;
-            }
-            self.emit('newmetrics.done');
-        });
-    }
 
     addCustomMetrics(cb) { // eslint-disable-line consistent-return
 
