@@ -12,7 +12,7 @@ const chalk = require('chalk');
 const cosi = require(path.resolve(path.resolve(__dirname, '..', '..', '..', 'cosi')));
 const Registration = require(path.resolve(cosi.lib_dir, 'registration'));
 const Checks = require(path.resolve(cosi.lib_dir, 'registration', 'checks'));
-const Template = require(path.join(cosi.lib_dir, 'template'));
+// const Template = require(path.join(cosi.lib_dir, 'template'));
 const templateList = require(path.join(cosi.lib_dir, 'template', 'list'));
 const Dashboard = require(path.resolve(cosi.lib_dir, 'dashboard'));
 const Graph = require(path.resolve(cosi.lib_dir, 'graph'));
@@ -126,7 +126,7 @@ class Dashboards extends Registration {
                 }
 
                 console.log(`\tFound ${templateType}-${templateId} ${template.file}`);
-                self.templates.push(templateId);
+                self.templates.push(template);
             }
 
             self.emit('templates.find.done');
@@ -172,65 +172,40 @@ class Dashboards extends Registration {
         const self = this;
         const dashboards = this.templates;
 
-        this.on('config.dashboard', this.configDashboard);
-
         this.on('config.dashboard.next', () => {
-            const dashboardID = dashboards.shift();
+            const template = dashboards.shift();
 
             if (typeof dashboardID === 'undefined') {
-                self.removeAllListeners('config.dashboard');
                 self.removeAllListeners('config.dashboard.next');
                 self.emit('dashboards.config.done');
-            } else {
-                const metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-${dashboardID}.json`));
-                let metaData = { items: [ 'default' ], sys_graphs: [] };
-
-                console.log(`\tUsing meta data from ${metaFile}`);
-
-                if (this._fileExists(metaFile)) {
-                    try {
-                        metaData = require(metaFile);
-                        if (!{}.hasOwnProperty.call(metaData, 'items')) {
-                            console.log(chalk.yellow('WARN'), `metadata file found but does not contain an 'items' attribute ${metaFile}`);
-                            metaData = { items: [ 'default' ], sys_graphs: [] };
-                        }
-                    } catch (err) {
-                        if (err.code !== 'MODULE_NOT_FOUND') {
-                            this.emit('error', err);
-                            return;
-                        }
-                    }
-                }
-
-                for (let i = 0; i < metaData.sys_graphs.length; i++) {
-                    metaData.sys_graphs[i].instance_name = [
-                        metaData.sys_graphs[i].metric_group,
-                        metaData.sys_graphs[i].graph_instance === null ? 0 : metaData.sys_graphs[i].graph_instance,
-                        metaData.sys_graphs[i].metric_item
-                    ].join('-');
-                }
-
-                for (let i = 0; i < metaData.items.length; i++) {
-                    this.configDashboard(dashboardID, metaData, i);
-                }
-                this.emit('config.dashboard.next');
+                return;
             }
+
+            self.configDashboard(template);
+            self.emit('config.dashboard.next');
         });
 
         this.emit('config.dashboard.next');
     }
 
 
-    configDashboard(dashboardID, metaData, metaItemIdx) {
-        const dashboardItem = metaData.items[metaItemIdx];
-
+    configDashboard(template) {
         console.log(chalk.blue(this.marker));
-        console.log(`Configuring ${dashboardID}-${dashboardItem} dasbhoard`);
+        console.log(`Configuring dasbhoard`);
 
-        const templateFile = path.resolve(path.join(cosi.reg_dir, `template-dashboard-${dashboardID}.json`));
-        const configFile = path.resolve(path.join(cosi.reg_dir, `config-dashboard-${dashboardID}-${dashboardItem}.json`));
+        const templateMatch = template.file.match(/^template-dashboard-([^\-]+)-(.+)\.json$/);
 
-        console.log(`\tUsing template ${templateFile}`);
+        if (templateMatch === null) {
+            this.emit('error', new Error(`Invalid template, no instance found. ${template.file}`));
+            return;
+        }
+
+        const dashboardID = `${templateMatch[1]}-${templateMatch[2]}`;
+        const dashboardInstance = templateMatch[2];
+        const templateFile = path.resolve(path.join(cosi.reg_dir, template.file)); // path.resolve(path.join(cosi.reg_dir, `template-dashboard-${dashboardID}.json`));
+        const configFile = templateFile.replace('template-', 'config-'); // path.resolve(path.join(cosi.reg_dir, `config-dashboard-${dashboardID}-${dashboardItem}.json`));
+
+        console.log(`\tDashboard: ${dashboardID} (${templateFile})`);
 
         if (this._fileExists(configFile)) {
             console.log('\tDashboard configuration already exists', configFile);
@@ -238,16 +213,39 @@ class Dashboards extends Registration {
             return;
         }
 
-        const template = new Template(templateFile);
+        const metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-${dashboardID}.json`));
+        let metaData = { sys_graphs: [] };
+
+        console.log(`\tUsing meta data from ${metaFile}`);
+
+        if (this._fileExists(metaFile)) {
+            try {
+                metaData = require(metaFile);
+                if (!{}.hasOwnProperty.call(metaData, 'sys_graphs')) {
+                    metaData.sys_graphs = [];
+                }
+            } catch (err) {
+                if (err.code !== 'MODULE_NOT_FOUND') {
+                    this.emit('error', err);
+                    return;
+                }
+            }
+        }
+
+        for (let i = 0; i < metaData.sys_graphs.length; i++) {
+            metaData.sys_graphs[i].instance_name = [
+                metaData.sys_graphs[i].metric_group,
+                metaData.sys_graphs[i].graph_instance === null ? 0 : metaData.sys_graphs[i].graph_instance,
+                metaData.sys_graphs[i].metric_item
+            ].join('-');
+        }
+
+        // const template = new Template(templateFile);
         const config = template.config;
         let data = null;
 
-        if (dashboardItem === 'default') {
-            data = this._mergeData(`dashboard-${dashboardID}`);
-        } else {
-            data = this._mergeData(`dashboard-${dashboardID}-${dashboardItem}`);
-            data.dashboard_item = dashboardItem;
-        }
+        data = this._mergeData(`dashboard-${dashboardID}`);
+        data.dashboard_instance = dashboardInstance;
 
         console.log(`\tInterpolating title ${config.title}`);
         config.title = this._expand(config.title, data);
@@ -362,8 +360,6 @@ class Dashboards extends Registration {
             return;
         }
 
-        this.on('create.dashboard', this.createDashboard);
-
         this.on('create.dashboard.next', () => {
             const configFile = dashboardConfigs.shift();
 
@@ -371,9 +367,10 @@ class Dashboards extends Registration {
                 self.removeAllListeners('create.dashboard');
                 self.removeAllListeners('create.dashboard.next');
                 self.emit('dashboards.done');
-            } else {
-                self.emit('create.dashboard', configFile);
+                return;
             }
+
+            self.createDashboard(configFile);
         });
 
         this.emit('create.dashboard.next');
