@@ -18,6 +18,7 @@ class Postgres extends Plugin {
     constructor(params) {
         super(params);
         this.name = 'postgres';
+        this.instance = params.database;
         this.dashboardPrefix = 'postgres';
         this.graphPrefix = 'pg_';
         this.state = null;
@@ -25,7 +26,7 @@ class Postgres extends Plugin {
 
     enablePlugin(cb) {
         console.log(chalk.blue(this.marker));
-        console.log('Enabling agent plugin for PostgreSQL');
+        console.log(`Enabling agent plugin for PostgreSQL database '${this.intance}'`);
 
         let err = null;
 
@@ -77,7 +78,7 @@ class Postgres extends Plugin {
 
     disablePlugin(cb) {
         console.log(chalk.blue(this.marker));
-        console.log('Disabling agent plugin for PostgreSQL');
+        console.log(`Disabling agent plugin for PostgreSQL database '${this.intance}'`);
 
         // disable the postgres plugin scripts and attempt to stop protocol observer if applicable
         const script = path.resolve(path.join(__dirname, 'nad-disable.sh'));
@@ -222,15 +223,8 @@ class Postgres extends Plugin {
 
 
     _create_meta_conf() {
-        const metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-${this.name}.json`));
-        const meta = {
-            items: [],
-            sys_graphs: []
-        };
-
-        if (this.params.database && this.params.database !== '') {
-            meta.items = [ this.params.database ];
-        }
+        const metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-${this.name}-${this.instance}.json`));
+        const meta = { sys_graphs: [] };
 
         /*
             using sys_graphs mapping: (sadly, it ties the code to the dashboard template atm)
@@ -247,11 +241,6 @@ class Postgres extends Plugin {
 
             would result in the graph in registration-graph-fs-0-_.json being used for the widget
             which has the tag database:file_system_space on the postgres dashboard
-
-            TODO tie item to sys_graphs so different sets of sys_graphs can be used for each item.
-            the current postgres plugin doesn't support multiple databases concurrently (in a way
-            that this dashboard stuff works) so, this is pushed off as an enhancement to simplify
-            the code for initial release
         */
         if (this.state.fs_mount && this.state.fs_mount !== '') {
             meta.sys_graphs.push({
@@ -262,12 +251,10 @@ class Postgres extends Plugin {
             });
         }
 
-        if (meta.items.length > 0 || meta.sys_graphs.length > 0) {
-            try {
-                fs.writeFileSync(metaFile, JSON.stringify(meta, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
-            } catch (err) {
-                return err;
-            }
+        try {
+            fs.writeFileSync(metaFile, JSON.stringify(meta, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+        } catch (err) {
+            return err;
         }
 
         return null;

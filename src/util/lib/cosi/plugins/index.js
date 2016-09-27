@@ -23,7 +23,8 @@ const Dashboard = require(path.resolve(cosi.lib_dir, 'dashboard'));
 
 Intended to be extended by a plugin. The plugin must fill in four pieces of data:
     name            the name of the plugin (e.g. postgres) templates need to conform to a naming standard
-                    template-templatetype-pluginname-plugininstance.json - template-dashboard-postgres-mydebname.json
+                    template-templatetype-pluginname-plugininstance.json - template-dashboard-postgres-mydbname.json
+    instance        the instance of the plugin (e.g. the postgres database - used for template field expansion macro cosi.dashboard_instance)
     dashboardPrefix if other than pluginname
     graphPrefix     if other than pluginname (e.g. 'pg_' for postgres, the metric group in NAD)
     state           minimum required attribute is 'enabled' true|false. can be used to pass inforamtion from
@@ -47,6 +48,7 @@ class Plugin extends Events {
         this.params = params;
         this.quiet = params.quiet;
         this.name = null;               // set/override in subclass
+        this.instance = null;           // set/override in subclass
         this.dashboardPrefix = null;    // set/override in subclass (if different from name)
         this.graphPrefix = null;        // set/override in subclass (if different from name)
         this.state = {                  // override in subclass with result of enablePlugin
