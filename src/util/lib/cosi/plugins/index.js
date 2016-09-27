@@ -42,11 +42,16 @@ one parameter 'err' which is an Error() or null if no error occurred.
 
 class Plugin extends Events {
 
-    constructor(params) {
+    // options:
+    // noregister - determines whether registration step should be done (true|false) default: false
+    //              useful for running multiple plugin enablers sequentially. don't perform
+    //              registration step on each one. (e.g. cosi installer can auto-discover
+    //              supported services and pre-install/enable the plugins before doing the overall
+    //              system registration.)
+    constructor(options) {
         super();
 
-        this.params = params;
-        this.quiet = params.quiet;
+        this.options = options;
         this.name = null;               // set/override in subclass
         this.instance = null;           // set/override in subclass
         this.dashboardPrefix = null;    // set/override in subclass (if different from name)
@@ -295,6 +300,10 @@ class Plugin extends Events {
 
 
     register() {
+        if (this.options.noregister) {
+            self.emit('register.done');
+            return;
+        }
         console.log(chalk.blue(this.marker));
         console.log('Updating registration');
 

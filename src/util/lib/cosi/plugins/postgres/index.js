@@ -1,7 +1,6 @@
 'use strict';
 
 /* eslint-env node, es6 */
-/* eslint-disable no-magic-numbers, global-require, camelcase */
 
 const fs = require('fs');
 const path = require('path');
@@ -15,13 +14,30 @@ const Plugin = require(path.resolve(path.join(cosi.lib_dir, 'plugins')));
 
 class Postgres extends Plugin {
 
-    constructor(params) {
-        super(params);
+    /* options:
+        database    postgres database to use (default: postgres)
+        port        postgresql server port (default: 5432)
+        user        postgres user (default: postgres)
+        pass        postgres pass (default: none)
+    */
+    constructor(options) {
+        super(options);
         this.name = 'postgres';
-        this.instance = params.database;
+        this.instance = this.options.database;
         this.dashboardPrefix = 'postgres';
         this.graphPrefix = 'pg_';
         this.state = null;
+
+        if (!{}.hasOwnProperty.call(this.options, 'database')) {
+            this.options.database = 'postgres';
+        }
+        if (!{}.hasOwnProperty.call(this.options, 'port')) {
+            this.options.port = '5432';
+        }
+        if (!{}.hasOwnProperty.call(this.options, 'user')) {
+            this.options.user = 'postgres';
+        }
+        // pass has no default, leave it unset
     }
 
     enablePlugin(cb) {
@@ -265,17 +281,17 @@ class Postgres extends Plugin {
         const pg_conf_file = '/opt/circonus/etc/pg-conf.sh';
         const contents = [];
 
-        if (this.params.user !== '') {
-            contents.push(`export PGUSER=${this.params.user}`);
+        if (this.options.user !== '') {
+            contents.push(`export PGUSER=${this.options.user}`);
         }
-        if (this.params.database !== '') {
-            contents.push(`export PGDATABASE=${this.params.database}`);
+        if (this.options.database !== '') {
+            contents.push(`export PGDATABASE=${this.options.database}`);
         }
-        if (this.params.port !== '') {
-            contents.push(`export PGPORT=${this.params.port}`);
+        if (this.options.port !== '') {
+            contents.push(`export PGPORT=${this.options.port}`);
         }
-        if (this.params.pass !== '') {
-            contents.push(`export PGPASSWORD=${this.params.pass}`);
+        if (this.options.pass !== '') {
+            contents.push(`export PGPASSWORD=${this.options.pass}`);
         }
 
         try {
@@ -311,11 +327,6 @@ class Postgres extends Plugin {
         }
 
         return null;
-    }
-
-
-    disable() {
-        this.disablePlugin('postgres', 'postgres', 'pg_');
     }
 }
 

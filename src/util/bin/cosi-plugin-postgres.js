@@ -22,7 +22,7 @@ app.
     option('--user <user>', 'the postgres user to run as, default [postgres]', 'postgres').
     option('--pass <pass>', 'the pass of the postgres user, default none', '').
     option('--port <port>', 'postgres server port, default [5432]', 5432).
-    option('-q, --quiet', 'less output').
+    option('--noregister', 'do not perform automatic registration step').
     parse(process.argv);
 
 if (!app.quiet) {
