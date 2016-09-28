@@ -1,3 +1,8 @@
+### 0.9.0 2016-09-28
+
+* new: plugin scaffolding
+* new: plugin postgresql
+
 ### 0.8.1 2016-07-13
 
 * new: Oracle Linux v7.2 x86_64 support

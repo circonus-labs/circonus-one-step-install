@@ -2,7 +2,7 @@
 - hosts: all
   vars:
     # update when src/package.json version bumped and ready for release
-    cosi_site_version: "0.8.1"
+    cosi_site_version: "0.9.0"
     # if using omnios, ensure node_version is built and appropriate node and
     # modules tgz's are placed in roles/{site,node}/files directories
     # respectively.

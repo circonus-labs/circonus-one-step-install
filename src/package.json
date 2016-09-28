@@ -1,6 +1,6 @@
 {
   "name": "cosi-site",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "private": true,
   "license": "SEE LICENSE IN LICENSE",
   "description": "Circonus One Step Install registration API",
@@ -21,12 +21,8 @@
   "dependencies": {
     "bunyan": "1.8.1",
     "commander": "2.9.0",
-    "dtrace-provider": "0.6.0",
-    "inherits": "2.0.1",
     "node-statsd": "0.1.1",
-    "once": "1.3.3",
-    "restify": "4.1.1",
-    "wrappy": "1.0.2"
+    "restify": "4.1.1"
   },
   "scripts": {
     "check": "make check",
