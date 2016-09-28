@@ -2,7 +2,7 @@
 
 /* eslint-env node, es6 */
 
-/* eslint-disable global-require */
+/* eslint-disable global-require, max-depth */
 
 const assert = require('assert');
 const Events = require('events').EventEmitter;
@@ -152,7 +152,13 @@ class Plugin extends Events {
         const removeMetrics = [];
         const removeFiles = [];
         const dashboardPrefix = this.dashboardPrefix || this.name;
-        const graphPrefix = this.graphPrefix || this.name;
+        let graphPrefix = null;
+
+        if (Array.isArray(this.graphPrefix)) {
+            graphPrefix = this.graphPrefix;
+        } else {
+            graphPrefix = [ this.graphPrefix || this.name ];
+        }
 
         try {
             files = fs.readdirSync(cosi.reg_dir);
@@ -167,41 +173,42 @@ class Plugin extends Events {
             const file = path.resolve(cosi.reg_dir, files[i]);
 
             if (files[i].indexOf(`registration-dashboard-${dashboardPrefix}`) !== -1) {
+                console.log(`\tFile: ${file}`);
+                removeFiles.push({ type : 'dash', file });
+
                 const dash = require(file);
 
                 for (let j = 0; j < dash.widgets.length; j++) {
                     const widget = dash.widgets[j];
 
                     if (widget.type === 'gauge') {
-                        console.log(`\tFound: ${widget.settings.metric_name}`);
+                        console.log(`\tMetric: ${widget.settings.metric_name}`);
                         removeMetrics.push(widget.settings.metric_name);
                     }
                 }
-                console.log(`\tFound: ${file}`);
-                removeFiles.push({ type : 'dash', file });
-            }
+            } else if (files[i].indexOf(`registration-graph-`) !== -1) {
+                for (let pfxIdx = 0; pfxIdx < graphPrefix.length; pfxIdx++) {
+                    if (files[i].indexOf(`registration-graph-${graphPrefix[pfxIdx]}`) !== -1) {
+                        console.log(`\tFile: ${file}`);
+                        removeFiles.push({ type : 'graph', file });
 
-            if (files[i].indexOf(`registration-graph-${graphPrefix}`) !== -1) {
-                const graph = require(file);
+                        const graph = require(file);
 
-                for (let j = 0; j < graph.datapoints.length; j++) {
-                    const dp = graph.datapoints[j];
+                        for (let j = 0; j < graph.datapoints.length; j++) {
+                            const dp = graph.datapoints[j];
 
-                    if (dp.metric_name !== null) {
-                        console.log(`\tFound: ${dp.metric_name}`);
-                        removeMetrics.push(dp.metric_name);
+                            if (dp.metric_name !== null) {
+                                console.log(`\tMetric: ${dp.metric_name}`);
+                                removeMetrics.push(dp.metric_name);
+                            }
+                        }
+                        break;
                     }
                 }
-                console.log(`\tFound: ${file}`);
-                removeFiles.push({ type : 'graph', file });
+            } else if (files[i].indexOf(`meta-dashboard-${this.name}`) !== -1) {
+                console.log(`\tFile: ${file}`);
+                removeFiles.push({ type : 'meta', file });
             }
-        }
-
-        // add meta file if applicable
-        const metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-${this.name}.json`));
-
-        if (this._fileExists(metaFile)) {
-            removeFiles.push({ type: 'meta', metaFile });
         }
 
         this._disableUpdateCheck(removeMetrics, (err) => {
@@ -213,7 +220,10 @@ class Plugin extends Events {
             self._disableRemoveVisuals(removeFiles, (removeErr) => {
                 if (removeErr !== null) {
                     self.emit('error', removeErr);
+                    return;
                 }
+
+                console.log(chalk.green('\nDisabled'), self.name, 'plugin');
             });
         });
     }
@@ -226,6 +236,8 @@ class Plugin extends Events {
             return;
         }
 
+        console.log('Updating system check');
+
         const checkRegFile = path.resolve(path.join(cosi.reg_dir, 'registration-check-system.json'));
         const check = new Check(checkRegFile);
         const checkMetrics = check.metrics;
@@ -233,17 +245,18 @@ class Plugin extends Events {
         for (let i = 0; i < checkMetrics.length; i++) {
             for (let j = 0; j < removeMetrics.length; j++) {
                 if (checkMetrics[i].name === removeMetrics[j]) {
+                    console.log(`\tdisabling metric ${checkMetrics[i].name}`);
                     checkMetrics.splice(i, 1);
                     i -= 1;
                 }
             }
         }
 
-        console.log('Updating system check & removing files');
         check.metrics = checkMetrics;
         if (!{}.hasOwnProperty.call(check, 'metric_limit')) {
             check.metric_limit = 0;
         }
+        console.log('\tSending updated check configuraiton to API');
         check.update((err, result) => {
             if (err) {
                 cb(err);
@@ -265,68 +278,72 @@ class Plugin extends Events {
 
 
     _disableRemoveVisuals(removeFiles, cb) {
+        const self = this;
+
         if (removeFiles.length === 0) {
             console.log('No visuals/files found to remove, skipping');
             cb(null);
             return;
         }
 
-        const self = this;
-        let deconfiguredCount = 0;
-        let expectCount = 0;
+        console.log('Removing files & visuals');
 
-        expectCount = removeFiles.length;
-        this.on('item.deconfigured', () => {
-            deconfiguredCount += 1;
-            if (deconfiguredCount === expectCount) {
-                self.emit('plugin.done');
+        this.on('next.item', () => {
+            const item = removeFiles.shift();
+
+            if (typeof item === 'undefined') {
                 cb(null);
                 return;
             }
+
+            self._removeItem(item, (err) => {
+                if (err !== null) {
+                    cb(err);
+                    return;
+                }
+                self.emit('next.item');
+            });
         });
 
-        console.log('Removing files & visuals');
-        /* now remove all the graphs and dashboards we found above */
-        for (let i = 0; i < removeFiles.length; i++) {
-            const fileName = removeFiles[i].file;
-            const fileType = removeFiles[i].type;
+        this.emit('next.item');
+    }
 
-            if (fileType === 'meta') {
-                try {
-                    fs.unlinkSync(fileName);
-                    console.log(`\tRemoved file: ${fileName}`);
-                } catch (unlinkErr) {
-                    console.log(chalk.yellow('\tWARN'), 'ignoring...', unlinkErr.toString());
+    _removeItem(item, cb) {
+        const self = this;
+
+        if (item.type === 'meta') {
+            try {
+                fs.unlinkSync(item.file);
+                console.log(`\tRemoved file: ${item.file}`);
+            } catch (unlinkErr) {
+                console.log(chalk.yellow('\tWARN'), 'ignoring...', unlinkErr.toString());
+            }
+            cb(null);
+            return;
+        } else if (item.type === 'dash') {
+            const dash = new Dashboard(item.file);
+
+            console.log('\tRemoving dashboard', dash.title);
+            dash.remove((err) => {
+                if (err) {
+                    cb(err);
+                    return;
                 }
-            }
+                self._removeRegistrationFiles(item.file);
+                cb(null);
+            });
+        } else if (item.type === 'graph') {
+            const graph = new Graph(item.file);
 
-            if (fileType === 'dash') {
-                const dash = new Dashboard(fileName);
-
-                console.log('\tRemoving dashboard', dash.title);
-                dash.remove((dashboardRemoveErr) => {
-                    if (dashboardRemoveErr) {
-                        self.emit('error', dashboardRemoveErr);
-                        return;
-                    }
-                    self._removeRegistrationFiles(fileName);
-                    self.emit('item.deconfigured');
-                });
-            }
-
-            if (fileType === 'graph') {
-                const graph = new Graph(fileName);
-
-                console.log('\tRemoving graph', graph.title);
-                graph.remove((graphRemoveErr) => {
-                    if (graphRemoveErr) {
-                        self.emit('error', graphRemoveErr);
-                        return;
-                    }
-                    self._removeRegistrationFiles(fileName);
-                    self.emit('item.deconfigured');
-                });
-            }
+            console.log('\tRemoving graph', graph.title);
+            graph.remove((err) => {
+                if (err) {
+                    cb(err);
+                    return;
+                }
+                self._removeRegistrationFiles(item.file);
+                cb(null);
+            });
         }
     }
 
@@ -372,23 +389,18 @@ class Plugin extends Events {
 
         const self = this;
         const script = path.resolve(path.join(cosi.cosi_dir, 'bin', 'cosi'));
-        const reg = child.spawn(script, [ 'register' ]);
+        const reg = child.spawn(script, [ 'register' ], { stdio: 'inherit' });
 
-        reg.stdout.on('data', (data) => {
-            console.log(data);
+        reg.on('error', (err) => {
+            self.emit('error', err);
         });
-        reg.stderr.on('data', (data) => {
-            console.log(chalk.red('stderr:'), data);
-        });
-        reg.on('error', (spawnErr) => {
-            console.error(spawnErr);
-            process.exit(1); // eslint-disable-line no-process-exit
-        });
+
         reg.on('close', (code) => {
-            console.log('reg finished with code', code);
             if (code !== 0) {
+                console.log(chalk.red('ERROR'), 'Registration exited with non-zero code', code);
                 process.exit(code); // eslint-disable-line no-process-exit
             }
+            console.log(chalk.green('Completed'), `registration for ${self.name} plugin`);
             self.emit('register.done');
         });
     }
@@ -398,17 +410,18 @@ class Plugin extends Events {
     // override in subclass if there are multiple templates to fetch
     fetchTemplates() {
         const self = this;
-        const templateId = `dashboard-${this.name}`;
-        const cfgFile = path.resolve(path.join(cosi.reg_dir, `template-${templateId}.json`));
+        const templateID = `dashboard-${this.name}`;
         const fetcher = new TemplateFetcher();
 
-        console.log(`\tFetching templates for ${templateId}`);
+        console.log(`\tFetching templates for ${templateID}`);
 
-        fetcher.template(templateId, (err, template) => {
+        fetcher.template(templateID, (err, template) => {
             if (err !== null) {
                 self.emit('error', err);
                 return;
             }
+
+            const cfgFile = path.resolve(path.join(cosi.reg_dir, `template-${templateID}-${this.instance}.json`));
 
             template.save(cfgFile, true);
             console.log(chalk.green('\tSaved'), `template ${cfgFile}`);
