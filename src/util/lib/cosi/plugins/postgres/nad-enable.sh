@@ -46,9 +46,25 @@ if [[ -n "$DATA_DIR" ]]; then
     DATA_DIR=$(echo -e "${DATA_DIR}" | tr -d '[[:space:]]')
     FS_NAME=$(df --output=target "$DATA_DIR" | tail -1)
 fi
-echo "{\"enabled\": true, \"fs_mount\": \"${FS_NAME}\", \"data_dir\": \"${DATA_DIR}\", \"protocol_observer\": ${PROTOCOL_OBSERVER} }"
 
 popd >/dev/null
 
+# ensure nad is exposing some of the new metrics
+found=0
+for i in {0..10}; do
+    res=$(curl -sS localhost:2609/run/pg_db_size | grep -c '_value')
+    if [[ $res -gt 0 ]]; then
+        found=1
+        break
+    fi
+    sleep 1
+done
+
+if [[ found -eq 0 ]]; then
+    echo "{\"enabled\": false }"
+    exit 1
+fi
+
 # if we have arrived here, the postgres plugin in NAD is installed and operating
+echo "{\"enabled\": true, \"fs_mount\": \"${FS_NAME}\", \"data_dir\": \"${DATA_DIR}\", \"protocol_observer\": ${PROTOCOL_OBSERVER} }"
 exit 0
