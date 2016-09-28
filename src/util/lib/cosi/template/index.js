@@ -72,7 +72,7 @@ module.exports = class Template {
         // will be removed...
         const parts = path.basename(fileName, '.json').split('-');
 
-        if (parts && parts.length === 3) {
+        if (parts && parts.length >= 3) {
             this.id = parts[2].replace('.json', '');
             this.type = parts[1];
         } else {
