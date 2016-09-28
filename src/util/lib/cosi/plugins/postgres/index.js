@@ -39,6 +39,8 @@ cd $GOPATH/src/github.com/circonus-labs/wirelatency/protocol_observer
 go build
 
 # copy resulting protocol_observer binary somewhere in $PATH so the plugin can find it
+# or to the default location of /opt/circonus/bin/protocol_observer
+cp protocol_observer /opt/circonus/bin
 ```
 
 */
@@ -55,7 +57,7 @@ class Postgres extends Plugin {
         this.name = 'postgres';
         this.instance = this.options.database;
         this.dashboardPrefix = 'postgres';
-        this.graphPrefix = 'pg_';
+        this.graphPrefix = [ 'pg_', 'postgres_protocol_observer' ];
         this.state = null;
 
         if (!{}.hasOwnProperty.call(this.options, 'database')) {
@@ -202,7 +204,7 @@ class Postgres extends Plugin {
 
     addCustomMetrics(cb) { // eslint-disable-line consistent-return
 
-        if (!this.protocol_observer) {
+        if (!this.state.protocol_observer) {
             return cb(null);
         }
 
