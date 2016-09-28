@@ -153,8 +153,6 @@ class Plugin extends Events {
         const removeFiles = [];
         const dashboardPrefix = this.dashboardPrefix || this.name;
         const graphPrefix = this.graphPrefix || this.name;
-        let deconfiguredCount = 0;
-        let expectCount = 0;
 
         try {
             files = fs.readdirSync(cosi.reg_dir);
@@ -162,6 +160,8 @@ class Plugin extends Events {
             this.emit(err);
             return;
         }
+
+        console.log(`Finding metrics & files for plugin ${this.name}`);
 
         for (let i = 0; i < files.length; i++) {
             const file = path.resolve(cosi.reg_dir, files[i]);
@@ -173,9 +173,11 @@ class Plugin extends Events {
                     const widget = dash.widgets[j];
 
                     if (widget.type === 'gauge') {
+                        console.log(`\tFound: ${widget.settings.metric_name}`);
                         removeMetrics.push(widget.settings.metric_name);
                     }
                 }
+                console.log(`\tFound: ${file}`);
                 removeFiles.push({ type : 'dash', file });
             }
 
@@ -185,26 +187,44 @@ class Plugin extends Events {
                 for (let j = 0; j < graph.datapoints.length; j++) {
                     const dp = graph.datapoints[j];
 
-                    removeMetrics.push(dp.metric_name);
+                    if (dp.metric_name !== null) {
+                        console.log(`\tFound: ${dp.metric_name}`);
+                        removeMetrics.push(dp.metric_name);
+                    }
                 }
+                console.log(`\tFound: ${file}`);
                 removeFiles.push({ type : 'graph', file });
             }
         }
 
-        // add meta file, if applicable
-        const metaFile = path.resolve(path.join(cosi.reg_dir, `meta-${this.name}.json`));
+        // add meta file if applicable
+        const metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-${this.name}.json`));
 
         if (this._fileExists(metaFile)) {
             removeFiles.push({ type: 'meta', metaFile });
         }
 
-        expectCount = removeFiles.length;
-        self.on('item.deconfigured', () => {
-            deconfiguredCount += 1;
-            if (deconfiguredCount === expectCount) {
-                self.emit('plugin.done');
+        this._disableUpdateCheck(removeMetrics, (err) => {
+            if (err !== null) {
+                self.emti('error', err);
+                return;
             }
+
+            self._disableRemoveVisuals(removeFiles, (removeErr) => {
+                if (removeErr !== null) {
+                    self.emit('error', removeErr);
+                }
+            });
         });
+    }
+
+
+    _disableUpdateCheck(removeMetrics, cb) {
+        if (removeMetrics.length === 0) {
+            console.log('No metrics found to remove, skipping check update');
+            cb(null);
+            return;
+        }
 
         const checkRegFile = path.resolve(path.join(cosi.reg_dir, 'registration-check-system.json'));
         const check = new Check(checkRegFile);
@@ -218,63 +238,98 @@ class Plugin extends Events {
                 }
             }
         }
+
+        console.log('Updating system check & removing files');
         check.metrics = checkMetrics;
+        if (!{}.hasOwnProperty.call(check, 'metric_limit')) {
+            check.metric_limit = 0;
+        }
         check.update((err, result) => {
             if (err) {
-                self.emit(err);
+                cb(err);
                 return;
             }
-            console.log('Updated system check with removed metrics');
 
             try {
                 fs.writeFileSync(checkRegFile, JSON.stringify(result, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+                console.log(chalk.green('\tUpdated'), `system check, saved`, checkRegFile);
             } catch (writeErr) {
-                self.emit(writeErr);
+                cb(writeErr);
                 return;
             }
 
-            /* now remove all the graphs and dashboards we found above */
-            for (let i = 0; i < removeFiles.length; i++) {
-                const fileName = removeFiles[i].file;
-                const fileType = removeFiles[i].type;
-
-                console.log(`Removing: ${fileName}`);
-                if (fileType === 'meta') {
-                    try {
-                        fs.unlinkSync(fileName);
-                    } catch (unlinkErr) {
-                        console.log(chalk.yellow('WARN'), 'removing', fileName, unlinkErr);
-                    }
-                }
-
-                if (fileType === 'dash') {
-                    const dash = new Dashboard(fileName);
-
-                    dash.remove((dashboardRemoveErr) => {
-                        if (dashboardRemoveErr) {
-                            self.emit('error', dashboardRemoveErr);
-                            return;
-                        }
-                        self._removeRegistrationFiles(fileName);
-                        self.emit('item.deconfigured');
-                    });
-                }
-
-                if (fileType === 'graph') {
-                    const graph = new Graph(fileName);
-
-                    graph.remove((graphRemoveErr) => {
-                        if (graphRemoveErr) {
-                            self.emit('error', graphRemoveErr);
-                            return;
-                        }
-                        self._removeRegistrationFiles(fileName);
-                        self.emit('item.deconfigured');
-                    });
-                }
-            }
+            cb(null);
+            return;
         });
     }
+
+
+    _disableRemoveVisuals(removeFiles, cb) {
+        if (removeFiles.length === 0) {
+            console.log('No visuals/files found to remove, skipping');
+            cb(null);
+            return;
+        }
+
+        const self = this;
+        let deconfiguredCount = 0;
+        let expectCount = 0;
+
+        expectCount = removeFiles.length;
+        this.on('item.deconfigured', () => {
+            deconfiguredCount += 1;
+            if (deconfiguredCount === expectCount) {
+                self.emit('plugin.done');
+                cb(null);
+                return;
+            }
+        });
+
+        console.log('Removing files & visuals');
+        /* now remove all the graphs and dashboards we found above */
+        for (let i = 0; i < removeFiles.length; i++) {
+            const fileName = removeFiles[i].file;
+            const fileType = removeFiles[i].type;
+
+            if (fileType === 'meta') {
+                try {
+                    fs.unlinkSync(fileName);
+                    console.log(`\tRemoved file: ${fileName}`);
+                } catch (unlinkErr) {
+                    console.log(chalk.yellow('\tWARN'), 'ignoring...', unlinkErr.toString());
+                }
+            }
+
+            if (fileType === 'dash') {
+                const dash = new Dashboard(fileName);
+
+                console.log('\tRemoving dashboard', dash.title);
+                dash.remove((dashboardRemoveErr) => {
+                    if (dashboardRemoveErr) {
+                        self.emit('error', dashboardRemoveErr);
+                        return;
+                    }
+                    self._removeRegistrationFiles(fileName);
+                    self.emit('item.deconfigured');
+                });
+            }
+
+            if (fileType === 'graph') {
+                const graph = new Graph(fileName);
+
+                console.log('\tRemoving graph', graph.title);
+                graph.remove((graphRemoveErr) => {
+                    if (graphRemoveErr) {
+                        self.emit('error', graphRemoveErr);
+                        return;
+                    }
+                    self._removeRegistrationFiles(fileName);
+                    self.emit('item.deconfigured');
+                });
+            }
+        }
+    }
+
 
     _removeRegistrationFiles(regFile) {
         if (regFile.indexOf('registration-') === -1) {
@@ -282,14 +337,22 @@ class Plugin extends Events {
         }
 
         const cfgFile = regFile.replace('registration-', 'config-');
-        const tmplFile = regFile.replace('registration-', 'template-');
+        let tmplFile = regFile.replace('registration-', 'template-');
+
+        if (regFile.match('registration-graph')) {
+            const parts = regFile.split('-');
+
+            if (parts) {
+                tmplFile = path.resolve(path.join(cosi.reg_dir, `template-graph-${parts[2]}.json`));
+            }
+        }
 
         function remove(file) {
             try {
-                console.log(`Removing file: ${file}`);
                 fs.unlinkSync(file);
+                console.log(`\t\tRemoved file: ${file}`);
             } catch (err) {
-                console.log(chalk.yellow('WARN'), 'removing', file, err);
+                console.log(chalk.yellow('\t\tWARN'), 'ignoring...', err.toString());
             }
         }
 
@@ -301,7 +364,7 @@ class Plugin extends Events {
 
     register() {
         if (this.options.noregister) {
-            self.emit('register.done');
+            this.emit('register.done');
             return;
         }
         console.log(chalk.blue(this.marker));
