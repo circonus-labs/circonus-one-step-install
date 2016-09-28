@@ -12,4 +12,10 @@ done
 
 popd >/dev/null
 
+# kill postgres protocol_observer process if it is running
+popid=$(pgrep -n -f 'protocol_observer -wire postgres')
+if [[ -n "$popid" ]]; then
+    kill -p $popid
+fi
+
 exit 0
