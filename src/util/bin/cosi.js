@@ -18,6 +18,7 @@ app.
     command("graph", "COSI graph actions").
     command("worksheet", "COSI worksheet actions").
     command("rulesets", "Manage Alert rule sets").
+    command("plugin", "Manage agent plugins").
     //command("metrics", "NAD metrics for this host").
     command("template", "COSI check & graph template actions").
     command("broker", "Circonus broker information actions").

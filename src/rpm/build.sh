@@ -9,7 +9,7 @@ BOLD=$(tput bold)
 RESET=$(tput sgr0)
 
 echo "${BLUE}Creating temporary copy of cosi-install.sh (${YELLOW}will be deleted after build${BLUE})${RESET}"
-cp -v ../content/files/cosi-install.sh .
+cp ../content/files/cosi-install.sh .
 
 
 pkg_json="../package.json"
@@ -30,5 +30,5 @@ echo "${BLUE}Destroying build VM${RESET}"
 vagrant destroy --force
 
 echo "${BLUE}Cleaning up temporary files${RESET}"
-rm -v cosi-install.sh build.rpmmacros
+rm cosi-install.sh build.rpmmacros
 

@@ -1,3 +1,8 @@
+### 0.9.0 2016-09-28
+
+* new: plugin scaffolding
+* new: plugin postgresql
+
 ### 0.8.3 2016-09-16
 
 * new: RedHat 6 x86_64 support (tested w/RHEL 6.5.0.1 Santiago)

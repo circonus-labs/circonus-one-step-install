@@ -64,7 +64,7 @@
             "min_right_y": null,
             "notes": null,
             "style": "area",
-            "tags": [],
+            "tags": ["network:bandwidth"],
             "title": "{{=cosi.host_name}} {{=cosi.graph_item}} bps"
         },
         {

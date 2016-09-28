@@ -1,0 +1,43 @@
+{
+    "type": "graph",
+    "id": "pg_transactions",
+    "description": "Postgres transactions tracker",
+    "version": "0.1.0",
+    "notes": [],
+    "graphs": [
+        {
+            "access_keys": [],
+            "composites": [],
+            "datapoints": [
+                {
+                    "alpha": null,
+                    "axis": "l",
+                    "check_id": null,
+                    "color": "#4fa18e",
+                    "data_formula": null,
+                    "derive": "derive",
+                    "hidden": false,
+                    "legend_formula": null,
+                    "metric_name": "pg_transactions`commits",
+                    "metric_type": "numeric",
+                    "name": "commits",
+                    "stack": null
+                }
+            ],
+            "description": "Postgres commits",
+            "guides": [],
+            "line_style": "stepped",
+            "logarithmic_left_y": null,
+            "logarithmic_right_y": null,
+            "max_left_y": null,
+            "max_right_y": null,
+            "metric_clusters": [],
+            "min_left_y": null,
+            "min_right_y": null,
+            "notes": null,
+            "style": "line",
+            "tags": ["database:postgres", "database:commits"],
+            "title": "{{=cosi.host_name}} Postgres Commits"
+        }
+    ]
+}
