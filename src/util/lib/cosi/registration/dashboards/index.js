@@ -129,6 +129,7 @@ class Dashboards extends Registration {
                 self.templates.push(template);
             }
 
+            console.log(chalk.green('Loaded'), `${this.templates.length} template(s)`);
             self.emit('templates.find.done');
         });
     }
@@ -163,8 +164,8 @@ class Dashboards extends Registration {
             return;
         }
 
+        console.log(chalk.green('Loaded'), `meta data from ${this.graphs.length} graphs`);
         this.emit('graphs.load.done');
-
     }
 
 
@@ -172,11 +173,12 @@ class Dashboards extends Registration {
         const self = this;
         const dashboards = this.templates;
 
+        console.log(chalk.bold(`Configuring dasbhoards`), `for ${this.templates.length} template(s)`);
+
         this.on('config.dashboard.next', () => {
             const template = dashboards.shift();
 
-            if (typeof dashboardID === 'undefined') {
-                self.removeAllListeners('config.dashboard.next');
+            if (typeof template === 'undefined') {
                 self.emit('dashboards.config.done');
                 return;
             }
@@ -241,7 +243,7 @@ class Dashboards extends Registration {
         }
 
         // const template = new Template(templateFile);
-        const config = template.config;
+        const config = JSON.parse(JSON.stringify(template.config.config));
         let data = null;
 
         data = this._mergeData(`dashboard-${dashboardID}`);
@@ -364,9 +366,7 @@ class Dashboards extends Registration {
             const configFile = dashboardConfigs.shift();
 
             if (typeof configFile === 'undefined') {
-                self.removeAllListeners('create.dashboard');
-                self.removeAllListeners('create.dashboard.next');
-                self.emit('dashboards.done');
+                self.emit('dashboards.create.done');
                 return;
             }
 
