@@ -2,12 +2,13 @@
 
 /* eslint-env node, es6 */
 
-const fs = require('fs');
-const path = require('path');
 const child = require('child_process');
+const fs = require('fs');
+const http = require('http');
+const path = require('path');
+const url = require('url');
 
 const chalk = require('chalk');
-const client = require('request');
 
 const cosi = require(path.resolve(path.join(__dirname, '..', '..', '..', 'cosi')));
 const Plugin = require(path.resolve(path.join(cosi.lib_dir, 'plugins')));
@@ -241,21 +242,39 @@ class Postgres extends Plugin {
             }
         }
 
-        let url = cosi.agent_url;
+        let agent_url = cosi.agent_url;
 
-        if (!url.endsWith('/')) {
-            url += '/';
+        if (!agent_url.endsWith('/')) {
+            agent_url += '/';
         }
-        url += 'write/postgres_protocol_observer';
-        console.log(`\tSending new metrics to ${url}`);
+        agent_url += 'write/postgres_protocol_observer';
 
-        client.post(url, { json: po }, (error, response, body) => {
-            if (error || response.statusCode !== 200) {
-                return cb(new Error(`${error} ${body}`));
-            }
-            console.log(chalk.green('Added'), 'new metrics for protocol_observer.');
-            return cb(null);
+        const options = url.parse(agent_url);
+
+        options.method = 'POST';
+
+        console.log(`\tSending new metrics to ${options.href}`);
+
+        const req = http.request(options, (res) => {
+            let body = '';
+
+            res.on('data', (chunk) => {
+                body += chunk;
+            });
+
+            res.on('end', () => {
+                if (res.statusCode !== 200) {
+                    cb(new Error(`NAD non-200 response ${res.statusCode} ${res.statusMessage} body: ${body}`));
+                    return;
+                }
+                console.log(chalk.green('\tAdded'), 'new metrics for protocol_observer.');
+                cb(null);
+                return;
+            });
         });
+
+        req.write(JSON.stringify(po));
+        req.end();
     }
 
 
