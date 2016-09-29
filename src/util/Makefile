@@ -45,6 +45,9 @@ endif
 	# postgres
 	install -m 0700 lib/cosi/plugins/postgres/nad-enable.sh build/lib/cosi/plugins/postgres/.
 	install -m 0700 lib/cosi/plugins/postgres/nad-disable.sh build/lib/cosi/plugins/postgres/.
+	# cassandra
+	install -m 0700 lib/cosi/plugins/cassandra/nad-enable.sh build/lib/cosi/plugins/cassandra/.
+	install -m 0700 lib/cosi/plugins/cassandra/nad-disable.sh build/lib/cosi/plugins/cassandra/.
 	install package.json build/.
 	install Makefile build/.
 	install README.md build/.
