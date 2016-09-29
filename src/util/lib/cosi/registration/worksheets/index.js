@@ -199,6 +199,15 @@ class Worksheets extends Registration {
             console.log(`\tInterpolating ${opt} ${cfg[opt]}`);
             cfg[opt] = this._expand(cfg[opt], data); // eslint-disable-line no-param-reassign
         }
+
+        // expand tags
+        for (let i = 0; i < cfg.tags.length; i++) {
+            if (cfg.tags[i].indexOf('{{') !== -1) {
+                console.log(`\tInterpolating tag ${cfg.tags[i]}`);
+                cfg.tags[i] = this._expand(cfg.tags[i], data); // eslint-disable-line no-param-reassign
+            }
+        }
+
     }
 
     finalizeWorksheets() {
