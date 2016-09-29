@@ -525,6 +525,14 @@ class Graphs extends Registration {
                 }
             }
         }
+
+        // expand tags
+        for (let i = 0; i < cfg.tags.length; i++) {
+            if (cfg.tags[i].indexOf('{{') !== -1) {
+                console.log(`\tInterpolating tag ${cfg.tags[i]}`);
+                cfg.tags[i] = this._expand(cfg.tags[i], data); // eslint-disable-line no-param-reassign
+            }
+        }
     }
 
 

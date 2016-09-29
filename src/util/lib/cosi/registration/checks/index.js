@@ -123,8 +123,45 @@ class Checks extends Registration {
             }
         }
 
+        if (updateCheck) {
+            check.metrics = visualMetrics;
+        }
+
+        // check for new metric tags
+        const metricTagFile = path.resolve(path.join(cosi.reg_dir, 'metric-tags.json'));
+
+        if (this._fileExists(metricTagFile)) {
+            let metricTags = {};
+
+            try {
+                metricTags = require(metricTagFile);
+            } catch (err) {
+                // ignore
+            }
+
+            console.log(chalk.bold('\tChecking metric tags'), `from ${metricTagFile}`);
+
+            for (let i = 0; i < check.metrics.length; i++) {
+                const metricName = check.metrics[i].name;
+
+                if ({}.hasOwnProperty.call(metricTags, metricName)) {
+                    const currTags = check.metrics[i].tags.join(',');
+
+                    for (let j = 0; j < metricTags[metricName].length; j++) {
+                        const tag = metricTags[metricName][j];
+
+                        if (currTags.indexOf(tag) === -1) {
+                            console.log('\t\tFound', `new tag for ${metricName}, adding ${tag}`);
+                            check.metrics[i].tags.push(tag);
+                            updateCheck = true;
+                        }
+                    }
+                }
+            }
+        }
+
         if (!updateCheck) {
-            console.log(chalk.green('\tSKIPPING'), 'check update, no new metrics found');
+            console.log(chalk.green('\tSKIPPING'), 'check update, no new metrics or metric tags found');
             this.emit('check.update.done');
             cb();
             return;
@@ -133,7 +170,6 @@ class Checks extends Registration {
         const self = this;
 
         console.log(chalk.bold(`\tUpdating system check`), 'new metrics found');
-        check.metrics = visualMetrics;
         if (!{}.hasOwnProperty.call(check, 'metric_limit')) {
             check.metric_limit = 0;
         }
@@ -746,6 +782,15 @@ class Checks extends Registration {
                 cfg[opt] = this._expand(cfg[opt], data); // eslint-disable-line no-param-reassign
             }
         }
+
+        // expand tags
+        for (let i = 0; i < cfg.tags.length; i++) {
+            if (cfg.tags[i].indexOf('{{') !== -1) {
+                console.log(`\tInterpolating tag ${cfg.tags[i]}`);
+                cfg.tags[i] = this._expand(cfg.tags[i], data); // eslint-disable-line no-param-reassign
+            }
+        }
+
     }
 
 
