@@ -73,6 +73,7 @@ popd >/dev/null
 expected=${#enabled_scripts[@]}
 found=0
 for i in {0..10}; do
+    found=0
     res=$(curl -sS localhost:2609/)
     for x in ${enabled_scripts[*]}; do
        	has=$(echo $res | grep -c $x)
