@@ -53,17 +53,11 @@ uses libpcap to capture packets and observe the protocol.
 */
 class Cassandra extends Plugin {
 
-    /* options:
-        database    postgres database to use (default: postgres)
-        port        postgresql server port (default: 5432)
-        user        postgres user (default: postgres)
-        pass        postgres pass (default: none)
-    */
     constructor(options) {
         super(options);
         this.name = 'cassandra';
         this.instance = "cassandra";
-        this.dashboardPrefix = 'cassandra_node';
+        this.dashboardPrefix = 'cassandranode';
         this.graphPrefix = [ 'cassandra_', 'cassandra_protocol_observer' ];
         this.regDir = cosi.reg_dir;
     }
@@ -147,7 +141,7 @@ class Cassandra extends Plugin {
 
     fetchTemplates() {
         const self = this;
-        const templateID = "dashboard-cassandra_node";
+        const templateID = "dashboard-cassandranode";
         const fetcher = new TemplateFetcher();
 
         console.log(`\tFetching templates for ${templateID}`);
@@ -162,7 +156,7 @@ class Cassandra extends Plugin {
 
             template.save(cfgFile, true);
             console.log(chalk.green('\tSaved'), `template ${cfgFile}`);
-            const clusterTemplateID = "dashboard-cassandra_cluster";
+            const clusterTemplateID = "dashboard-cassandracluster";
             console.log(`\tFetching templates for ${clusterTemplateID}`);
             fetcher.template(clusterTemplateID, (err, template) => {
                 if (err !== null) {
@@ -341,7 +335,7 @@ class Cassandra extends Plugin {
                     { encoding: "utf8", mode: 0o644, flag: "w" }
                 );
 
-                const templateFile = path.resolve(self.regDir, "template-dashboard-cassandra_node.json");
+                const templateFile = path.resolve(self.regDir, "template-dashboard-cassandranode.json");
                 let template = require(templateFile);
                 let dash = template.config;
 

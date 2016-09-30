@@ -36,10 +36,12 @@ if [ -n "$POPATH" ]; then
   PROTOCOL_OBSERVER="true"
 fi
 
+sleep 3
+
 # ensure nad is exposing some of the new metrics
 found=0
 for i in {0..10}; do
-    res=$(curl -sS localhost:2609/run/cassandra_info | grep -c '_value')
+    res=$(curl -sS localhost:2609 | grep -c 'cassandra_info')
     if [[ $res -gt 0 ]]; then
         found=1
         break
