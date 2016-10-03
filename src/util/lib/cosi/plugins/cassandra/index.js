@@ -314,6 +314,9 @@ class Cassandra extends Plugin {
         }
 
         for (const metricGroup in metrics) { // eslint-disable-line guard-for-in
+            if (!(/^cassandra_/).test(metricGroup)) {
+                continue;
+            }
             for (const metricName in metrics[metricGroup]) { // eslint-disable-line guard-for-in
                 const fullMetricName = `${metricGroup}\`${metricName}`;
                 let metricTags = metric_tags[fullMetricName];
@@ -322,8 +325,12 @@ class Cassandra extends Plugin {
                     metricTags = [];
                 }
 
-                metricTags.push(`cluster:${this.state.cluster_name}`);
-                metric_tags[fullMetricName] = metricTags;
+                const clusterTag = `cluster:${this.state.cluster_name}`;
+
+                if (metricTags.indexOf(clusterTag) === -1) {
+                    metricTags.push(clusterTag);
+                    metric_tags[fullMetricName] = metricTags;
+                }
             }
         }
 
