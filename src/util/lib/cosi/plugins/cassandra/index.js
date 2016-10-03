@@ -56,15 +56,15 @@ class Cassandra extends Plugin {
     constructor(options) {
         super(options);
         this.name = 'cassandra';
-        this.instance = "cassandra";
+        this.instance = 'cassandra';
         this.dashboardPrefix = 'cassandranode';
         this.graphPrefix = [ 'cassandra_', 'cassandra_protocol_observer' ];
-        this.regDir = cosi.reg_dir;
     }
+
 
     enablePlugin(cb) {
         console.log(chalk.blue(this.marker));
-        console.log("Enabling agent plugin for Cassandra database");
+        console.log('Enabling agent plugin for Cassandra database');
 
         let err = null;
 
@@ -97,7 +97,6 @@ class Cassandra extends Plugin {
                 return;
             }
             cb(null);
-            return;
         });
 
         this.addCustomMetrics((err) => {
@@ -139,9 +138,13 @@ class Cassandra extends Plugin {
         });
     }
 
+
+    // support methods
+
+
     fetchTemplates() {
         const self = this;
-        const templateID = "dashboard-cassandranode";
+        const templateID = 'dashboard-cassandranode';
         const fetcher = new TemplateFetcher();
 
         console.log(`\tFetching templates for ${templateID}`);
@@ -156,21 +159,25 @@ class Cassandra extends Plugin {
 
             template.save(cfgFile, true);
             console.log(chalk.green('\tSaved'), `template ${cfgFile}`);
-            const clusterTemplateID = "dashboard-cassandracluster";
+
+            const clusterTemplateID = 'dashboard-cassandracluster';
+
             console.log(`\tFetching templates for ${clusterTemplateID}`);
-            fetcher.template(clusterTemplateID, (err, template) => {
-                if (err !== null) {
-                    self.emit('error', err);
+            fetcher.template(clusterTemplateID, (clusterErr, clusterTemplate) => {
+                if (clusterErr !== null) {
+                    self.emit('error', clusterErr);
                     return;
                 }
 
-                const cfgFile = path.resolve(path.join(cosi.reg_dir, `template-${clusterTemplateID}.json`));
+                const clusterCfgFile = path.resolve(path.join(cosi.reg_dir, `template-${clusterTemplateID}.json`));
 
-                template.save(cfgFile, true);
-                console.log(chalk.green('\tSaved'), `template ${cfgFile}`);
+                clusterTemplate.save(clusterCfgFile, true);
+                console.log(chalk.green('\tSaved'), `template ${clusterCfgFile}`);
                 self.emit('fetch.done');
             });
         });
+
+
     }
 
 
@@ -207,7 +214,6 @@ class Cassandra extends Plugin {
             console.log(chalk.green('\tEnabled'), 'agent plugin for Cassandra');
 
             cb(null);
-            return;
         });
     }
 
@@ -228,21 +234,13 @@ class Cassandra extends Plugin {
         */
         const po = {};
 
-        const types = ["Query", "Execute", "Prepare"];
-        const seps = ["`"];
-        const atts = ["latency", "request_bytes", "response_bytes"];
+        const types = [ 'Query', 'Execute', 'Prepare' ];
+        const seps = [ '`' ];
+        const atts = [ 'latency', 'request_bytes', 'response_bytes' ];
 
-        // for (const type of types) {
-        for (let i = 0; i < types.length; i++) {
-            const type = types[i];
-
-            // for (const sep of seps ) {
-            for (let j = 0; j < seps.length; j++) {
-                const sep = seps[j];
-
-                // for (const att of atts) {
-                for (let k = 0; k < atts.length; k++) {
-                    const att = atts[k];
+        for (const type of types) {
+            for (const sep of seps) {
+                for (const att of atts) {
                     const key = type + sep + att;
 
                     if (!{}.hasOwnProperty.call(po, key)) {
@@ -288,107 +286,157 @@ class Cassandra extends Plugin {
     }
 
 
+    _loadMetrics(cb) {
+        const metricsLoader = new Metrics(cosi.agent_url);
+
+        metricsLoader.getMetrics((err, metrics) => {
+            if (err) {
+                cb(err);
+                return;
+            }
+            cb(null, metrics);
+        });
+    }
+
+
+    _createMetricTags(metrics, cb) {
+        const metricTagsFile = path.resolve(path.join(cosi.reg_dir, 'metric-tags.json'));
+        let metric_tags = {};
+
+        try {
+            metric_tags = require(metricTagsFile); // eslint-disable-line global-require
+        } catch (err) {
+            if (err.code !== 'MODULE_NOT_FOUND') {
+                cb(err);
+                return;
+            }
+            // otherwise ignore, creating a new metric tag file
+        }
+
+        for (const metricGroup in metrics) { // eslint-disable-line guard-for-in
+            for (const metricName in metrics[metricGroup]) { // eslint-disable-line guard-for-in
+                const fullMetricName = `${metricGroup}\`${metricName}`;
+                let metricTags = metric_tags[fullMetricName];
+
+                if (!Array.isArray(metricTags)) {
+                    metricTags = [];
+                }
+
+                metricTags.push(`cluster:${this.state.cluster_name}`);
+                metric_tags[fullMetricName] = metricTags;
+            }
+        }
+
+        try {
+            fs.writeFileSync(metricTagsFile, JSON.stringify(metric_tags, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+        } catch (err) {
+            cb(err);
+            return;
+        }
+
+        cb(null, metricTagsFile);
+    }
+
+
+    _addCFGraphs(metrics, cb) {
+        const templateFile = path.resolve(path.join(cosi.reg_dir, 'template-dashboard-cassandranode.json'));
+        const template = require(templateFile); // eslint-disable-line global-require
+        const dash = template.config;
+
+        const width = dash.grid_layout.width;
+        let height = dash.grid_layout.height;
+        let graphs_added = 0;
+
+        for (const cf in metrics.cassandra_cfstats) {
+            if (!{}.hasOwnProperty.call(metrics.cassandra_cfstats[cf], 'read_count')) {
+                continue;
+            }
+
+            dash.widgets.push({
+                width,
+                name : 'Graph',
+                active : true,
+                origin : `a${height - 1}`,
+                height : 1,
+                settings : {
+                    hide_yaxis: false,
+                    graph_id: null,
+                    show_flags: true,
+                    _graph_title: `{{=cosi.host_name}} {{=cosi.dashboard_item}} ${cf}`,
+                    key_inline: false,
+                    period: 2000,
+                    key_size: 1,
+                    overlay_set_id: '',
+                    account_id: cosi.account_id,
+                    date_window: '2h',
+                    key_wrap: false,
+                    hide_xaxis: false,
+                    label: `{{=cosi.dashboard_item}} ${cf}`,
+                    key_loc: 'noop',
+                    realtime: false
+                },
+                tags: [ `cassandra:cfstats:${cf}` ],
+                type: 'graph',
+                widget_id: `w${width * height}`
+            });
+
+            graphs_added += 1;
+            height += 1;
+        }
+
+        dash.grid_layout.height = height;
+
+        try {
+            fs.writeFileSync(templateFile, JSON.stringify(template, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+        } catch (err) {
+            cb(err);
+            return;
+        }
+
+        cb(null, graphs_added, templateFile);
+    }
+
+
     preConfigDashboard() {
+        const metaErr = this._create_meta_conf();
+
+        if (metaErr !== null) {
+            this.emit('preconfig.done', metaErr);
+            return;
+        }
+        console.log(chalk.green(`\tSaved`), 'meta configuration');
+
+        //  ask NAD for the current metrics so we can alter the node and cluster templates
+        //  to leave space for column family graphs at the bottom
+
         const self = this;
-        const err = this._create_meta_conf();
 
-        if (err === null) {
-            console.log(chalk.green(`\tSaved`), 'meta configuration');
+        this._loadMetrics((loadErr, metrics) => {
+            if (loadErr !== null) {
+                self.emit('preconfig.done', loadErr);
+                return;
+            }
+            console.log(chalk.green('\tMetrics loaded'));
 
-            /* ask NAD for the current metrics so we can alter the node and cluster templates 
-               to leave space for column family graphs at the bottom */
-            
-            const metricTagsFile = path.resolve(self.regDir, "metric-tags.json");
-
-            const metricsLoader = new Metrics(cosi.agent_url);
-
-            metricsLoader.getMetrics((err, metrics) => {
-                if (err) {
-                    self.emit('error', err);
+            self._createMetricTags(metrics, (tagErr, tagFile) => {
+                if (tagErr !== null) {
+                    self.emit('preconfig.done', tagErr);
                     return;
                 }
-                console.log(chalk.green('Metrics loaded'));
+                console.log(chalk.green('\tSaved'), `metric tags ${tagFile}`);
 
-                let metric_tags = {};
-                if (fs.existsSync(metricTagsFile)) {
-                    metric_tags = require(metricTagsFile);
-                }
-
-                // for (const metric of metrics) {
-                let metricGroups = Object.keys(metrics);
-                for (let i = 0; i < metricGroups; i++) {
-                    let mg = metricGroups[i];
-                    let metricNames = Object.keys(metrics[mg]);
-                    for (let j = 0; j < metricNames.length; j++) {
-                        let mt = metric_tags[mg + "`" + metricNames[j]];
-                        if (mt === undefined) {
-                            mt = [];
-                        }
-                        mt.push("cluster:" + self.state.cluster_name);
-                        metric_tags[mg + "`" + metricNames[j]] = mt;
+                self._addCFGraphs(metrics, (graphErr, added, templateFile) => {
+                    if (graphErr !== null) {
+                        self.emit('preconfig.done', graphErr);
+                        return;
                     }
-                }
+                    console.log(chalk.green('\tAdded'), `${added} graph(s) to template`);
+                    console.log(chalk.green('\tSaved'), `template ${templateFile}`);
 
-                fs.writeFileSync(
-                    metricTagsFile,
-                    JSON.stringify(metric_tags),
-                    { encoding: "utf8", mode: 0o644, flag: "w" }
-                );
-
-                const templateFile = path.resolve(self.regDir, "template-dashboard-cassandranode.json");
-                let template = require(templateFile);
-                let dash = template.config;
-
-                let height = dash.grid_layout.height;
-                const width = dash.grid_layout.width;
-                let cfstats = Object.keys(metrics["cassandra_cfstats"]);
-                for (let i = 0; i < cfstats.length; i++) {
-                    let match = cfstats[i].match(/^([^`])`read_count$/);
-                    if (match && match.length) {
-                        const cf = match[1];
-                        const added_graph = {
-                            "width" : width,
-                            "name" : "Graph",
-                            "active" : true,
-                            "origin" : "a" + (height - 1),
-                            "height" : 1,
-                            "settings" : {
-                                "hide_yaxis" : false,
-                                "graph_id" : null,
-                                "show_flags" : true,
-                                "_graph_title" : title,
-                                "key_inline" : false,
-                                "period": 2000,
-                                "key_size": 1,
-                                "overlay_set_id": "",
-                                "account_id": cosi.account_id,
-                                "date_window": "2h",
-                                "key_wrap": false,
-                                "hide_xaxis": false,
-                                "label": title,
-                                "key_loc": "noop",
-                                "realtime": false                            
-                            },
-                            "tags" : ["cassandra:cfstats:" + cf],
-                            "type" : "graph",
-                            "widget_id" : "w" + (width * height)
-                        };
-                        dash.widgets.push(added_graph);
-                    }
-                }
-
-                dash.grid_layout.height = height;
-
-                fs.writeFileSync(
-                    templateFile,
-                    JSON.stringify(template),
-                    { encoding: "utf8", mode: 0o644, flag: "w" }
-                );
+                    self.emit('preconfig.done', null);
+                });
             });
-            self.emit("preconfig.done", null);
-        } else {
-            this.emit('preconfig.done', err);
-        }
+        });
     }
 
     _test_nodetool() {
@@ -410,7 +458,10 @@ class Cassandra extends Plugin {
 
     _create_meta_conf() {
         const metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-${this.name}-${this.instance}.json`));
-        const meta = { sys_graphs: [] };
+        const meta = {
+            sys_graphs: [],
+            vars: { cluster_name: this.state.cluster_name }
+        };
 
         /*
             using sys_graphs mapping: (sadly, it ties the code to the dashboard template atm)
@@ -428,14 +479,14 @@ class Cassandra extends Plugin {
             would result in the graph in registration-graph-fs-0-_.json being used for the widget
             which has the tag database:file_system_space on the postgres dashboard
         */
-        if (this.state.fs_mount && this.state.fs_mount !== '') {
-            meta.sys_graphs.push({
-                dashboard_tag: 'database:file_system_space',
-                metric_group: 'fs',
-                metric_item: this.state.fs_mount.replace(/[^a-z0-9\-_]/ig, '_'),
-                graph_instance: null
-            });
-        }
+        // if (this.state.fs_mount && this.state.fs_mount !== '') {
+        //     meta.sys_graphs.push({
+        //         dashboard_tag: 'database:file_system_space',
+        //         metric_group: 'fs',
+        //         metric_item: this.state.fs_mount.replace(/[^a-z0-9\-_]/ig, '_'),
+        //         graph_instance: null
+        //     });
+        // }
 
         try {
             fs.writeFileSync(metaFile, JSON.stringify(meta, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
@@ -447,20 +498,16 @@ class Cassandra extends Plugin {
     }
 
     _create_observer_conf() {
-        // create protocol observer config
         const cass_po_conf_file = '/opt/circonus/etc/cass-po-conf.sh';
         const contents = [];
 
         if (cosi.agent_url !== '') {
             contents.push(`NADURL="${cosi.agent_url}"`);
         }
+        // what if agent_url does === ''?
 
         try {
-            fs.writeFileSync(
-                cass_po_conf_file,
-                contents.join('\n'),
-                { encoding: 'utf8', mode: 0o644, flag: 'w' }
-            );
+            fs.writeFileSync(cass_po_conf_file, contents.join('\n'), { encoding: 'utf8', mode: 0o644, flag: 'w' });
         } catch (err) {
             return err;
         }
