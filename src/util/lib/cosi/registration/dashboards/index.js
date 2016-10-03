@@ -248,6 +248,11 @@ class Dashboards extends Registration {
 
         data = this._mergeData(`dashboard-${dashboardID}`);
         data.dashboard_instance = dashboardInstance;
+        if ({}.hasOwnProperty.call(metaData, 'vars')) {
+            for (const dataVar in metaData.vars) { // eslint-disable-line guard-for-in
+                data[dataVar] = metaData.vars[dataVar];
+            }
+        }
 
         console.log(`\tInterpolating title ${config.title}`);
         config.title = this._expand(config.title, data);
