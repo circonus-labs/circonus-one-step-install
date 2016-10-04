@@ -147,7 +147,7 @@ class Cassandra extends Plugin {
         const templateID = 'dashboard-cassandranode';
         const fetcher = new TemplateFetcher();
 
-        console.log(`\tFetching templates for ${templateID}`);
+        console.log(`\tFetching ${templateID} template`);
 
         fetcher.template(templateID, (err, template) => {
             if (err !== null) {
@@ -155,29 +155,27 @@ class Cassandra extends Plugin {
                 return;
             }
 
-            const cfgFile = path.resolve(path.join(cosi.reg_dir, `template-${templateID}.json`));
+            const cfgFile = path.resolve(path.join(cosi.reg_dir, `template-${templateID}-${self.instance}.json`));
 
             template.save(cfgFile, true);
             console.log(chalk.green('\tSaved'), `template ${cfgFile}`);
 
             const clusterTemplateID = 'dashboard-cassandracluster';
 
-            console.log(`\tFetching templates for ${clusterTemplateID}`);
+            console.log(`\tFetching ${clusterTemplateID} template`);
             fetcher.template(clusterTemplateID, (clusterErr, clusterTemplate) => {
                 if (clusterErr !== null) {
                     self.emit('error', clusterErr);
                     return;
                 }
 
-                const clusterCfgFile = path.resolve(path.join(cosi.reg_dir, `template-${clusterTemplateID}.json`));
+                const clusterCfgFile = path.resolve(path.join(cosi.reg_dir, `template-${clusterTemplateID}-${self.instance}.json`));
 
                 clusterTemplate.save(clusterCfgFile, true);
                 console.log(chalk.green('\tSaved'), `template ${clusterCfgFile}`);
                 self.emit('fetch.done');
             });
         });
-
-
     }
 
 
@@ -325,7 +323,8 @@ class Cassandra extends Plugin {
                     metricTags = [];
                 }
 
-                const clusterTag = `cluster:${this.state.cluster_name}`;
+                // !! note: all tags will be *forced* to lower case by API !!
+                const clusterTag = `cluster:${this.state.cluster_name}`.toLowerCase();
 
                 if (metricTags.indexOf(clusterTag) === -1) {
                     metricTags.push(clusterTag);
@@ -346,7 +345,7 @@ class Cassandra extends Plugin {
 
 
     _addCFGraphs(metrics, cb) {
-        const templateFile = path.resolve(path.join(cosi.reg_dir, 'template-dashboard-cassandranode.json'));
+        const templateFile = path.resolve(path.join(cosi.reg_dir, `template-dashboard-cassandranode-${this.instance}.json`));
         const template = require(templateFile); // eslint-disable-line global-require
         const dash = template.config;
 
@@ -464,7 +463,6 @@ class Cassandra extends Plugin {
 
 
     _create_meta_conf() {
-        const metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-${this.name}-${this.instance}.json`));
         const meta = {
             sys_graphs: [],
             vars: { cluster_name: this.state.cluster_name }
@@ -495,7 +493,13 @@ class Cassandra extends Plugin {
         //     });
         // }
 
+        let metaFile = null;
+
         try {
+            metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-cassandranode-${this.instance}.json`));
+            fs.writeFileSync(metaFile, JSON.stringify(meta, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+
+            metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-cassandracluster-${this.instance}.json`));
             fs.writeFileSync(metaFile, JSON.stringify(meta, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
         } catch (err) {
             return err;
