@@ -41,6 +41,7 @@ class Metrics {
 
     load(cb) {
         assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
+        const self = this;
 
         if (groups.length > 0) {
             return cb(null, true);
@@ -68,7 +69,7 @@ class Metrics {
                 }
 
                 try {
-                    metrics = JSON.parse(data);
+                    metrics = self._parseMetrics(JSON.parse(data));
                     groups = Object.keys(metrics);
                 } catch (err) {
                     return cb(err);
@@ -84,6 +85,46 @@ class Metrics {
             return cb(err);
         });
     }
+
+    //
+    // _parseMetrics and _getMetrics are used to flatten out all metrics (e.g. json blobs emitted from plugins)
+    //
+
+    _parseMetrics(rawMetrics) {
+        const metricList = {};
+
+        for (const group in rawMetrics) { // eslint-disable-line guard-for-in
+            metricList[group] = this._getMetrics(null, rawMetrics[group]);
+        }
+
+        return metricList;
+    }
+
+    _getMetrics(prefix, rawMetrics) {
+        let metricList = {};
+
+        for (const metric in rawMetrics) { // eslint-disable-line guard-for-in
+            const metricName = prefix === null ? metric : `${prefix}\`${metric}`;
+
+            if (rawMetrics[metric] === null) {
+                metricList[metricName] = rawMetrics[metric];
+            } else if (typeof rawMetrics[metric] === 'string') {
+                metricList[metricName] = rawMetrics[metric];
+            } else if (typeof rawMetrics[metric] === 'number') {
+                metricList[metricName] = rawMetrics[metric];
+            } else if (typeof rawMetrics[metric] === 'boolean') {
+                metricList[metricName] = rawMetrics[metric];
+            } else if (Array.isArray(rawMetrics[metric])) {
+                metricList[metricName] = rawMetrics[metric];
+            } else if (typeof rawMetrics[metric] === 'object' && {}.hasOwnProperty.call(rawMetrics[metric], '_value')) {
+                metricList[metricName] = rawMetrics[metric];
+            } else {
+                metricList = Object.assign(metricList, this._getMetrics(metricName, rawMetrics[metric]));
+            }
+        }
+        return metricList;
+    }
+
 
     getGroups(cb) {
         assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
