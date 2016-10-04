@@ -351,24 +351,31 @@ class Cassandra extends Plugin {
 
         const width = dash.grid_layout.width;
         let height = dash.grid_layout.height;
+        let widget_id = dash.widgets.length + 1;
         let graphs_added = 0;
 
-        for (const cf in metrics.cassandra_cfstats) {
-            if (!{}.hasOwnProperty.call(metrics.cassandra_cfstats[cf], 'read_count')) {
+        for (const columnFamily in metrics.cassandra_cfstats) { // eslint-disable-line guard-for-in
+            const matches = columnFamily.match(/^([^`]+)`read_count/);
+
+            if (matches === null) {
                 continue;
             }
+
+            const cf = matches[1];
+
+            console.log(`\tAdding graph ${cf}`);
 
             dash.widgets.push({
                 width,
                 name : 'Graph',
                 active : true,
-                origin : `a${height - 1}`,
+                origin : `a${height}`,
                 height : 1,
                 settings : {
                     hide_yaxis: false,
                     graph_id: null,
                     show_flags: true,
-                    _graph_title: `{{=cosi.host_name}} {{=cosi.dashboard_item}} ${cf}`,
+                    _graph_title: `{{=cosi.host_name}} {{=cosi.dashboard_instance}} ${cf}`,
                     key_inline: false,
                     period: 2000,
                     key_size: 1,
@@ -377,15 +384,16 @@ class Cassandra extends Plugin {
                     date_window: '2h',
                     key_wrap: false,
                     hide_xaxis: false,
-                    label: `{{=cosi.dashboard_item}} ${cf}`,
+                    label: `{{=cosi.dashboard_instance}} ${cf}`,
                     key_loc: 'noop',
                     realtime: false
                 },
                 tags: [ `cassandra:cfstats:${cf}` ],
                 type: 'graph',
-                widget_id: `w${width * height}`
+                widget_id: `w${widget_id}`
             });
 
+            widget_id += 1;
             graphs_added += 1;
             height += 1;
         }
