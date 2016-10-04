@@ -19,7 +19,7 @@ cassandra_cfstats.sh
 cassandra_compaction.sh
 cassandra_gcstats.sh
 cassandra_info.sh
-cassandra_protocol_observer.sh
+cassandra_po.sh
 f22a9a7b7066c7ed6486f71e6ac66e79
 enabled_scripts=()
 
