@@ -421,7 +421,7 @@ class Plugin extends Events {
                 return;
             }
 
-            const cfgFile = path.resolve(path.join(cosi.reg_dir, `template-${templateID}-${this.instance}.json`));
+            const cfgFile = path.resolve(path.join(cosi.reg_dir, `template-${templateID}-${self.instance}.json`));
 
             template.save(cfgFile, true);
             console.log(chalk.green('\tSaved'), `template ${cfgFile}`);
