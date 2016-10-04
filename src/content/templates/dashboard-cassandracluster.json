@@ -25,7 +25,7 @@
             "text_size": 12
         },
         "shared": true,
-        "title": "{{=cosi.cluster_name}} {{=cosi.host_name}} {{=cosi.dashboard_instance}}",
+        "title": "Cassandra cluster: {{=cosi.cluster_name}} - {{=cosi.host_name}} {{=cosi.dashboard_instance}}",
         "widgets": [
             {
                 "active": true,
