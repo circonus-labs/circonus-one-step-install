@@ -11,7 +11,7 @@ if [ -z "$CASSREL" ]; then
     exit 1;
 fi
 
-CASSCLUSTER=$(nodetool describecluster 2>/dev/null | awk 'BEGIN{FS=":"}/Name:/{gsub(/^[ ]+/,"",$2);print $2}')
+CASSCLUSTER=$(nodetool describecluster 2>/dev/null)
 
 cass_scripts=""
 read -r -d ' ' cass_scripts <<-f22a9a7b7066c7ed6486f71e6ac66e79
