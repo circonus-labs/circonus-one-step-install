@@ -545,7 +545,7 @@ __is_nad_running() {
 }
 
 __check_nad_url() {
-    local url=${agent_url:-http://127.0.0.1:2609/}
+    local url=${agent_url:-http://127.0.0.1:2609/inventory}
     local err
     local ret
 
