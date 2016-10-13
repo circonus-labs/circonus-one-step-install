@@ -245,7 +245,9 @@ class Graphs extends Registration {
 
         console.log(`\tCreating graph ${graphIdx} config for ${template.id}`);
 
-        graph.notes = this.regConfig.cosiNotes;
+        if (graph.notes === null) {
+            graph.notes = this.regConfig.cosiNotes;
+        }
 
         const graphId = `${template.type}-${template.id}`;
 
