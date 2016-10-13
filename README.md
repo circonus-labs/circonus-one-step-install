@@ -61,9 +61,9 @@ Vagrant 1.8.1
 git clone https://github.com/circonus-labs/circonus-one-step-install
 
 # install global NPM packages (if you will be using 'make check' or want linting in an editor supporting eslint)
-npm install -g eslint npm-check-updates
+npm install -g eslint npm-check yarn
 
-# install local development and production NPM packages
+# install npm packages
 cd circonus-one-step-install/src
 make init
 
