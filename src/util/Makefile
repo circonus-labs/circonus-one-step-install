@@ -15,10 +15,9 @@ install:
 	@echo "There is no 'default' target, try 'package' or 'dev-install'"
 
 $(UTILS): $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
-	-rm -rf .modules
 	-rm -rf build
 	mkdir build
-	test -d node_modules || npm install
+	test -d node_modules || yarn
 ifeq ($(ES6NODE), yes)
 	install -d build/bin
 	cp bin/*.js build/bin/.
@@ -37,8 +36,6 @@ endif
 	chmod 0755 build/bin/circonus-nadpush && \
 	rm build/bin/circonus-nadpush.js
 	for f in build/bin/*.js; do sed -e 's#/usr/bin/env node#%%NODE_BIN%%#' "$$f" > "$${f%.js}" && chmod 0755 "$${f%.js}" && rm "$$f"; done
-	node_modules/.bin/pac --production
-	cp -r .modules build/.
 	cp -r service build/.
 	cp -r rulesets build/.
 	# install plugin helpers (non-javascript files)
@@ -49,6 +46,8 @@ endif
 	install -m 0700 lib/cosi/plugins/cassandra/nad-enable.sh build/lib/cosi/plugins/cassandra/.
 	install -m 0700 lib/cosi/plugins/cassandra/nad-disable.sh build/lib/cosi/plugins/cassandra/.
 	install package.json build/.
+	# yarn is MUCH faster than npm
+	cd build && yarn install --production
 	install Makefile build/.
 	install README.md build/.
 	install LICENSE build/.
@@ -57,16 +56,16 @@ endif
 	if [ -d etc ]; then cp -r etc build/. ; fi
 	if [ -d registration ]; then cp -r registration build/.; fi
 	cp cosi-statsd.tar.gz build/.
-	COPYFILE_DISABLE=true tar -czf $@ -C build bin lib service rulesets .modules package.json README.md LICENSE $(STATSD)
+	COPYFILE_DISABLE=true tar -czf $@ -C build bin lib node_modules service rulesets package.json README.md LICENSE $(STATSD)
 
 .PHONY: check
 check:
 	@echo && echo "Checking cosi-util source"
 	eslint $(BIN_SRC) $(LIB_SRC)
-	@npm-check --production
+	npm-check --skip-unused --production
 
 init:
-	test -d node_modules || npm install
+	test -d node_modules || yarn
 
 .PHONY: clean
 clean:
@@ -84,7 +83,7 @@ $(STATSD):
 	tar -xzf master.tar.gz; \
 	mv statsd-master statsd; \
 	curl -sSL "https://raw.githubusercontent.com/maier/circonus-statsd-http/master/circonus.js" -o statsd/backends/circonus.js; \
-	cd statsd && npm install --no-optional --production && cd ..; \
+	cd statsd && npm --no-optional --production && cd ..; \
 	COPYFILE_DISABLE=true tar -czf ../$@ statsd
 	rm -rf tmp
 
