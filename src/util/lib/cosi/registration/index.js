@@ -57,6 +57,18 @@ class Registration extends Events {
             }
         };
 
+        this.globalMeta = {};
+        try {
+            const globalMetaFile = path.resolve(path.join(cosi.reg_dir, 'meta-global.json'));
+            const meta = require(globalMetaFile);
+
+            this.globalMeta = JSON.parse(JSON.stringify(meta));
+        } catch (err) {
+            if (err.code !== 'MODULE_NOT_FOUND') {
+                throw err;
+            }
+        }
+
         this.regConfig.templateData.host_vars.num_cpus = os.cpus().length;
 
         this.on('error', (err) => {
@@ -223,6 +235,14 @@ class Registration extends Events {
         if (this.checkMeta !== null && {}.hasOwnProperty.call(this, 'checkMeta')) {
             data.check_uuid = this.checkMeta.system.uuid;
             data.check_id = this.checkMeta.system.id;
+        }
+
+        if (this.globalMeta !== null && typeof this.globalMeta === 'object') {
+            for (const key in this.globalMeta) {
+                if ({}.hasOwnProperty.call(this.globalMeta, key)) {
+                    data[key] = this.globalMeta[key];
+                }
+            }
         }
 
         function propAdd(target, source) {
