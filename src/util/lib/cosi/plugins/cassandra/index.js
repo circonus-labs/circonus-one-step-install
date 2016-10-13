@@ -207,6 +207,12 @@ class Cassandra extends Plugin {
                 return;
             }
 
+            state.cluster_name = state.cluster_name.trim();
+            console.log('\tAdding cluster_name to global meta data');
+            self.globalMetadata.cluster_name = state.cluster_name;
+            console.log('\tAdding cluster_tag to global meta data');
+            self.globalMetadata.cluster_tag = `cluster:${state.cluster_name}`.toLowerCase();
+
             self.state = state;
 
             console.log(chalk.green('\tEnabled'), 'agent plugin for Cassandra');
@@ -298,8 +304,16 @@ class Cassandra extends Plugin {
 
 
     _createMetricTags(metrics, cb) {
+        if (!{}.hasOwnProperty.call(this.globalMetadata, 'cluster_tag')) {
+            cb(null);
+            return;
+        }
+
+        // !! note: all tags will be *forced* to lower case by API !!
         const metricTagsFile = path.resolve(path.join(cosi.reg_dir, 'metric-tags.json'));
         let metric_tags = {};
+
+        console.log(`\tAdding metric tag(s) (${this.globalMetadata.cluster_tag}) ${metricTagsFile}`);
 
         try {
             metric_tags = require(metricTagsFile); // eslint-disable-line global-require
@@ -323,11 +337,8 @@ class Cassandra extends Plugin {
                     metricTags = [];
                 }
 
-                // !! note: all tags will be *forced* to lower case by API !!
-                const clusterTag = `cluster:${this.state.cluster_name}`.toLowerCase();
-
-                if (metricTags.indexOf(clusterTag) === -1) {
-                    metricTags.push(clusterTag);
+                if (metricTags.indexOf(this.globalMetadata.cluster_tag) === -1) {
+                    metricTags.push(this.globalMetadata.cluster_tag);
                     metric_tags[fullMetricName] = metricTags;
                 }
             }
@@ -473,8 +484,11 @@ class Cassandra extends Plugin {
     _create_meta_conf() {
         const meta = {
             sys_graphs: [],
-            vars: { cluster_name: this.state.cluster_name }
+            vars: { cluster_name: this.globalMetadata.cluster_name }
         };
+
+        // for *GLOBAL* (available to all plugin visuals) meta data add attributes to this.globalMetaData
+        // these meta data files are dashboard-specific
 
         /*
             using sys_graphs mapping: (sadly, it ties the code to the dashboard template atm)
