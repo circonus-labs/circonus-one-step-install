@@ -56,6 +56,8 @@ class Plugin extends Events {
         this.instance = null;           // set/override in subclass
         this.dashboardPrefix = null;    // set/override in subclass (if different from name)
         this.graphPrefix = null;        // set/override in subclass (if different from name)
+        this.globalMetadata = {};       // add any global vars which should show up during registration (same level as host_* vars)
+                                        // note: these values will be visible to *all* visuals not just the plugin visuals
         this.state = {                  // override in subclass with result of enablePlugin
             enabled: false
         };
@@ -115,6 +117,8 @@ class Plugin extends Events {
                 self.emit('error', err);
                 return;
             }
+            // update global meta data if any has been defined in plugin
+            self._updateGlobalMeta(self.globalMetadata || {});
             self.emit('configure.done');
         });
     }
@@ -226,6 +230,41 @@ class Plugin extends Events {
                 console.log(chalk.green('\nDisabled'), self.name, 'plugin');
             });
         });
+    }
+
+    _updateGlobalMeta(newMetadata) {
+        if (newMetadata === null || typeof newMetadata !== 'object' || Object.keys(newMetadata).length === 0) {
+            return;
+        }
+
+        console.log('\tUpdating global meta data');
+
+        const globalMetaFile = path.resolve(path.join(cosi.reg_dir, 'meta-global.json'));
+        let meta = {};
+
+        try {
+            meta = require(globalMetaFile);
+        } catch (err) {
+            if (err.code !== 'MODULE_NOT_FOUND') {
+                this.emit('error', err);
+                return;
+            }
+        }
+
+        for (const key in newMetadata) {
+            if ({}.hasOwnProperty.call(newMetadata, key)) {
+                meta[key] = newMetadata[key];
+            }
+        }
+
+        try {
+            fs.writeFileSync(globalMetaFile, JSON.stringify(meta, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+            console.log(chalk.green('\tSaved'), 'global meta data', globalMetaFile);
+        } catch (err) {
+            this.emit('error', err);
+            return;
+        }
+
     }
 
 
