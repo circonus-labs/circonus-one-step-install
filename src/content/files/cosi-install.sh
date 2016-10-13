@@ -545,7 +545,7 @@ __is_nad_running() {
 }
 
 __check_nad_url() {
-    local url=${agent_url:-http://127.0.0.1:2609/inventory}
+    local url="${agent_url:-http://127.0.0.1:2609/}inventory"
     local err
     local ret
 
@@ -650,20 +650,22 @@ __fetch_cosi_utils() {
     }
 
     cd "$cosi_dir"
+    # clean previous node_modules if it exists
+    [[ -d node_modules ]] && rm -rf node_modules
     log "Unpacking COSI utilities into $(pwd)"
     tar -oxzf "$cosi_utils_file"
     [[ $? -eq 0 ]] || fail "Unable to unpack COSI utiltities"
 
-    log "Installing required node modules for COSI utilities"
-    [[ -d node_modules ]] || {
-        mkdir node_modules
-        [[ $? -eq 0 ]] || fail "Unable to create node_modules directory in COSI utiltities"
-    }
-    for f in .modules/*.tgz; do tar -xzf "$f" -C node_modules/; done
-    [[ $? -eq 0 ]] || fail "Issue(s) unpacking node modules for COSI utiltities"
-
-    log "Cleaning up after node module installation"
-    rm -rf .modules
+    # log "Installing required node modules for COSI utilities"
+    # [[ -d node_modules ]] || {
+    #     mkdir node_modules
+    #     [[ $? -eq 0 ]] || fail "Unable to create node_modules directory in COSI utiltities"
+    # }
+    # for f in .modules/*.tgz; do tar -xzf "$f" -C node_modules/; done
+    # [[ $? -eq 0 ]] || fail "Issue(s) unpacking node modules for COSI utiltities"
+    #
+    # log "Cleaning up after node module installation"
+    # rm -rf .modules
 
     log "Fixing shebangs..." # oh FFS!
     node_bin=""     # omnibus packages              omnios packages
