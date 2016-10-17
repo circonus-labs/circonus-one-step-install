@@ -37,7 +37,7 @@ enabled_scripts=()
 pushd $NAD_SCRIPTS_DIR >/dev/null
 for script in $pg_scripts; do
     if [[ -x $PG_SCRIPTS_DIR/$script ]]; then
-        [[ -h $script ]] || ln -s $script .
+        [[ -h $script ]] || ln -s $PG_SCRIPTS_DIR/$script .
         enabled_scripts+=(${script%.*})
     fi
 done
