@@ -5,7 +5,7 @@
                 "arch": "x86_64",
                 "package_info": {
                     "package_url": null,
-                    "package_file": "nad-omnibus-20160607T194451Z-1.ubuntu.16.04_amd64.deb",
+                    "package_file": "nad-omnibus-20161017T172854Z-1.ubuntu.16.04_amd64.deb",
                     "publisher_url": null,
                     "publisher_name": null,
                     "package_name": null
@@ -17,7 +17,7 @@
                 "arch": "i386",
                 "package_info": {
                     "package_url": null,
-                    "package_file": "nad-omnibus-20160607T194451Z-1.ubuntu.14.04_i386.deb",
+                    "package_file": "nad-omnibus-20161017T172854Z-1.ubuntu.14.04_i386.deb",
                     "publisher_url": null,
                     "publisher_name": null,
                     "package_name": null
@@ -27,7 +27,7 @@
                 "arch": "x86_64",
                 "package_info": {
                     "package_url": null,
-                    "package_file": "nad-omnibus-20160607T194451Z-1.ubuntu.14.04_amd64.deb",
+                    "package_file": "nad-omnibus-20161017T172854Z-1.ubuntu.14.04_amd64.deb",
                     "publisher_url": null,
                     "publisher_name": null,
                     "package_name": null
@@ -39,7 +39,7 @@
                 "arch": "i386",
                 "package_info": {
                     "package_url": null,
-                    "package_file": "nad-omnibus-20160607T194451Z-1.ubuntu.12.04_i386.deb",
+                    "package_file": "nad-omnibus-20161017T172854Z-1.ubuntu.12.04_i386.deb",
                     "publisher_url": null,
                     "publisher_name": null,
                     "package_name": null
@@ -49,7 +49,7 @@
                 "arch": "x86_64",
                 "package_info": {
                     "package_url": null,
-                    "package_file": "nad-omnibus-20160607T194451Z-1.ubuntu.12.04_amd64.deb",
+                    "package_file": "nad-omnibus-20161017T172854Z-1.ubuntu.12.04_amd64.deb",
                     "publisher_url": null,
                     "publisher_name": null,
                     "package_name": null
@@ -63,7 +63,7 @@
                 "arch": "x86_64",
                 "package_info": {
                     "package_url": null,
-                    "package_file": "nad-omnibus-20160607T194451Z-1.el5.x86_64.rpm",
+                    "package_file": "nad-omnibus-20161017T172854Z-1.el5.x86_64.rpm",
                     "publisher_url": null,
                     "publisher_name": null,
                     "package_name": null
@@ -73,7 +73,7 @@
                 "arch": "i386",
                 "package_info": {
                     "package_url": null,
-                    "package_file": "nad-omnibus-20160607T194451Z-1.el5.i386.rpm",
+                    "package_file": "nad-omnibus-20161017T172854Z-1.el5.i386.rpm",
                     "publisher_url": null,
                     "publisher_name": null,
                     "package_name": null
@@ -85,7 +85,7 @@
                 "arch": "x86_64",
                 "package_info": {
                     "package_url": null,
-                    "package_file": "nad-omnibus-20160607T194451Z-1.el6.x86_64.rpm",
+                    "package_file": "nad-omnibus-20161017T172854Z-1.el6.x86_64.rpm",
                     "publisher_url": null,
                     "publisher_name": null,
                     "package_name": null
@@ -95,7 +95,7 @@
                 "arch": "i686",
                 "package_info": {
                     "package_url": null,
-                    "package_file": "nad-omnibus-20160607T194451Z-1.el6.i686.rpm",
+                    "package_file": "nad-omnibus-20161017T172854Z-1.el6.i686.rpm",
                     "publisher_url": null,
                     "publisher_name": null,
                     "package_name": null
@@ -107,7 +107,7 @@
                 "arch": "x86_64",
                 "package_info": {
                     "package_url": null,
-                    "package_file": "nad-omnibus-20160607T194451Z-1.el7.x86_64.rpm",
+                    "package_file": "nad-omnibus-20161017T172854Z-1.el7.x86_64.rpm",
                     "publisher_url": null,
                     "publisher_name": null,
                     "package_name": null
@@ -121,7 +121,7 @@
                 "arch": "x86_64",
                 "package_info": {
                     "package_url": null,
-                    "package_file": "nad-omnibus-20160607T194451Z-1.el7.x86_64.rpm",
+                    "package_file": "nad-omnibus-20161017T172854Z-1.el7.x86_64.rpm",
                     "publisher_url": null,
                     "publisher_name": null,
                     "package_name": null
@@ -133,7 +133,7 @@
                 "arch": "x86_64",
                 "package_info": {
                     "package_url": null,
-                    "package_file": "nad-omnibus-20160607T194451Z-1.el6.x86_64.rpm",
+                    "package_file": "nad-omnibus-20161017T172854Z-1.el6.x86_64.rpm",
                     "publisher_url": null,
                     "publisher_name": null,
                     "package_name": null
@@ -147,7 +147,7 @@
                 "arch": "x86_64",
                 "package_info": {
                     "package_url": null,
-                    "package_file": "nad-omnibus-20160607T194451Z-1.el7.x86_64.rpm",
+                    "package_file": "nad-omnibus-20161017T172854Z-1.el7.x86_64.rpm",
                     "publisher_url": null,
                     "publisher_name": null,
                     "package_name": null
@@ -175,7 +175,7 @@
                 "arch": "x86_64",
                 "package_info": {
                     "package_url": null,
-                    "package_file": "nad-omnibus-20160607T194451Z-1.el6.x86_64.rpm",
+                    "package_file": "nad-omnibus-20161017T172854Z-1.el6.x86_64.rpm",
                     "publisher_url": null,
                     "publisher_name": null,
                     "package_name": null
