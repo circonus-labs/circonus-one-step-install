@@ -3,16 +3,26 @@
 # is this always true?
 NAD_SCRIPTS_DIR=/opt/circonus/etc/node-agent.d
 PG_SCRIPTS_DIR=$NAD_SCRIPTS_DIR/postgresql
+PG_CONF=/opt/circonus/etc/pg-conf.sh
 
 # determine if postgres is running
 PGPID="$(pgrep -n -f postgres)"
-if [ -z "$PGPID" ]; then
-    echo "Postgres not detected, skipping setup"
-    exit 1;
-fi
+[[ -n $PGPID ]] || {
+    >&2 echo "Postgres server not detected, skipping setup"
+    echo "{\"enabled\": false}"
+    exit 1
+}
 
 # pull in the plugin settings
-source /opt/circonus/etc/pg-conf.sh
+source $PG_CONF
+
+# execute one of the scripts to ensure correct functionality
+SIZE="$(${PG_SCRIPTS_DIR}/pg_db_size.sh | grep postgres)"
+[[ $? -eq 0 && -n $SIZE ]] || {
+    >&2 echo "Could not execute test script.  Please configure /opt/circonus/etc/pg-conf.sh appropriately and re-run"
+    echo "{\"enabled\": false}"
+    exit 1
+}
 
 pg_scripts=""
 read -r -d '' pg_scripts <<-2f17fc42839fca05a41430b091f087e2
@@ -36,32 +46,26 @@ enabled_scripts=()
 # turn on all postgres stuff (create symlink if it doesn't already exist)
 pushd $NAD_SCRIPTS_DIR >/dev/null
 for script in $pg_scripts; do
-    if [[ -x $PG_SCRIPTS_DIR/$script ]]; then
-        [[ -h $script ]] || ln -s $PG_SCRIPTS_DIR/$script .
+    script_file="${PG_SCRIPTS_DIR}/${script}"
+    if [[ -x $script_file ]]; then
+        [[ -h $script ]] || ln -s $script_file .
         enabled_scripts+=(${script%.*})
     fi
 done
 
-# execute one of the scripts to ensure correct functionality
-SIZE="$(./pg_db_size.sh | grep postgres)"
-if [ -z "$SIZE" ]; then
-    echo "Could not execute a test script.  Please configure /opt/circonus/etc/pg-conf.sh appropriately and re-run"
-    for i in $PG_SCRIPTS_DIR/*; do
-        rm `basename $i`
-    done
-    echo "{\"enabled\": false}"
-    exit 1
-fi
 
 # check for protocol observer (being installed)
-POPATH=$(type -P protocol_observer)
 PROTOCOL_OBSERVER="false"
-if [ -n "$POPATH" ]; then
+po=/opt/circonus/bin/protocol_observer
+if [[ ! -x $po ]]; then
+    command -v protocol_observer >/dev/null 2>&1
+    [[ $? -eq 0 ]] && PROTOCOL_OBSERVER="true"
+else
     PROTOCOL_OBSERVER="true"
 fi
 
 # obtain the database directory and subsequent filesystem on which that directory resides
-DATA_DIR=$(psql -w -c "show data_directory;" -q -t)
+DATA_DIR=$($PSQL_CMD -w -c "show data_directory;" -q -t)
 FS_NAME=""
 if [[ -n "$DATA_DIR" ]]; then
     DATA_DIR=$(echo -e "${DATA_DIR}" | tr -d '[[:space:]]')
@@ -88,6 +92,7 @@ for i in {0..10}; do
 done
 
 if [[ $found -ne $expected ]]; then
+    >&2 echo "Could not verify valid output from all enabled plugin scripts (${found} != ${expected})"
     echo "{\"enabled\": false }"
     exit 1
 fi

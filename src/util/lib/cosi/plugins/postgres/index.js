@@ -2,6 +2,8 @@
 
 /* eslint-env node, es6 */
 
+/* eslint-disable no-process-exit, no-process-env */
+
 const child = require('child_process');
 const fs = require('fs');
 const http = require('http');
@@ -55,11 +57,6 @@ class Postgres extends Plugin {
     */
     constructor(options) {
         super(options);
-        this.name = 'postgres';
-        this.instance = this.options.database;
-        this.dashboardPrefix = 'postgres';
-        this.graphPrefix = [ 'pg_', 'postgres_protocol_observer' ];
-        this.state = null;
 
         if (!{}.hasOwnProperty.call(this.options, 'database')) {
             this.options.database = 'postgres';
@@ -70,14 +67,33 @@ class Postgres extends Plugin {
         if (!{}.hasOwnProperty.call(this.options, 'user')) {
             this.options.user = 'postgres';
         }
+
         // pass has no default, leave it unset
+        // psql_cmd has no default, leave it unset (to force search in PATH)
+
+        this.name = 'postgres';
+        this.instance = this.options.database;
+        this.dashboardPrefix = 'postgres';
+        this.graphPrefix = [ 'pg_', 'postgres_protocol_observer' ];
+        this.state = null;
+
+        this.pg_conf_file = path.join(this.nad_etc_dir, 'pg-conf.sh');
+        this.po_conf_file = path.join(this.nad_etc_dir, 'pg-po-conf.sh');
     }
 
     enablePlugin(cb) {
+        if (fs.existsSync(this.pg_conf_file)) {
+            console.log(chalk.yellow('WARN'), `PostgreSQL plugin configuration found, plugin may already be enabled. ${this.pg_conf_file}`);
+            if (!this.options.force) {
+                process.exit(0);
+            }
+        }
         console.log(chalk.blue(this.marker));
-        console.log(`Enabling agent plugin for PostgreSQL database '${this.intance}'`);
+        console.log(`Enabling agent plugin for PostgreSQL database '${this.instance}'`);
 
         let err = null;
+
+        console.log(`Verifying 'psql'`);
 
         err = this._test_psql();
         if (err === null) {
@@ -126,6 +142,12 @@ class Postgres extends Plugin {
 
 
     disablePlugin(cb) {
+        if (!fs.existsSync(this.pg_conf_file)) {
+            console.log(chalk.yellow('WARN'), `PostgreSQL plugin configuration not found, plugin may already be disabled. ${this.pg_conf_file}`);
+            if (!this.options.force) {
+                process.exit(0);
+            }
+        }
         console.log(chalk.blue(this.marker));
         console.log(`Disabling agent plugin for PostgreSQL'`);
 
@@ -146,7 +168,6 @@ class Postgres extends Plugin {
             } catch (unlinkErr) {
                 console.log(chalk.yellow('\tWARN'), 'ignoring...', unlinkErr.toString());
             }
-
 
             const pgPoConfFile = path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'pg-po-conf.sh'));
 
@@ -170,7 +191,7 @@ class Postgres extends Plugin {
 
         const self = this;
 
-        // enable the postgres plugin scripts and attempt to start protocol observer if applicable
+        // enable the postgresql plugin scripts
         const script = path.resolve(path.join(__dirname, 'nad-enable.sh'));
 
         child.exec(script, (error, stdout, stderr) => {
@@ -189,7 +210,7 @@ class Postgres extends Plugin {
             }
 
             if (state === null || state.enabled === false) {
-                cb(new Error(`Failed to enable plugin ${stdout}`));
+                cb(new Error(`Failed to enable plugin ${stdout} ${stderr}`));
                 return;
             }
 
@@ -290,19 +311,46 @@ class Postgres extends Plugin {
 
     }
 
+    _find_psql_command(psql_cmd) {
+        let cmd = psql_cmd;
+
+        if (cmd === null || cmd === '') {
+            let output = null;
+
+            try {
+                output = child.execSync('command -v psql');
+            } catch (err) {
+                console.error(`Unable to find 'psql' in '${process.env.PATH}', specify with --psql_cmd`);
+                process.exit(1);
+            }
+            cmd = output.toString().trim();
+        }
+
+        if (!fs.existsSync(cmd)) {
+            console.error(`'${cmd}' does not exist`);
+            process.exit(1);
+        }
+
+        return cmd;
+    }
 
     _test_psql() {
+        const psql_cmd = this._find_psql_command(this.options.psql_cmd || null);
         let psql_test_stdout = null;
 
         try {
-            psql_test_stdout = child.execSync('psql -V');
+            psql_test_stdout = child.execSync(`${psql_cmd} -V`);
         } catch (err) {
-            return err;
+            console.error(`Error running '${psql_cmd} -V', unable to verify psql. ${err}`);
+            process.exit(1);
         }
 
-        if (!psql_test_stdout || psql_test_stdout.indexOf('PostgreSQL') === -1) {
-            return new Error("Cannot find 'psql' in PATH, postgres plugin will not work");
+        if (!psql_test_stdout || psql_test_stdout.toString().indexOf('PostgreSQL') === -1) {
+            console.error(`Unexpected output from '${psql_cmd} -V', unable to verify psql. (${psql_test_stdout.toString()})`);
+            process.exit(1);
         }
+
+        this.options.psql_cmd = psql_cmd;
 
         return null;
     }
@@ -348,8 +396,10 @@ class Postgres extends Plugin {
 
     _create_plugin_conf() {
         // create config for postgres plugin scripts
-        const pg_conf_file = '/opt/circonus/etc/pg-conf.sh';
+        const pg_conf_file = this.pg_conf_file;
         const contents = [];
+
+        contents.push(`export PSQL_CMD=${this.options.psql_cmd}`);
 
         if (this.options.user !== '') {
             contents.push(`export PGUSER=${this.options.user}`);
@@ -379,7 +429,7 @@ class Postgres extends Plugin {
 
     _create_observer_conf() {
         // create protocol observer config
-        const pg_po_conf_file = '/opt/circonus/etc/pg-po-conf.sh';
+        const pg_po_conf_file = this.po_conf_file;
         const contents = [];
 
         if (cosi.agent_url !== '') {
