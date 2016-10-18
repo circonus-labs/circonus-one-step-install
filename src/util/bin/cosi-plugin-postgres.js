@@ -18,6 +18,7 @@ app.
     version(cosi.app_version).
     option('--enable', 'enable the postgres plugin').
     option('--disable', 'disable the postgres plugin').
+    option('--force', 'force enable/disable of plugin').
     option('--database <name>', 'the postgres database name to enable, default [postgres]', 'postgres').
     option('--user <user>', 'the postgres user to run as, default [postgres]', 'postgres').
     option('--pass <pass>', 'the pass of the postgres user, default none', '').
