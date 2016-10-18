@@ -60,6 +60,8 @@ class Plugin extends Events {
             enabled: false
         };
 
+        this.nad_etc_dir = path.resolve(path.join(cosi.cosi_dir, '..', 'etc'));
+
         this.marker = '==========';
         this.on('error', (err) => {
             console.log(chalk.red('***************'));
