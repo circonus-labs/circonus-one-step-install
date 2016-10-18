@@ -22,6 +22,7 @@ app.
     option('--user <user>', 'the postgres user to run as, default [postgres]', 'postgres').
     option('--pass <pass>', 'the pass of the postgres user, default none', '').
     option('--port <port>', 'postgres server port, default [5432]', 5432).
+    option('--psql_cmd <path>', 'full path of psql command, default search $PATH').
     option('--noregister', 'do not perform automatic registration step').
     parse(process.argv);
 
