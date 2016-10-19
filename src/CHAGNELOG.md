@@ -1,3 +1,11 @@
+### 0.10.0 2016-10-19
+
+* fix: postgres plugin adjustments
+* add: force option for postgres plugin
+* add: better error checking for postgres plugin enable
+* add: psql\_cmd support for postgres plugin
+* new: force node 4 or 6
+
 ### 0.9.0 2016-09-28
 
 * new: plugin scaffolding
