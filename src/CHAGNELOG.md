@@ -1,3 +1,7 @@
+### 0.10.1 2016-10-24
+
+* update: derive plugin directory based on location of script for postgresql plugin scripts
+
 ### 0.10.0 2016-10-19
 
 * fix: postgres plugin adjustments
