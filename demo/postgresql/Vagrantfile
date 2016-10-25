@@ -1,0 +1,149 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+# rubocop:disable Metrics/LineLength
+
+require 'yaml'
+require 'digest/sha1'
+
+config_file = 'config.yaml'
+unless File.file?(config_file)
+    puts 'ERROR: config file not found.'
+    puts "\nSee README.md for instructions to setup '#{config_file}'"
+    exit(1)
+end
+options = YAML.load_file('config.yaml') || {}
+
+api_key = (options['api_key'] || '').strip
+api_app = (options['api_app'] || 'cosi').strip
+pg_user = (options['pg_user'] || 'cositest').strip
+pg_pass = (options['pg_pass'] || '3#fqaIL!@BaJGqXt').strip
+
+msg = "\nCONFIG ERROR: '%s' cannot be empty, set it in #{config_file}\n\n"
+
+if api_key.empty?
+    puts msg % 'api_key'
+    exit(1)
+end
+
+if api_app.empty?
+    puts msg % 'api_app'
+    exit(1)
+end
+
+if pg_user.empty?
+    puts msg % 'pg_user'
+    exit(1)
+end
+
+if pg_pass.empty?
+    puts msg % 'pg_pass'
+    exit(1)
+end
+
+# this really isn't an "option" if changed, ensure node IPs are in same subnet
+site_ip = '192.168.10.10'
+c7_node_ip = '192.168.10.11'
+
+Vagrant.configure(2) do |config|
+    #
+    # cosi-site
+    #
+    host_sig = Digest::SHA1.hexdigest("#{`hostname`}-cosi-site")[0..8]
+    config.vm.define 'site' do |site|
+        site.vm.box = 'maier/centos-7.2.1511-x86_64'
+        site.vm.hostname = "cosi-site-#{host_sig}"
+        site.vm.network 'private_network', ip: site_ip
+        # leverage main 'cosi-site' ansible playbook
+        site.vm.provision 'shell', inline: <<-SHELL
+            # work around vagrant 1.8.6 network issues
+            ifcfg=/etc/sysconfig/network-scripts/ifcfg-enp0s8
+            [[ -f $ifcfg ]] && {
+                chown root.root $ifcfg
+                chmod 644 $ifcfg
+                systemctl restart network
+            }
+        SHELL
+        site.vm.provision 'ansible' do |ansible|
+            ansible.playbook = '../../provision/cosi-site.yml'
+        end
+    end
+
+    #
+    # PostgreSQL client node(s)
+    #
+
+    host_sig = Digest::SHA1.hexdigest("#{`hostname`}-c7pg")[0..8]
+    config.vm.define 'c7pg', autostart: false do |c7pg|
+        c7pg.vm.box = 'maier/centos-7.2.1511-x86_64'
+        c7pg.vm.hostname = "c7pg-#{host_sig}"
+        c7pg.vm.network 'private_network', ip: c7_node_ip
+        c7pg.vm.provision 'shell', inline: <<-SHELL
+            echo "#{site_ip} cosi.circonus.com" >> /etc/hosts
+            # work around vagrant 1.8.6 network issues
+            ifcfg=/etc/sysconfig/network-scripts/ifcfg-enp0s8
+            [[ -f $ifcfg ]] && {
+                chown root.root $ifcfg
+                chmod 644 $ifcfg
+                systemctl restart network
+            }
+            echo "Updating yum cache"
+            yum -q -e 0 makecache fast
+            echo "Installing PostgreSQL server"
+            yum -q install -y postgresql-server
+            pg_hba_file=/var/lib/pgsql/data/pg_hba.conf
+            [[ -f $pg_hba_file ]] || {
+                postgresql-setup initdb
+                cp -v /vagrant/pg_hba.conf $pg_hba_file && chmod 600 $pg_hba_file && chown postgres.postgres $pg_hba_file
+                systemctl start postgresql
+                systemctl enable postgresql
+                echo "Creating #{pg_user} user and database"
+                sudo -iu postgres createuser #{pg_user}
+                sudo -iu postgres createdb #{pg_user}
+                echo "Setting #{pg_user} password"
+                sudo -iu postgres psql -c "ALTER USER #{pg_user} WITH PASSWORD '#{pg_pass}';"
+            }
+            echo "Installing gcc, git, and libpcap to build protocol_observer (if needed)."
+            yum -q install -y gcc git libpcap-devel
+            echo "Installing go to build protocol_observer (if needed)."
+            go_ver="1.7.3"
+            go_file="go${go_ver}.linux-amd64.tar.gz"
+            [[ -f $go_file ]] || {
+                go_url="https://storage.googleapis.com/golang/$go_file"
+                curl -sSL "$go_url" -o $go_file
+                tar -C /usr/local -zxf $go_file
+            }
+            gopath="/opt/circonus/godev"
+            [[ -d $gopath ]] || mkdir -pv $gopath
+            circ_prof=/etc/profile.d/circonus.sh
+            echo 'export PATH="$PATH:/opt/circonus/embedded/bin:/usr/local/go/bin"' > $circ_prof
+            echo "export GOPATH=\"${gopath}\"" >> $circ_prof
+            [[ -x /opt/circonus/bin/protocol_observer ]] || {
+                echo "Building protocol_observer"
+                source $circ_prof
+                cd $GOPATH && \
+                go get github.com/circonus-labs/wirelatency && \
+                cd src/github.com/circonus-labs/wirelatency/protocol_observer/ && \
+                go build
+                [[ -d /opt/circonus/bin ]] || mkdir -pv /opt/circonus/bin
+                cp -v protocol_observer /opt/circonus/bin
+                # allow 'nobody' to run protocol_observer
+                echo "nobody ALL=(root) NOPASSWD: /opt/circonus/bin/protocol_observer" >> /etc/sudoers
+            }
+            [[ -d /opt/circonus/cosi ]] || {
+                echo "Running Circonus One Step Install (cosi)"
+                curl -sSL http://cosi.circonus.com/install | bash -s -- --cosiurl http://cosi.circonus.com --key #{api_key} --app #{api_app} --noreg
+            }
+            [[ -f /opt/circonus/etc/pg-conf.sh ]] || {
+                echo "Enabling NAD PostgreSQL plugin"
+                /opt/circonus/cosi/bin/cosi plugin postgres --enable --user=#{pg_user} --pass=#{pg_pass} --database=#{pg_user} --psql_cmd=/bin/psql --noregister
+            }
+            [[ -f /opt/circonus/cosi/registration/registration-check-system.json ]] || {
+                echo "Running cosi registration"
+                /opt/circonus/cosi/bin/cosi register
+            }
+            # create table ct1 ( id serial primary key, data varchar (50) not null );
+            # insert into ct1 ( data ) values ('foo'), ('bar'), ('baz');
+            # insert into ct1 ( data ) values ('blah blah blah'), ('yadda yadda yadda');
+        SHELL
+    end
+end
