@@ -432,6 +432,12 @@ class Checks extends Registration {
         console.log(chalk.blue(this.marker));
         console.log(`Finalizing system check`);
 
+        if (this.agentMode === 'pull') {
+            console.log(chalk.green('OK'), 'no additional configuration needed for pull mode agent');
+            this.emit('check.finalize.done');
+            return;
+        }
+
         const bundle_id = this.checks.system.bundle_id;
         const submit_url = this.checks.system.submit_url;
 
