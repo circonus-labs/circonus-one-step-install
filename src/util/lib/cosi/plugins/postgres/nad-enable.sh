@@ -65,7 +65,13 @@ else
 fi
 
 # obtain the database directory and subsequent filesystem on which that directory resides
-DATA_DIR=$($PSQL_CMD -w -c "show data_directory;" -q -t)
+[[ -n {PGPASS:-} ]] && export PGPASSWORD=$PGPASS
+DATA_DIR=$($PSQL_CMD -U $PGUSER -d $PGDATABASE -w -c "show data_directory;" -q -t)
+if [[ $? -ne 0 ]]; then
+    unset PGPASSWORD
+    DATA_DIR=$($PSQL_CMD -U postgres -d $PGDATABASE -w -c "show data_directory;" -q -t)
+    [[ $? -eq 0 ]] || DATA_DIR=$(sudo -u postgres $PSQL_CMD -d $PGDATABASE -w -c "show data_directory;" -q -t)
+fi
 FS_NAME=""
 if [[ -n "$DATA_DIR" ]]; then
     DATA_DIR=$(echo -e "${DATA_DIR}" | tr -d '[[:space:]]')
