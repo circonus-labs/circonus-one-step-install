@@ -137,6 +137,12 @@ Api.prototype.do_request = function(options, callback) {
                 }
             }
 
+            // success, no content
+            if (res.statusCode === 204) {
+                callback(res.statusCode, null, null, null);
+                return;
+            }
+
             const buffer = Buffer.concat(data);
             const encoding = res.headers['content-encoding'];
             let err_msg = null;
@@ -164,10 +170,6 @@ Api.prototype.do_request = function(options, callback) {
                 console.log(`RESPONSE ${res.statusCode} : ${body}`);
             }
 
-            if (body === null) {
-                err_msg = new Error('No data found in body');
-            }
-
             if (err_msg !== null) {
                 callback(res.statusCode, err_msg, null, body);
                 return;
@@ -182,16 +184,20 @@ Api.prototype.do_request = function(options, callback) {
                     err_msg.detail = err;
                     err_msg.body = body;
                 }
+                callback(res.statusCode, err_msg, null, body);
+                return;
             }
 
             let parsed = null;
 
-            try {
-                parsed = JSON.parse(body);
-            } catch (parseErr) {
-                err_msg = new Error(`Error parsing body`);
-                err_msg.detail = parseErr;
-                err_msg.body = body;
+            if (body !== null && body !== '') {
+                try {
+                    parsed = JSON.parse(body);
+                } catch (parseErr) {
+                    err_msg = new Error(`Error parsing body`);
+                    err_msg.detail = parseErr;
+                    err_msg.body = body;
+                }
             }
 
             callback(res.statusCode, err_msg, parsed, body);
@@ -245,7 +251,7 @@ Api.prototype.get_request_options = function(method, endpoint, data) {
         // when communicating with the API. at least until the actual
         // root cause can be determined.
 
-        if (!{}.hasOwnProperty.call(options, 'agent')) {
+        if (!{}.hasOwnProperty.call(options, 'agent') || options.agent === false) {
             options.agent = this.protocol === 'https:' ? new https.Agent() : new http.Agent();
         }
 
