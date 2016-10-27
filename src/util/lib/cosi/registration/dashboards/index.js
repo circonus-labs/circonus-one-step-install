@@ -191,7 +191,7 @@ class Dashboards extends Registration {
     }
 
 
-    configDashboard(template) {
+    configDashboard(template) { // eslint-disable-line complexity
         console.log(chalk.blue(this.marker));
         console.log(`Configuring dasbhoard`);
 
@@ -204,8 +204,8 @@ class Dashboards extends Registration {
 
         const dashboardID = `${templateMatch[1]}-${templateMatch[2]}`;
         const dashboardInstance = templateMatch[2];
-        const templateFile = path.resolve(path.join(cosi.reg_dir, template.file)); // path.resolve(path.join(cosi.reg_dir, `template-dashboard-${dashboardID}.json`));
-        const configFile = templateFile.replace('template-', 'config-'); // path.resolve(path.join(cosi.reg_dir, `config-dashboard-${dashboardID}-${dashboardItem}.json`));
+        const templateFile = path.resolve(path.join(cosi.reg_dir, template.file));
+        const configFile = templateFile.replace('template-', 'config-');
 
         console.log(`\tDashboard: ${dashboardID} (${templateFile})`);
 
@@ -242,7 +242,6 @@ class Dashboards extends Registration {
             ].join('-');
         }
 
-        // const template = new Template(templateFile);
         const config = JSON.parse(JSON.stringify(template.config.config));
         let data = null;
 
@@ -266,7 +265,6 @@ class Dashboards extends Registration {
                 console.log(chalk.yellow('\tWARN'), 'No graph found for', widget.widget_id, 'with tag', widget.tags);
                 continue;
             }
-            widget.settings._graph_title = this._expand(widget.settings._graph_title, data);
             widget.settings.account_id = this.regConfig.account.account_id;
             widget.settings.graph_id = this.graphs[graphIdx].id;
             widget.settings.label = this._expand(widget.settings.label, data);
@@ -300,14 +298,74 @@ class Dashboards extends Registration {
                 widget.settings.metric_name = metric_name;
                 widget.settings.account_id = this.regConfig.account.account_id;
                 widget.settings.check_uuid = this.checkMeta.system.uuid;
-                // why wouldn't '_type' already be named 'type' in the template?
-                widget.settings.type = widget.settings._type;
             } else {
                 console.log(chalk.yellow('\tWARN'), 'No metric found for widget', widget.widget_id, 'matching', metric_name);
             }
         }
 
-        console.log(`\tPurging widgets`);
+
+        console.log(`\tConfiguring forecast widgets`);
+        for (let i = config.widgets.length - 1; i >= 0; i--) {
+            const widget = config.widgets[i];
+
+            if (widget.type !== 'forecast') {
+                continue;
+            }
+
+            if (!{}.hasOwnProperty.call(widget.settings, 'metrics')) {
+                console.log(`\t\tNo metrics attribute in widget '${widget.settings.title}', skipping.`);
+                continue;
+            }
+
+            if (!Array.isArray(widget.settings.metrics) || widget.settings.metrics.length === 0) {
+                console.log(`\t\t0 metrics defined for widget '${widget.settings.title}', skipping.`);
+                continue;
+            }
+
+            const forecast_metrics = [];
+
+            for (const metric of widget.settings.metrics) {
+                const metric_name = this._expand(metric, data);
+                const metricParts = metric_name.match(/^([^`]+)`(.*)$/);
+                let foundMetric = false;
+
+                if (metricParts === null) {
+                    foundMetric = {}.hasOwnProperty.call(this.metrics, metric_name);
+                } else {
+                    const metricGroup = metricParts[1];
+                    const metricName = metricParts[2];
+
+                    if ({}.hasOwnProperty.call(this.metrics, metricGroup)) {
+                        foundMetric = {}.hasOwnProperty.call(this.metrics[metricGroup], metricName);
+                    }
+                }
+
+                if (foundMetric) {
+                    forecast_metrics.push({
+                        check_uuid: this.checkMeta.system.uuid,
+                        metric_name
+                    });
+                }
+            }
+
+            if (widget.settings.metrics.length !== forecast_metrics.length) {
+                console.log(`\t\tMetric count error, only found ${forecast_metrics.length} of ${widget.settings.metrics.length}`);
+                continue;
+            }
+
+            const forecastData = JSON.parse(JSON.stringify(data));
+
+            widget.settings.title = this._expand(widget.settings.title, data);
+            forecastData.forecast_metrics = forecast_metrics;
+            widget.settings.resource_limit = this._expand(widget.settings.resource_limit, forecastData);
+            widget.settings.resource_usage = this._expand(widget.settings.resource_usage, forecastData);
+            delete widget.settings.metrics;
+            console.log(`\t\tConfigured forecast widget '${widget.settings.title}'`);
+
+        }
+
+
+        console.log(`\tPurging unconfigured widgets`);
         for (let i = config.widgets.length - 1; i >= 0; i--) {
             let removeWidget = false;
 
@@ -315,6 +373,8 @@ class Dashboards extends Registration {
                 removeWidget = config.widgets[i].settings.graph_id === null;
             } else if (config.widgets[i].type === 'gauge') {
                 removeWidget = config.widgets[i].settings.check_uuid === null;
+            } else if (config.widgets[i].type === 'forecast') {
+                removeWidget = {}.hasOwnProperty.call(config.widgets[i].settings, 'metrics');
             } else {
                 console.log(chalk.yellow('\tWARN'), `Unsupported widget type (${config.widgets[i].type}), ignoring widget id:${config.widgets[i].widget_id}`);
             }

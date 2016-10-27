@@ -298,17 +298,135 @@ class Postgres extends Plugin {
         req.end();
     }
 
+    loadFSMetrics(cb) {
+        console.log('\t\tLoading FS metrics');
 
-    preConfigDashboard() {
-        const err = this._create_meta_conf();
+        http.get(`${cosi.agent_url}run/fs`, (res) => {
+            let data = '';
 
-        if (err === null) {
-            console.log(chalk.green(`\tSaved`), 'meta configuration');
-            this.emit('preconfig.done', null);
-        } else {
-            this.emit('preconfig.done', err);
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+
+            res.on('end', () => {
+                try {
+                    const metrics = JSON.parse(data);
+
+                    cb(null, metrics);
+                    return;
+                } catch (err) {
+                    cb(err);
+                    return;
+                }
+            });
+        }).on('error', (err) => {
+            cb(err);
+            return;
+        });
+    }
+
+    configForecastWidgets(cb) {
+        console.log(chalk.bold('\tConfiguring forecast widgets'));
+
+        // verify that any settings required to find metrics are present
+        if (this.state.fs_mount === '') {
+            console.log('\t\tfs_mount not set from enable, skipping.');
+            cb(null);
+            return;
         }
 
+        const cfgFile = path.resolve(path.join(cosi.reg_dir, `template-dashboard-${this.name}-${this.instance}.json`));
+        let cfg = null;
+
+        try {
+            cfg = require(cfgFile); // eslint-disable-line global-require
+        } catch (loadErr) {
+            console.error(chalk.red('ERROR'), `loading dashboard template ${cfgFile}`, loadErr);
+            process.exit(1);
+        }
+
+        if (!{}.hasOwnProperty.call(cfg, 'config')) {
+            console.error(chalk.red('ERROR'), `invalid template, no 'config' property ${cfgFile}`);
+            process.exit(1);
+
+        }
+
+        if (!{}.hasOwnProperty.call(cfg.config, 'widgets')) {
+            console.error(chalk.red('ERROR'), `invalid template, no 'widgets' in config property ${cfgFile}`);
+            process.exit(1);
+        }
+
+        const rx = new RegExp(`(.*\`)?${this.state.fs_mount}\`(df_)?used_percent`);
+
+        // this can be expanded to do all metrics but ATM all we need is fs metrics to match state.fs_mount
+        this.loadFSMetrics((err, metrics) => {
+            if (err !== null) {
+                cb(err);
+                return;
+            }
+
+            if (metrics === null || !{}.hasOwnProperty.call(metrics, 'fs')) {
+                console.log('\t\tNo FS metrics returned from agent, skipping');
+                cb(null);
+                return;
+            }
+
+            let metricName = null;
+
+            for (const metric in metrics.fs) {
+                if (rx.test(metric)) {
+                    metricName = `fs\`${metric}`;
+                    break;
+                }
+            }
+
+            if (metricName === null) {
+                console.log(`\t\tDid not find a metric matching '${this.state.fs_mount}'`);
+                cb(null);
+                return;
+            }
+
+            console.log(`\t\tFound metric '${metricName}'`);
+
+            for (const widget of cfg.config.widgets) {
+                if (widget.type !== 'forecast') {
+                    continue;
+                }
+                if ({}.hasOwnProperty.call(widget.settings, 'metrics') && Array.isArray(widget.settings.metrics)) {
+                    for (let j = 0; j < widget.settings.metrics.length; j++) {
+                        if (widget.settings.metrics[j] === 'fs_mount') {
+                            console.log(`\t\tFound widget '${widget.settings.title}', setting metric name`);
+                            widget.settings.metrics[j] = metricName;
+                        }
+                    }
+                }
+            }
+
+            try {
+                fs.writeFileSync(cfgFile, JSON.stringify(cfg, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+            } catch (saveErr) {
+                cb(saveErr);
+                return;
+            }
+
+            cb(null);
+        });
+    }
+
+
+    preConfigDashboard() {
+        const metaErr = this._create_meta_conf();
+
+        if (metaErr !== null) {
+            this.emit('preconfig.done', metaErr);
+            return;
+        }
+
+        console.log(chalk.green(`\tSaved`), 'meta configuration');
+
+        this.configForecastWidgets((cfgErr) => {
+            this.emit('preconfig.done', cfgErr);
+        });
     }
 
     _find_psql_command(psql_cmd) {
@@ -411,7 +529,7 @@ class Postgres extends Plugin {
             contents.push(`export PGPORT=${this.options.port}`);
         }
         if (this.options.pass !== '') {
-            contents.push(`export PGPASSWORD=${this.options.pass}`);
+            contents.push(`export PGPASS=${this.options.pass}`);
         }
 
         try {
