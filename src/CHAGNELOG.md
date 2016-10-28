@@ -1,3 +1,11 @@
+### 0.10.2 2016-10-27
+
+* add: forecast widget support for dashboards
+* fix: workarounds for obtaining db data directory
+* fix: premature end fired on api requests resulting in no/partial response body
+* add: retry api requests on rate limit result code (429)
+* fix: short circuit finalize if agent mode is pull
+
 ### 0.10.1 2016-10-24
 
 * update: derive plugin directory based on location of script for postgresql plugin scripts
