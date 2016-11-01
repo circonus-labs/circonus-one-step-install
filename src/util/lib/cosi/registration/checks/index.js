@@ -340,7 +340,7 @@ class Checks extends Registration {
 
         if (this.agentMode === 'push') {
             check.brokers = [
-                this.regConfig.broker.trap._cid.replace('/broker/', '')
+                this.regConfig.broker.trap._cid // .replace('/broker/', '')
             ];
             check.config = {
                 asynch_metrics: true,
@@ -348,7 +348,7 @@ class Checks extends Registration {
             };
         } else {
             check.brokers = [
-                this.regConfig.broker.json._cid.replace('/broker/', '')
+                this.regConfig.broker.json._cid // .replace('/broker/', '')
             ];
             check.config.url = cosi.agent_url;
         }
