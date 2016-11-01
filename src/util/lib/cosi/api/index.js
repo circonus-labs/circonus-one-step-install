@@ -124,8 +124,8 @@ Api.prototype.do_request = function(options, callback) {
 
         res.on('end', () => {
 
-            // rate limit, try again...
-            if (res.statusCode === 429) {
+            // rate limit or server-side error, try again...
+            if (res.statusCode === 429 || res.statusCode === 500) {
                 if (options.circapi.retry < options.circapi.retry_backoff.length) {
                     setTimeout(() => {
                         self.do_request(options, callback);
