@@ -1,18 +1,19 @@
 # Circonus One Step Installer
 
-## Documentation
-
-The [COSI user documentation](https://github.com/circonus-labs/circonus-one-step-install/wiki) is in the wiki for this repository. The documentation contained here pertains to the repository itself.
-
-## TL;DR _quick start_
+## How to use - I want to use COSI to get a server sending metrics...
 
 1. Go to the [API Tokens](https://login.circonus.com/user/tokens) page. If there are no tokens listed, click the **New API Token** button to create one.
 2. Click the (i) information icon next to the token to use it.
 3. Copy and run the command displayed on the host to be setup.
 
-For more information [see the documentation](https://github.com/circonus-labs/circonus-one-step-install/wiki).
-
 ---
+
+## How to run - I need to set up an internal COSI site, for my infrastructure which cannot reach the public Circonus COSI site...
+
+## Documentation
+
+The [COSI user documentation](https://github.com/circonus-labs/circonus-one-step-install/wiki) is in the wiki for this repository. The documentation contained here pertains to the repository itself.
+
 
 ## Installer Examples
 
