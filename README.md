@@ -6,6 +6,7 @@
 2. Click the (i) information icon next to the token to use it.
 3. Copy and run the command displayed on the host to be setup.
 
+[Documentation on additional command line options](https://github.com/circonus-labs/circonus-one-step-install/wiki/Installer) for the installer.
 ---
 
 ## How to run - I need to set up an internal COSI site, for my infrastructure which cannot reach the public Circonus COSI site...
