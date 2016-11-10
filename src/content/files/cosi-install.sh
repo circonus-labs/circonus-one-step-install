@@ -383,10 +383,10 @@ __lookup_os() {
         # (good to know i suppose, that if curl gets a non-http response '000' is the result code)
         fail "Unknown/invalid http result code: ${request_result[1]}\nmessage: ${request_result[0]}"
         ;;
-	(*)
+    (*)
         # unsupported distribution|version|architecture
         fail "API result - http result code: ${request_result[1]}\nmessage: ${request_result[0]}"
-		;;
+	;;
 	esac
 }
 
