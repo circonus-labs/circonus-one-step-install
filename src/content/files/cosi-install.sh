@@ -684,6 +684,7 @@ __fetch_cosi_utils() {
 
     log "Fixing cosi util shebangs..."
     for f in $(ls -1 /opt/circonus/cosi/bin/{cosi,circonus}*); do
+        # On OSX replace `-i""` with `-i ""` (add a space)
         sed -e "s#%%NODE_BIN%%#$node_bin#" -i"" $f
     done
 
