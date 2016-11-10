@@ -667,7 +667,7 @@ __fetch_cosi_utils() {
 
     log "Verifying node version..." # oh FFS!
     node_bin=""     # omnibus packages              omnios packages
-    for f in /opt/circonus/embedded/bin/node /opt/circonus/bin/node; do
+    for f in /opt/circonus/embedded/bin/node /opt/circonus/bin/node "$(which node)"; do
         if [[ -x $f ]]; then
             node_bin=$f
             break
