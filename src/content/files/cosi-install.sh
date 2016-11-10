@@ -385,7 +385,8 @@ __lookup_os() {
         ;;
     (*)
         # unsupported distribution|version|architecture
-        fail "API result - http result code: ${request_result[1]}\nmessage: ${request_result[0]}"
+        log "API result - http result code: ${request_result[1]}\nmessage: ${request_result[0]}"
+        log "No NAD packages will be available. Please install nad manually."
 	;;
 	esac
 }
