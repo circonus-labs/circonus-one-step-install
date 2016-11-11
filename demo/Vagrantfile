@@ -35,7 +35,7 @@ Vagrant.configure(2) do |config|
         c7.vm.network 'private_network', ip: '192.168.100.11'
         c7.vm.provision 'shell', inline: <<-SHELL
             # add alias for setup.circonus.com, so it will "resolve"
-            echo "#{site_ip} cosi.circonus.com" >> /etc/hosts
+            echo "#{site_ip} cosi-site" >> /etc/hosts
             echo "Installing perl for NAD"
             yum -q -e 0 makecache fast
             yum -q install -y perl
@@ -46,7 +46,7 @@ Vagrant.configure(2) do |config|
             chmod -v 755 /opt/circonus/cosi/agent_post_hook.sh
             echo " "
             echo " "
-            echo "run: [ curl 'http://cosi.circonus.com/install' | bash -s -- --key ... --app ... --cosiurl 'http://cosi.circonus.com/' --agent push ]"
+            echo "run: [ curl 'http://cosi-site/install' | bash -s -- --key ... --app ... --cosiurl 'http://cosi-site/' --agent push ]"
             echo ">>>>> -----------------------------------------------------------  ^ +++++++ ^ API KEY & APP REQUIRED!!!"
             echo ">>>>> --cosiurl points to the 'site' VM created above, elide to use the default (https://setup.circonus.com)"
             echo ">>>>> --agent 'push' because this is a VM and the Circonus Broker cannot directly connect to NAD to *pull* metrics"
@@ -69,11 +69,11 @@ Vagrant.configure(2) do |config|
             s.inline = "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
         end
         u14.vm.provision 'shell', inline: <<-SHELL
-            # add alias for cosi.circonus.com, so it will "resolve"
-            echo "#{site_ip} cosi.circonus.com" >> /etc/hosts
+            # add alias for cosi-site, so it will "resolve"
+            echo "#{site_ip} cosi-site" >> /etc/hosts
             echo " "
             echo " "
-            echo "run: [ curl 'http://cosi.circonus.com/install' | bash -s -- --key ... --app ... --cosiurl 'http://cosi.circonus.com/' --agent push ]"
+            echo "run: [ curl 'http://cosi-site/install' | bash -s -- --key ... --app ... --cosiurl 'http://cosi-site/' --agent push ]"
             echo ">>>>> -----------------------------------------------------------  ^ +++++++ ^ API KEY & APP REQUIRED!!!"
             echo ">>>>> --cosiurl points to the 'site' VM created above, elide to use the default (https://setup.circonus.com)"
             echo ">>>>> --agent 'push' because this is a VM and the Circonus Broker cannot directly connect to NAD to *pull* metrics"
@@ -92,15 +92,15 @@ Vagrant.configure(2) do |config|
         omnios.vm.hostname = "cosi-omnios-#{host_sig}"
         omnios.vm.network 'private_network', ip: '192.168.100.13'
         omnios.vm.provision 'shell', inline: <<-SHELL
-            # add alias for cosi.circonus.com, so it will "resolve"
-            echo "#{site_ip} cosi.circonus.com" >> /etc/hosts
+            # add alias for cosi-site, so it will "resolve"
+            echo "#{site_ip} cosi-site" >> /etc/hosts
             echo " "
             echo "Installing Agent POST hook script"
             mkdir -pv /opt/circonus/cosi
             cp -v /vagrant/hooks/omnios/agent_post_hook.sh /opt/circonus/cosi
             chmod -v 755 /opt/circonus/cosi/agent_post_hook.sh
             echo " "
-            echo "run: [ curl 'http://cosi.circonus.com/install' | bash -s -- --key ... --app ... --cosiurl 'http://cosi.circonus.com/' --agent push ]"
+            echo "run: [ curl 'http://cosi-site/install' | bash -s -- --key ... --app ... --cosiurl 'http://cosi-site/' --agent push ]"
             echo ">>>>> -----------------------------------------------------------  ^ +++++++ ^ API KEY & APP REQUIRED!!!"
             echo ">>>>> --cosiurl points to the 'site' VM created above, elide to use the default (https://setup.circonus.com)"
             echo ">>>>> --agent 'push' because this is a VM and the Circonus Broker cannot directly connect to NAD to *pull* metrics"
@@ -119,15 +119,15 @@ Vagrant.configure(2) do |config|
         ol72.vm.hostname = "cosi-ol72-#{host_sig}"
         ol72.vm.network 'private_network', ip: '192.168.100.14'
         ol72.vm.provision 'shell', inline: <<-SHELL
-            # add alias for cosi.circonus.com, so it will "resolve"
-            echo "#{site_ip} cosi.circonus.com" >> /etc/hosts
+            # add alias for cosi-site, so it will "resolve"
+            echo "#{site_ip} cosi-site" >> /etc/hosts
             echo " "
             # echo "Installing Agent POST hook script"
             # mkdir -pv /opt/circonus/cosi
             # cp -v /vagrant/hooks/ol72/agent_post_hook.sh /opt/circonus/cosi
             # chmod -v 755 /opt/circonus/cosi/agent_post_hook.sh
             # echo " "
-            echo "run: [ curl 'http://cosi.circonus.com/install' | bash -s -- --key ... --app ... --cosiurl 'http://cosi.circonus.com/' --agent push ]"
+            echo "run: [ curl 'http://cosi-site/install' | bash -s -- --key ... --app ... --cosiurl 'http://cosi-site/' --agent push ]"
             echo ">>>>> -----------------------------------------------------------  ^ +++++++ ^ API KEY & APP REQUIRED!!!"
             echo ">>>>> --cosiurl points to the 'site' VM created above, elide to use the default (https://setup.circonus.com)"
             echo ">>>>> --agent 'push' because this is a VM and the Circonus Broker cannot directly connect to NAD to *pull* metrics"
