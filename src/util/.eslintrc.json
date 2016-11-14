@@ -2,7 +2,7 @@
     "extends": "../.eslintrc.json",
     "root": true,
     "rules": {
-        "no-sync": "error",
+        "no-sync": "off",
         "max-statements": "off"
     }
 }

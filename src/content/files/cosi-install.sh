@@ -205,7 +205,7 @@ __detect_os() {
     set +e
     dmi=$(type -P dmidecode)
     if [[ $? -eq 0 ]]; then
-        result=$($dmi -s bios-version 2>/dev/null)
+        result=$($dmi -s bios-version 2>/dev/null | tr "\n" " ")
         [[ $? -eq 0 ]] && cosi_os_dmi=$result
     fi
     set -e
@@ -534,7 +534,7 @@ __is_nad_running() {
     local ret
     if [[ $agent_state -eq 1 ]]; then
         set +e
-        pid=$(pgrep -n -f "sbin/nad")
+        pid=$(pgrep -n -f "nad")
         ret=$?
         set -e
         if [[ $ret -eq 0 && ${pid:-0} -gt 0 ]]; then
@@ -665,7 +665,7 @@ __fetch_cosi_utils() {
     log "Cleaning up after node module installation"
     rm -rf .modules
 
-    log "Fixing shebangs..." # oh FFS!
+    log "Verifying node version..." # oh FFS!
     node_bin=""     # omnibus packages              omnios packages
     for f in /opt/circonus/embedded/bin/node /opt/circonus/bin/node; do
         if [[ -x $f ]]; then
@@ -676,9 +676,17 @@ __fetch_cosi_utils() {
     if [[ "${node_bin:-}" == "" ]]; then
         fail "Unable to find the NAD embedded NodeJS binary in the two locations of which this script is aware..."
     fi
+    # check node version, must be 'v4.*' or 'v6.*'
+    node_ver=$($node_bin -v)
+    if [[ ! $node_ver =~ ^v(4|6) ]]; then
+        fail "NodeJS ${node_ver} is out-of-date, please update NAD and/or NodeJS package providing ${node_bin}."
+    fi
+
+    log "Fixing cosi util shebangs..."
     for f in $(ls -1 /opt/circonus/cosi/bin/{cosi,circonus}*); do
         sed -e "s#%%NODE_BIN%%#$node_bin#" -i"" $f
     done
+
 }
 
 

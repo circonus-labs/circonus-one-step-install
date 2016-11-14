@@ -1,11 +1,15 @@
 
-BABEL	 	:= ./node_modules/.bin/babel
+BABEL	:= ./node_modules/.bin/babel
 
-BIN_SRC  	:= $(shell git ls-files bin/*.{js,sh})
-LIB_SRC  	:= $(shell git ls-files lib)
+BIN_SRC	:= $(shell git ls-files bin/*.{js,sh})
+LIB_SRC	:= $(shell git ls-files lib)
 
-UTILS 		:= cosi-util.tar.gz
-STATSD   	:= cosi-statsd.tar.gz
+UTILS	:= cosi-util.tar.gz
+STATSD	:= cosi-statsd.tar.gz
+
+# 'yes' = using node v4+, supports ES6 syntax/constructs
+# 'no' = old node, transpile down/back to ES5
+ES6NODE	?= yes
 
 install:
 	@echo "There is no 'default' target, try 'package' or 'dev-install'"
@@ -13,10 +17,17 @@ install:
 $(UTILS): $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
 	-rm -rf .modules
 	-rm -rf build
+	mkdir build
 	test -d node_modules || npm install
-	install -d build
+ifeq ($(ES6NODE), yes)
+	install -d build/bin
+	cp bin/*.js build/bin/.
+	cp -r lib build/.
+else
 	$(BABEL) bin/cosi*.js -d build
 	$(BABEL) bin/circonus-nadpush.js --out-file build/bin/circonus-nadpush.js
+	$(BABEL) lib -d build/lib
+endif
 	install -m 0700 bin/install_nadpush.sh build/bin/.
 	install -m 0700 bin/install_nadreverse.sh build/bin/.
 	install -m 0700 bin/install_statsd.sh build/bin/.
@@ -25,16 +36,15 @@ $(UTILS): $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
 	tail -n +3 build/bin/circonus-nadpush.js >> build/bin/circonus-nadpush && \
 	chmod 0755 build/bin/circonus-nadpush && \
 	rm build/bin/circonus-nadpush.js
-	for f in ./build/bin/*.js; do \
-		sed -e 's#/usr/bin/env node#%%NODE_BIN%%#' -i '' "$$f"; \
-		chmod 0755 "$$f"; \
-		mv "$$f" "$${f%.js}"; \
-	done
-	$(BABEL) lib -d build/lib
+	for f in build/bin/*.js; do sed -e 's#/usr/bin/env node#%%NODE_BIN%%#' "$$f" > "$${f%.js}" && chmod 0755 "$${f%.js}" && rm "$$f"; done
 	node_modules/.bin/pac --production
 	cp -r .modules build/.
 	cp -r service build/.
 	cp -r rulesets build/.
+	# install plugin helpers (non-javascript files)
+	# postgres
+	install -m 0700 lib/cosi/plugins/postgres/nad-enable.sh build/lib/cosi/plugins/postgres/.
+	install -m 0700 lib/cosi/plugins/postgres/nad-disable.sh build/lib/cosi/plugins/postgres/.
 	install package.json build/.
 	install Makefile build/.
 	install README.md build/.
@@ -44,14 +54,13 @@ $(UTILS): $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
 	if [ -d etc ]; then cp -r etc build/. ; fi
 	if [ -d registration ]; then cp -r registration build/.; fi
 	cp cosi-statsd.tar.gz build/.
-	COPYFILE_DISABLE=true tar -C build -czf $@ bin lib service rulesets .modules package.json README.md LICENSE $(STATSD)
-
+	COPYFILE_DISABLE=true tar -czf $@ -C build bin lib service rulesets .modules package.json README.md LICENSE $(STATSD)
 
 .PHONY: check
 check:
 	@echo && echo "Checking cosi-util source"
 	eslint $(BIN_SRC) $(LIB_SRC)
-	@ncu --prod
+	@npm-check --production
 
 init:
 	test -d node_modules || npm install
@@ -62,7 +71,6 @@ clean:
 	-rm -rf build
 	-rm $(UTILS)
 	-rm $(STATSD)
-
 
 package: $(UTILS)
 

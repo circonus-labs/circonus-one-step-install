@@ -13,34 +13,35 @@
  *    body:   Response body, i.e. the thing you probably want
  */
 
-/*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers, camelcase, no-process-exit, global-require, no-param-reassign */
+/* eslint-env node, es6 */
+/* eslint-disable no-magic-numbers, camelcase, no-process-exit, global-require, no-param-reassign */
 
-/*eslint-disable no-invalid-this, no-process-env, valid-jsdoc */
+/* eslint-disable no-invalid-this, no-process-env, valid-jsdoc, func-style, func-names */
 
-"use strict";
+'use strict';
 
-const qs = require("querystring");
-const url = require("url");
-const http = require("http");
-const https = require("https");
-const path = require("path");
+const qs = require('querystring');
+const url = require('url');
+const http = require('http');
+const https = require('https');
+const path = require('path');
+const zlib = require('zlib');
 
-const cosi = require(path.resolve(path.join(__dirname, "..")));
+const cosi = require(path.resolve(path.join(__dirname, '..')));
 
 let singleton = null;
 
 const Api = function(token, app, options) {
-    options = options || "https://api.circonus.com/v2/";
-    if (typeof options === "string") {
+    options = options || 'https://api.circonus.com/v2/';
+    if (typeof options === 'string') {
         options = url.parse(options);
     }
     this.authtoken = token;
     this.appname = app;
-    this.protocol = options.protocol || "https:";
-    this.apihost = options.host || "api.circonus.com";
+    this.protocol = options.protocol || 'https:';
+    this.apihost = options.host || 'api.circonus.com';
     this.apiport = options.port || 443;
-    this.apipath = options.path || "/v2/";
+    this.apipath = options.path || '/v2/';
     this.verbose = options.verbose;
 };
 
@@ -53,7 +54,7 @@ const Api = function(token, app, options) {
  *            arguments are callback(code, error, body)
  */
 Api.prototype.get = function(endpoint, data, callback) {
-    const options = this.get_request_options("GET", endpoint, data);
+    const options = this.get_request_options('GET', endpoint, data);
 
     this.do_request(options, callback);
 };
@@ -68,7 +69,7 @@ Api.prototype.get = function(endpoint, data, callback) {
  *            arguments are callback(code, error, body)
  */
 Api.prototype.post = function(endpoint, data, callback) {
-    const options = this.get_request_options("POST", endpoint, data);
+    const options = this.get_request_options('POST', endpoint, data);
 
     this.do_request(options, callback);
 };
@@ -82,7 +83,7 @@ Api.prototype.post = function(endpoint, data, callback) {
  *            arguments are callback(code, error, body)
  */
 Api.prototype.put = function(endpoint, data, callback) {
-    const options = this.get_request_options("PUT", endpoint, data);
+    const options = this.get_request_options('PUT', endpoint, data);
 
     this.do_request(options, callback);
 };
@@ -95,7 +96,7 @@ Api.prototype.put = function(endpoint, data, callback) {
  *            arguments are callback(code, error, body)
  */
 Api.prototype.delete = function(endpoint, callback) {
-    const options = this.get_request_options("DELETE", endpoint);
+    const options = this.get_request_options('DELETE', endpoint);
 
     this.do_request(options, callback);
 };
@@ -108,71 +109,119 @@ Api.prototype.delete = function(endpoint, callback) {
 Api.prototype.do_request = function(options, callback) {
     const self = this;
 
-    if (self.verbose) {
-        console.error(`${options.method} REQUEST:`);
+    if (this.verbose) {
+        console.log(`${options.method} REQUEST: ${url.format(options)}`);
     }
 
-    const client = options.protocol === "https:" ? https : http;
+    const client = options.protocol === 'https:' ? https : http;
 
     const req = client.request(options, (res) => {
-        let body = "";
+        const data = [];
 
-        res.on("data", (chunk) => {
-            body += chunk;
+        res.on('data', (chunk) => {
+            data.push(chunk);
         });
 
-        res.on("end", () => {
+        res.on('end', () => {
+
+            // rate limit or server-side error, try again...
+            if (res.statusCode === 429 || res.statusCode === 500) {
+                if (options.circapi.retry < options.circapi.retry_backoff.length) {
+                    setTimeout(() => {
+                        self.do_request(options, callback);
+                    }, options.circapi.retry_backoff[options.circapi.retry]);
+                    options.circapi.retry += 1;
+                } else {
+                    callback(res.statusCode, new Error(`Giving up after ${options.circapi.retry} attempts`), null, null);
+                    return;
+                }
+            }
+
+            // success, no content
+            if (res.statusCode === 204) {
+                callback(res.statusCode, null, null, null);
+                return;
+            }
+
+            const buffer = Buffer.concat(data);
+            const encoding = res.headers['content-encoding'];
             let err_msg = null;
+            let body = null;
+
+            if (data.length === 0) {
+                err_msg = new Error('No data returned, 0 length body.');
+            } else if (encoding === 'gzip') {
+                try {
+                    body = zlib.gunzipSync(buffer).toString();
+                } catch (gzipErr) {
+                    err_msg = gzipErr;
+                }
+            } else if (encoding === 'deflate') {
+                try {
+                    body = zlib.deflateSync(buffer).toString();
+                } catch (deflateErr) {
+                    err_msg = deflateErr;
+                }
+            } else {
+                body = buffer.toString();
+            }
 
             if (self.verbose) {
-                console.error(`RESPONSE ${res.statusCode} : ${body}`);
+                console.log(`RESPONSE ${res.statusCode} : ${body}`);
+            }
+
+            if (err_msg !== null) {
+                callback(res.statusCode, err_msg, null, body);
+                return;
             }
 
             // If this isn't a 200 level, extract the message from the body
-            if ( res.statusCode < 200 || res.statusCode > 299 ) {
+            if (res.statusCode < 200 || res.statusCode > 299) {
+                err_msg = new Error('An API occurred');
                 try {
-                    err_msg = JSON.parse(body).message;
+                    err_msg.detail = JSON.parse(body);
+                } catch (err) {
+                    err_msg.detail = err;
+                    err_msg.body = body;
                 }
-                catch (err) {
-                    err_msg = `An error occurred, but the body could not be parsed: ${err}`;
-                }
+                callback(res.statusCode, err_msg, null, body);
+                return;
             }
 
             let parsed = null;
 
-            try {
-                if ( body ) {
+            if (body !== null && body !== '') {
+                try {
                     parsed = JSON.parse(body);
+                } catch (parseErr) {
+                    err_msg = new Error(`Error parsing body`);
+                    err_msg.detail = parseErr;
+                    err_msg.body = body;
                 }
-            }
-            catch ( unused ) {
-                // ignore
             }
 
             callback(res.statusCode, err_msg, parsed, body);
         });
     });
 
-    req.on("error", (e) => {
-        if ( e.code === "ECONNRESET" && options.circapi.retry < 5 ) {
-            options.circapi.retry += 1;
-            // sleep 1 second and try again, probably hit the rate limit
+    req.on('error', (err) => {
+        if (err.code === 'ECONNRESET' && options.circapi.retry < options.circapi.retry_backoff.length) {
             setTimeout(() => {
                 self.do_request(options, callback);
-            }, 1000 * options.circapi.retry);
-        }
-        else {
-            e.detail = options;
-            callback(null, e, null); //eslint-disable-line callback-return
+            }, options.circapi.retry_backoff[options.circapi.retry]);
+            options.circapi.retry += 1;
+        } else {
+            err.detail = options;
+            callback(null, err, null, null); // eslint-disable-line callback-return
         }
     });
 
-    if ( options.method.toUpperCase() === "POST" || options.method.toUpperCase() === "PUT" ) {
+    if (options.method.toUpperCase() === 'POST' || options.method.toUpperCase() === 'PUT') {
         const stringified = JSON.stringify(options.circapi.data);
 
         req.write(stringified);
         if (self.verbose) {
-            console.error(stringified);
+            console.log(stringified);
         }
     }
 
@@ -194,27 +243,60 @@ Api.prototype.get_request_options = function(method, endpoint, data) {
         }
     ));
 
+    if ((/^v[46]/).test(process.version)) {
+
+        // currently 2016-10-27T16:01:42Z, these settings seem to be
+        // necessary to prevent http/https requests from intermittently
+        // emitting an end event prior to all content being received
+        // when communicating with the API. at least until the actual
+        // root cause can be determined.
+
+        if (!{}.hasOwnProperty.call(options, 'agent') || options.agent === false) {
+            options.agent = this.protocol === 'https:' ? new https.Agent() : new http.Agent();
+        }
+
+        options.agent.keepAlive = false;
+        options.agent.keepAliveMsecs = 0;
+        options.agent.maxSockets = 1;
+        options.agent.maxFreeSockets = 1;
+        options.agent.maxCachedSessions = 0;
+    }
+
     options.method = method.toUpperCase();
     options.headers = {
-        "X-Circonus-Auth-Token": this.authtoken,
-        "X-Circonus-App-Name": this.appname,
-        "Accept": "application/json" };
+        'X-Circonus-Auth-Token': this.authtoken,
+        'X-Circonus-App-Name': this.appname,
+        'Accept': 'application/json',
+        'Accept-Encoding': 'gzip,deflate'
+    };
+
     options.circapi = {
         retry: 0,
+        retry_backoff: [
+            null,       // 0 first attempt
+            1 * 1000,   // 1, wait 1 second and try again
+            2 * 1000,   // 2, wait 2 seconds and try again
+            4 * 1000,   // 3, wait 4 seconds and try again
+            8 * 1000,   // 4, wait 8 seconds and try again
+            16 * 1000,  // 5, wait 16 seconds and try again
+            32 * 1000   // 6, wait 32 seconds and retry again then give up if it fails
+        ],
         data: null
     };
 
     options.circapi.data = data;
-    if (options.method === "POST" || options.method === "PUT" && data ) {
-        options.headers["Content-Length"] = JSON.stringify(data).length;
+    if (data !== null) {
+        if (options.method === 'POST' || options.method === 'PUT') {
+            options.headers['Content-Length'] = JSON.stringify(data).length;
+        }
     }
 
-    if ( endpoint.match(/^\//) ) {
+    if (endpoint.match(/^\//)) {
         endpoint = endpoint.substring(1);
     }
 
     options.path += endpoint;
-    if ( options.method === "GET" && data !== null && Object.keys(data).length !== 0 ) {
+    if (options.method === 'GET' && data !== null && Object.keys(data).length !== 0) {
         options.path += `?${qs.stringify(data)}`;
     }
 

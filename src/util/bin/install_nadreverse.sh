@@ -65,35 +65,15 @@ fi
 
 if [[ -f /etc/sysconfig/nad ]]; then
     # Linux (RHEL)
-    if [[ -x /etc/init.d/nad ]]; then
-        /etc/init.d/nad stop
-    else
-        service nad stop
-    fi
+    service nad stop
     echo "NAD_OPTS=\"${nadrev_opts}\"" > /etc/sysconfig/nad
-    # *should* work given that nad is installed as an /etc/init.d service
-    # script regardless of actual init system in place on the host
-    if [[ -x /etc/init.d/nad ]]; then
-        /etc/init.d/nad start
-    else
-        service nad start
-    fi
+    service nad start
     sleep 2
 elif [[ -f /etc/default/nad ]]; then
     # Linux (Ubuntu)
-    if [[ -x /etc/init.d/nad ]]; then
-        /etc/init.d/nad stop
-    else
-        service nad stop
-    fi
+    service nad stop
     echo "NAD_OPTS=\"${nadrev_opts}\"" > /etc/default/nad
-    # *should* work given that nad is installed as an /etc/init.d service
-    # script regardless of actual init system in place on the host
-    if [[ -x /etc/init.d/nad ]]; then
-        /etc/init.d/nad start
-    else
-        service nad start
-    fi
+    service nad start
     sleep 2
 elif [[ -d /var/svc/manifest && -x /usr/sbin/svcadm ]]; then
     # OmniOS

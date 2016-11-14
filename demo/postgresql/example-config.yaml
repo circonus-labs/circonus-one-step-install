@@ -1,0 +1,13 @@
+---
+
+# Paste value from API Token --key
+api_key: ""
+
+# Paste value from API Token --app
+api_app: ""
+
+# postgres user for testing
+pg_user: "cositest"
+
+# password to use for test postgres user
+pg_pass: "0d6a7c5b54e39cc82f29e8b4d8b68042"

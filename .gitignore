@@ -33,3 +33,6 @@ src/**/cosi-statsd.tar.gz
 src/**/cosi-util.tar.gz
 src/**/cosi-site.tar.gz
 .modules/
+*~
+
+config.yaml

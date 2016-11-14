@@ -67,7 +67,7 @@ class Validators {
         }
 
         // validate semver (e.g. 14.04, 7.2.1511) and omnios releases (e.g. r151014)
-        if (osVers.match(/^[rv]?\d+(\.\d+){0,2}$/)) {
+        if (osVers.match(/^[rv]?\d+(\.\d+)*$/)) {
             req.params.ver_info = {
                 "clean": osVers.replace(/^[rv]/, ""),
                 "major": null,
@@ -160,7 +160,7 @@ class Validators {
             return next(new restify.MissingParameterError(errors.join(", ")));
         }
 
-        if (!req.params.t_cat.match(/^(check|graph|worksheet)$/i)) {
+        if (!req.params.t_cat.match(/^(check|graph|worksheet|dashboard)$/i)) {
             errors.push(`Invalid template category '${req.params.t_cat}'`);
         }
 

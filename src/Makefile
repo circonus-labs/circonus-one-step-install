@@ -31,7 +31,7 @@ all: usage
 
 .PHONY: clean
 clean:
-	-make -C cosi-util clean
+	-$(MAKE) -C cosi-util clean
 	-rm $(SITE_TGZ)
 	-rm content/files/$(UTIL_TGZ)
 
@@ -51,7 +51,6 @@ install:
 init:
 	test -d node_modules || npm install
 	make -C util init
-	
 
 package: utils $(SITE_TGZ)
 	@echo "Copy cosi-site package to provisioning directory"
@@ -68,7 +67,7 @@ $(RPM_FILE): content/files/cosi-install.sh
 .PHONY: utils
 utils:
 	@echo "Create cosi-util package"
-	make -C util package
+	$(MAKE) -C util package
 
 
 $(SITE_TGZ): $(ALL_SRC) $(UTIL_PKG) $(RPM_FILE)
