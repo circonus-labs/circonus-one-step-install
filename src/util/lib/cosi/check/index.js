@@ -1,16 +1,16 @@
-"use strict";
+'use strict';
 
-/*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers */
+/* eslint-env node, es6 */
+/* eslint-disable no-magic-numbers */
 
-const assert = require("assert");
-const path = require("path");
-const fs = require("fs");
+const assert = require('assert');
+const path = require('path');
+const fs = require('fs');
 
-const chalk = require("chalk");
+const chalk = require('chalk');
 
-const cosi = require(path.resolve(path.join(__dirname, "..")));
-const api = require(path.resolve(cosi.lib_dir, "api"));
+const cosi = require(path.resolve(path.join(__dirname, '..')));
+const api = require(path.resolve(cosi.lib_dir, 'api'));
 
 module.exports = class Check {
 
@@ -18,20 +18,20 @@ module.exports = class Check {
     // load a check (template/config/registration)
     //
     constructor(configFile) {
-        assert.strictEqual(typeof configFile, "string", "configFile is required");
+        assert.strictEqual(typeof configFile, 'string', 'configFile is required');
 
         // configFile can be either a "config-", "template-", or "registration-"
 
         if (!configFile) {
-            throw new Error("Missing Argument: configFile");
+            throw new Error('Missing Argument: configFile');
         }
 
         const cfgFile = path.resolve(configFile);
 
         try {
-            const cfg = require(cfgFile); //eslint-disable-line global-require
+            const cfg = require(cfgFile); // eslint-disable-line global-require
 
-            if (cfg.hasOwnProperty("check")) {
+            if (cfg.hasOwnProperty('check')) {
                 this._init(cfg.check);  // template (templates contain extra metadata)
             }
             else {
@@ -39,9 +39,9 @@ module.exports = class Check {
             }
         }
         catch (err) {
-            if (err.code === "MODULE_NOT_FOUND") {
-                console.error(chalk.red("ERROR - check configuration file not found:"), cfgFile);
-                process.exit(1); //eslint-disable-line no-process-exit
+            if (err.code === 'MODULE_NOT_FOUND') {
+                console.error(chalk.red('ERROR - check configuration file not found:'), cfgFile);
+                process.exit(1); // eslint-disable-line no-process-exit
             }
             else {
                 throw err;
@@ -57,43 +57,43 @@ module.exports = class Check {
     verifyConfig(existing) {
         // default existing to false, most restrictive verify
         // (ensures attributes which could alter an *existing* check are not present)
-        existing = typeof existing === "undefined" ? false : existing; //eslint-disable-line no-param-reassign
+        existing = typeof existing === 'undefined' ? false : existing; // eslint-disable-line no-param-reassign
 
         const requiredCheckAttributes = [
-            "brokers",      // array, len > 0
-            "config",       // object
-            "display_name", // string
-            "metrics",      // array, len > 0
-            "notes",        // opt, string
-            "period",       // int > 0
-            "status",       // opt, "active"
-            "tags",         // array
-            "target",       // string
-            "timeout",      // int > 0
-            "type"          // for cosi (httptrap|json:nad|statsd)
+            'brokers',      // array, len > 0
+            'config',       // object
+            'display_name', // string
+            'metrics',      // array, len > 0
+            'notes',        // opt, string
+            'period',       // int > 0
+            'status',       // opt, "active"
+            'tags',         // array
+            'target',       // string
+            'timeout',      // int > 0
+            'type'          // for cosi (httptrap|json:nad|statsd)
         ];
 
         // optional because check creation will not fail if not present
         // but also because a default value will result in the property
         // not being returned from the API
         const optionalCheckAttributes = [
-            "metric_limit"  // numeric
+            'metric_limit'  // numeric
         ];
 
         const requiredMetricAttributes = [
-            "name",         // string
-            "type",         // /^(numeric|text)$/
-            "status"        // /^(active|available)$/
+            'name',         // string
+            'type',         // /^(numeric|text)$/
+            'status'        // /^(active|available)$/
         ];
 
         const requiredExistingCheckAttributes = [
-            "_cid",
-            "_check_uuids",
-            "_checks",
-            "_created",
-            "_last_modified",
-            "_last_modified_by",
-            "_reverse_connection_urls"
+            '_cid',
+            '_check_uuids',
+            '_checks',
+            '_created',
+            '_last_modified',
+            '_last_modified_by',
+            '_reverse_connection_urls'
         ];
 
         let errors = 0;
@@ -104,12 +104,12 @@ module.exports = class Check {
 
             // an existing check (get/put/delete) *must* have these attributes
             if (existing && !this.hasOwnProperty(attr)) {
-                console.error(chalk.red("Missing attribute"), attr, "required for", chalk.bold("existing"), "check");
+                console.error(chalk.red('Missing attribute'), attr, 'required for', chalk.bold('existing'), 'check');
                 errors += 1;
             }
             // a check to be created (post) must *not* have these attributes
             if (!existing && this.hasOwnProperty(attr)) {
-                console.error(chalk.red("Invalid attribute"), attr, "for", chalk.bold("new"), "check");
+                console.error(chalk.red('Invalid attribute'), attr, 'for', chalk.bold('new'), 'check');
                 errors += 1;
             }
         }
@@ -119,7 +119,7 @@ module.exports = class Check {
             const attr = requiredCheckAttributes[i];
 
             if (!this.hasOwnProperty(attr)) {
-                console.error(chalk.red("Missing attribute"), attr);
+                console.error(chalk.red('Missing attribute'), attr);
                 errors += 1;
             }
         }
@@ -129,7 +129,7 @@ module.exports = class Check {
             const attr = optionalCheckAttributes[i];
 
             if (!this.hasOwnProperty(attr)) {
-                console.error(`Missing ${chalk.yellow("OPTIONAL")} attribute ${attr}, ignoring.`);
+                console.error(`Missing ${chalk.yellow('OPTIONAL')} attribute ${attr}, ignoring.`);
             }
         }
 
@@ -142,7 +142,7 @@ module.exports = class Check {
                 const attr = requiredMetricAttributes[i];
 
                 if (!metric.hasOwnProperty(attr)) {
-                    console.error(chalk.red("Missing attribute"), `metric '${metric}' requires '${attr}'`);
+                    console.error(chalk.red('Missing attribute'), `metric '${metric}' requires '${attr}'`);
                     errors += 1;
                 }
             }
@@ -152,11 +152,11 @@ module.exports = class Check {
 
     }
 
-    create(cb) { //eslint-disable-line consistent-return
-        assert.strictEqual(typeof cb, "function", "cb must be a callback function");
+    create(cb) { // eslint-disable-line consistent-return
+        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
         if (!this.verifyConfig(false)) {
-            return cb(new Error("Invalid configuration"));
+            return cb(new Error('Invalid configuration'));
         }
 
         api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
@@ -167,24 +167,24 @@ module.exports = class Check {
         const self = this;
 
         const apiRequest = () => {
-            api.post("/check_bundle", this, (code, errAPI, result) => { //eslint-disable-line consistent-return
+            api.post('/check_bundle', this, (code, errAPI, result) => { // eslint-disable-line consistent-return
                 if (errAPI) {
                     let retry = false;
 
-                    if (errAPI === "Could not update broker(s) with check") {
+                    if (errAPI === 'Could not update broker(s) with check') {
                         retry = true;
                     }
 
                     attempts += 1;
 
                     if (retry && attempts < maxRetry) {
-                        console.warn(chalk.yellow("Retrying failed API call:"), errAPI, `- Broker's Group ID: ${self.brokers[0].replace("/broker/", "")}`, `attempt ${attempts}.`);
+                        console.warn(chalk.yellow('Retrying failed API call:'), errAPI, `- Broker's Group ID: ${self.brokers[0].replace('/broker/', '')}`, `attempt ${attempts}.`);
                         setTimeout(apiRequest, 1000 * attempts);
                     }
                     else {
                         const apiError = new Error();
 
-                        apiError.code = "CIRCONUS_API_ERROR";
+                        apiError.code = 'CIRCONUS_API_ERROR';
                         apiError.message = errAPI;
                         apiError.details = result;
                         return cb(apiError);
@@ -195,7 +195,7 @@ module.exports = class Check {
                         const errResp = new Error();
 
                         errResp.code = code;
-                        errResp.message = "UNEXPECTED_API_RETURN";
+                        errResp.message = 'UNEXPECTED_API_RETURN';
                         errResp.details = result;
                         return cb(errResp);
 
@@ -212,11 +212,11 @@ module.exports = class Check {
     }
 
 
-    update(cb) { //eslint-disable-line consistent-return
-        assert.strictEqual(typeof cb, "function", "cb must be a callback function");
+    update(cb) { // eslint-disable-line consistent-return
+        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
         if (!this.verifyConfig(true)) {
-            return cb(new Error("Invalid configuration"));
+            return cb(new Error('Invalid configuration'));
         }
 
         const self = this;
@@ -227,11 +227,16 @@ module.exports = class Check {
                 return cb(errAPI, result);
             }
 
+            if (result === null) {
+                console.log(code, errAPI, result);
+                process.exit(1);
+            }
+
             if (code !== 200) {
                 const errResp = new Error();
 
                 errResp.code = code;
-                errResp.message = "UNEXPECTED_API_RETURN";
+                errResp.message = 'UNEXPECTED_API_RETURN';
                 errResp.details = result;
                 return cb(errResp);
 
@@ -245,22 +250,22 @@ module.exports = class Check {
 
 
     save(fileName, force) {
-        assert.strictEqual(typeof fileName, "string", "fileName is required");
-        force = force || false;  //eslint-disable-line no-param-reassign
+        assert.strictEqual(typeof fileName, 'string', 'fileName is required');
+        force = force || false;  // eslint-disable-line no-param-reassign
 
         const options = {
-            encoding: "utf8",
+            encoding: 'utf8',
             mode: 0o640,
-            flag: force ? "w" : "wx"
+            flag: force ? 'w' : 'wx'
         };
 
         try {
             fs.writeFileSync(fileName, JSON.stringify(this, null, 4), options);
         }
         catch (err) {
-            if (err.code === "EEXIST") {
+            if (err.code === 'EEXIST') {
                 console.error(chalk.red(`Check already exists, use --force to overwrite. '${fileName}'`));
-                process.exit(1); //eslint-disable-line no-process-exit
+                process.exit(1); // eslint-disable-line no-process-exit
             }
             throw err;
         }

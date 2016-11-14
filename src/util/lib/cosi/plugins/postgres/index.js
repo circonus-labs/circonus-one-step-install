@@ -2,6 +2,8 @@
 
 /* eslint-env node, es6 */
 
+/* eslint-disable no-process-exit, no-process-env */
+
 const child = require('child_process');
 const fs = require('fs');
 const http = require('http');
@@ -55,11 +57,6 @@ class Postgres extends Plugin {
     */
     constructor(options) {
         super(options);
-        this.name = 'postgres';
-        this.instance = this.options.database;
-        this.dashboardPrefix = 'postgres';
-        this.graphPrefix = [ 'pg_', 'postgres_protocol_observer' ];
-        this.state = null;
 
         if (!{}.hasOwnProperty.call(this.options, 'database')) {
             this.options.database = 'postgres';
@@ -70,14 +67,33 @@ class Postgres extends Plugin {
         if (!{}.hasOwnProperty.call(this.options, 'user')) {
             this.options.user = 'postgres';
         }
+
         // pass has no default, leave it unset
+        // psql_cmd has no default, leave it unset (to force search in PATH)
+
+        this.name = 'postgres';
+        this.instance = this.options.database;
+        this.dashboardPrefix = 'postgres';
+        this.graphPrefix = [ 'pg_', 'postgres_protocol_observer' ];
+        this.state = null;
+
+        this.pg_conf_file = path.join(this.nad_etc_dir, 'pg-conf.sh');
+        this.po_conf_file = path.join(this.nad_etc_dir, 'pg-po-conf.sh');
     }
 
     enablePlugin(cb) {
+        if (fs.existsSync(this.pg_conf_file)) {
+            console.log(chalk.yellow('WARN'), `PostgreSQL plugin configuration found, plugin may already be enabled. ${this.pg_conf_file}`);
+            if (!this.options.force) {
+                process.exit(0);
+            }
+        }
         console.log(chalk.blue(this.marker));
-        console.log(`Enabling agent plugin for PostgreSQL database '${this.intance}'`);
+        console.log(`Enabling agent plugin for PostgreSQL database '${this.instance}'`);
 
         let err = null;
+
+        console.log(`Verifying 'psql'`);
 
         err = this._test_psql();
         if (err === null) {
@@ -126,6 +142,12 @@ class Postgres extends Plugin {
 
 
     disablePlugin(cb) {
+        if (!fs.existsSync(this.pg_conf_file)) {
+            console.log(chalk.yellow('WARN'), `PostgreSQL plugin configuration not found, plugin may already be disabled. ${this.pg_conf_file}`);
+            if (!this.options.force) {
+                process.exit(0);
+            }
+        }
         console.log(chalk.blue(this.marker));
         console.log(`Disabling agent plugin for PostgreSQL'`);
 
@@ -146,7 +168,6 @@ class Postgres extends Plugin {
             } catch (unlinkErr) {
                 console.log(chalk.yellow('\tWARN'), 'ignoring...', unlinkErr.toString());
             }
-
 
             const pgPoConfFile = path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'pg-po-conf.sh'));
 
@@ -170,7 +191,7 @@ class Postgres extends Plugin {
 
         const self = this;
 
-        // enable the postgres plugin scripts and attempt to start protocol observer if applicable
+        // enable the postgresql plugin scripts
         const script = path.resolve(path.join(__dirname, 'nad-enable.sh'));
 
         child.exec(script, (error, stdout, stderr) => {
@@ -189,7 +210,7 @@ class Postgres extends Plugin {
             }
 
             if (state === null || state.enabled === false) {
-                cb(new Error(`Failed to enable plugin ${stdout}`));
+                cb(new Error(`Failed to enable plugin ${stdout} ${stderr}`));
                 return;
             }
 
@@ -277,32 +298,177 @@ class Postgres extends Plugin {
         req.end();
     }
 
+    loadFSMetrics(cb) {
+        console.log('\t\tLoading FS metrics');
 
-    preConfigDashboard() {
-        const err = this._create_meta_conf();
+        http.get(`${cosi.agent_url}run/fs`, (res) => {
+            let data = '';
 
-        if (err === null) {
-            console.log(chalk.green(`\tSaved`), 'meta configuration');
-            this.emit('preconfig.done', null);
-        } else {
-            this.emit('preconfig.done', err);
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+
+            res.on('end', () => {
+                try {
+                    const metrics = JSON.parse(data);
+
+                    cb(null, metrics);
+                    return;
+                } catch (err) {
+                    cb(err);
+                    return;
+                }
+            });
+        }).on('error', (err) => {
+            cb(err);
+            return;
+        });
+    }
+
+    configForecastWidgets(cb) {
+        console.log(chalk.bold('\tConfiguring forecast widgets'));
+
+        // verify that any settings required to find metrics are present
+        if (this.state.fs_mount === '') {
+            console.log('\t\tfs_mount not set from enable, skipping.');
+            cb(null);
+            return;
         }
 
+        const cfgFile = path.resolve(path.join(cosi.reg_dir, `template-dashboard-${this.name}-${this.instance}.json`));
+        let cfg = null;
+
+        try {
+            cfg = require(cfgFile); // eslint-disable-line global-require
+        } catch (loadErr) {
+            console.error(chalk.red('ERROR'), `loading dashboard template ${cfgFile}`, loadErr);
+            process.exit(1);
+        }
+
+        if (!{}.hasOwnProperty.call(cfg, 'config')) {
+            console.error(chalk.red('ERROR'), `invalid template, no 'config' property ${cfgFile}`);
+            process.exit(1);
+
+        }
+
+        if (!{}.hasOwnProperty.call(cfg.config, 'widgets')) {
+            console.error(chalk.red('ERROR'), `invalid template, no 'widgets' in config property ${cfgFile}`);
+            process.exit(1);
+        }
+
+        const rx = new RegExp(`(.*\`)?${this.state.fs_mount}\`(df_)?used_percent`);
+
+        // this can be expanded to do all metrics but ATM all we need is fs metrics to match state.fs_mount
+        this.loadFSMetrics((err, metrics) => {
+            if (err !== null) {
+                cb(err);
+                return;
+            }
+
+            if (metrics === null || !{}.hasOwnProperty.call(metrics, 'fs')) {
+                console.log('\t\tNo FS metrics returned from agent, skipping');
+                cb(null);
+                return;
+            }
+
+            let metricName = null;
+
+            for (const metric in metrics.fs) {
+                if (rx.test(metric)) {
+                    metricName = `fs\`${metric}`;
+                    break;
+                }
+            }
+
+            if (metricName === null) {
+                console.log(`\t\tDid not find a metric matching '${this.state.fs_mount}'`);
+                cb(null);
+                return;
+            }
+
+            console.log(`\t\tFound metric '${metricName}'`);
+
+            for (const widget of cfg.config.widgets) {
+                if (widget.type !== 'forecast') {
+                    continue;
+                }
+                if ({}.hasOwnProperty.call(widget.settings, 'metrics') && Array.isArray(widget.settings.metrics)) {
+                    for (let j = 0; j < widget.settings.metrics.length; j++) {
+                        if (widget.settings.metrics[j] === 'fs_mount') {
+                            console.log(`\t\tFound widget '${widget.settings.title}', setting metric name`);
+                            widget.settings.metrics[j] = metricName;
+                        }
+                    }
+                }
+            }
+
+            try {
+                fs.writeFileSync(cfgFile, JSON.stringify(cfg, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+            } catch (saveErr) {
+                cb(saveErr);
+                return;
+            }
+
+            cb(null);
+        });
     }
 
 
+    preConfigDashboard() {
+        const metaErr = this._create_meta_conf();
+
+        if (metaErr !== null) {
+            this.emit('preconfig.done', metaErr);
+            return;
+        }
+
+        console.log(chalk.green(`\tSaved`), 'meta configuration');
+
+        this.configForecastWidgets((cfgErr) => {
+            this.emit('preconfig.done', cfgErr);
+        });
+    }
+
+    _find_psql_command(psql_cmd) {
+        let cmd = psql_cmd;
+
+        if (cmd === null || cmd === '') {
+            let output = null;
+
+            try {
+                output = child.execSync('command -v psql');
+            } catch (err) {
+                console.error(`Unable to find 'psql' in '${process.env.PATH}', specify with --psql_cmd`);
+                process.exit(1);
+            }
+            cmd = output.toString().trim();
+        }
+
+        if (!fs.existsSync(cmd)) {
+            console.error(`'${cmd}' does not exist`);
+            process.exit(1);
+        }
+
+        return cmd;
+    }
+
     _test_psql() {
+        const psql_cmd = this._find_psql_command(this.options.psql_cmd || null);
         let psql_test_stdout = null;
 
         try {
-            psql_test_stdout = child.execSync('psql -V');
+            psql_test_stdout = child.execSync(`${psql_cmd} -V`);
         } catch (err) {
-            return err;
+            console.error(`Error running '${psql_cmd} -V', unable to verify psql. ${err}`);
+            process.exit(1);
         }
 
-        if (!psql_test_stdout || psql_test_stdout.indexOf('PostgreSQL') === -1) {
-            return new Error("Cannot find 'psql' in PATH, postgres plugin will not work");
+        if (!psql_test_stdout || psql_test_stdout.toString().indexOf('PostgreSQL') === -1) {
+            console.error(`Unexpected output from '${psql_cmd} -V', unable to verify psql. (${psql_test_stdout.toString()})`);
+            process.exit(1);
         }
+
+        this.options.psql_cmd = psql_cmd;
 
         return null;
     }
@@ -348,8 +514,10 @@ class Postgres extends Plugin {
 
     _create_plugin_conf() {
         // create config for postgres plugin scripts
-        const pg_conf_file = '/opt/circonus/etc/pg-conf.sh';
+        const pg_conf_file = this.pg_conf_file;
         const contents = [];
+
+        contents.push(`export PSQL_CMD=${this.options.psql_cmd}`);
 
         if (this.options.user !== '') {
             contents.push(`export PGUSER=${this.options.user}`);
@@ -361,7 +529,7 @@ class Postgres extends Plugin {
             contents.push(`export PGPORT=${this.options.port}`);
         }
         if (this.options.pass !== '') {
-            contents.push(`export PGPASSWORD=${this.options.pass}`);
+            contents.push(`export PGPASS=${this.options.pass}`);
         }
 
         try {
@@ -379,7 +547,7 @@ class Postgres extends Plugin {
 
     _create_observer_conf() {
         // create protocol observer config
-        const pg_po_conf_file = '/opt/circonus/etc/pg-po-conf.sh';
+        const pg_po_conf_file = this.po_conf_file;
         const contents = [];
 
         if (cosi.agent_url !== '') {

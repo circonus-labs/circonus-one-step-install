@@ -344,7 +344,7 @@ class Checks extends Registration {
 
         if (this.agentMode === 'push') {
             check.brokers = [
-                this.regConfig.broker.trap._cid.replace('/broker/', '')
+                this.regConfig.broker.trap._cid // .replace('/broker/', '')
             ];
             check.config = {
                 asynch_metrics: true,
@@ -352,7 +352,7 @@ class Checks extends Registration {
             };
         } else {
             check.brokers = [
-                this.regConfig.broker.json._cid.replace('/broker/', '')
+                this.regConfig.broker.json._cid // .replace('/broker/', '')
             ];
             check.config.url = cosi.agent_url;
         }
@@ -435,6 +435,12 @@ class Checks extends Registration {
     finalizeSystemCheck() {
         console.log(chalk.blue(this.marker));
         console.log(`Finalizing system check`);
+
+        if (this.agentMode === 'pull') {
+            console.log(chalk.green('OK'), 'no additional configuration needed for pull mode agent');
+            this.emit('check.finalize.done');
+            return;
+        }
 
         const bundle_id = this.checks.system.bundle_id;
         const submit_url = this.checks.system.submit_url;

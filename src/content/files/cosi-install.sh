@@ -667,7 +667,7 @@ __fetch_cosi_utils() {
     # log "Cleaning up after node module installation"
     # rm -rf .modules
 
-    log "Fixing shebangs..." # oh FFS!
+    log "Verifying node version..." # oh FFS!
     node_bin=""     # omnibus packages              omnios packages
     for f in /opt/circonus/embedded/bin/node /opt/circonus/bin/node; do
         if [[ -x $f ]]; then
@@ -678,9 +678,17 @@ __fetch_cosi_utils() {
     if [[ "${node_bin:-}" == "" ]]; then
         fail "Unable to find the NAD embedded NodeJS binary in the two locations of which this script is aware..."
     fi
+    # check node version, must be 'v4.*' or 'v6.*'
+    node_ver=$($node_bin -v)
+    if [[ ! $node_ver =~ ^v(4|6) ]]; then
+        fail "NodeJS ${node_ver} is out-of-date, please update NAD and/or NodeJS package providing ${node_bin}."
+    fi
+
+    log "Fixing cosi util shebangs..."
     for f in $(ls -1 /opt/circonus/cosi/bin/{cosi,circonus}*); do
         sed -e "s#%%NODE_BIN%%#$node_bin#" -i"" $f
     done
+
 }
 
 
@@ -802,17 +810,11 @@ cosi_initialize() {
 
     #
     # trigger error if needed commands are not found...
-    # note: perl is needed by NAD not the cosi-installer
     local cmd_list="awk cat chgrp chmod curl grep head ln mkdir pgrep sed tar tee uname"
     local cmd
     log_only "Verifying required commands exist. '${cmd_list}'"
     for cmd in $cmd_list; do
         type -P $cmd >> $cosi_install_log 2>&1 || fail "Unable to find '${cmd}' command. Ensure it is available in PATH '${PATH}' before continuing."
-    done
-    # note: perl is needed by NAD not the cosi-installer
-    cmd_list="perl"
-    for cmd in $cmd_list; do
-        type -P $cmd >> $cosi_install_log 2>&1 || fail "Unable to find '${cmd}' command which is required by NAD. Ensure it is available in PATH '${PATH}' before continuing."
     done
 
     set -o errexit

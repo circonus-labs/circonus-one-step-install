@@ -38,7 +38,6 @@
                     "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
-                    "_graph_title": "{{=cosi.host_name}} Query Latency",
                     "hide_xaxis": false,
                     "hide_yaxis": false,
                     "key_inline": false,
@@ -46,7 +45,7 @@
                     "key_size": "1",
                     "key_wrap": false,
                     "label": "query latency",
-                    "period": "2000",
+                    "period": 2000,
                     "realtime": false,
                     "show_flags": false
                 },
@@ -64,7 +63,6 @@
                     "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
-                    "_graph_title": "{{=cosi.host_name}} Execute Latency",
                     "hide_xaxis": false,
                     "hide_yaxis": false,
                     "key_inline": false,
@@ -72,7 +70,7 @@
                     "key_size": "1",
                     "key_wrap": false,
                     "label": "execute latency",
-                    "period": "2000",
+                    "period": 2000,
                     "realtime": false,
                     "show_flags": false
                 },
@@ -90,7 +88,6 @@
                     "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
-                    "_graph_title": "{{=cosi.host_name}} Bind Latency",
                     "hide_xaxis": false,
                     "hide_yaxis": false,
                     "key_inline": false,
@@ -98,7 +95,7 @@
                     "key_size": "1",
                     "key_wrap": false,
                     "label": "bound query latency",
-                    "period": "2000",
+                    "period": 2000,
                     "realtime": false,
                     "show_flags": false
                 },
@@ -116,7 +113,6 @@
                     "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
-                    "_graph_title": "{{=cosi.host_name}} bandwidth",
                     "hide_xaxis": false,
                     "hide_yaxis": false,
                     "key_inline": false,
@@ -124,7 +120,7 @@
                     "key_size": "1",
                     "key_wrap": false,
                     "label": "{{=cosi.host_name}} network bandwidth",
-                    "period": "2000",
+                    "period": 2000,
                     "realtime": false,
                     "show_flags": false
                 },
@@ -142,7 +138,6 @@
                     "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
-                    "_graph_title": "Postgres Cache: {{=cosi.host_name}}`{{=cosi.dashboard_instance}}",
                     "hide_xaxis": false,
                     "hide_yaxis": false,
                     "key_inline": false,
@@ -150,7 +145,7 @@
                     "key_size": "1",
                     "key_wrap": false,
                     "label": "{{=cosi.dashboard_instance}} cache vs. file system",
-                    "period": "2000",
+                    "period": 2000,
                     "realtime": false,
                     "show_flags": true
                 },
@@ -171,7 +166,7 @@
                     "formula": "=ceil(VAL)",
                     "metric_display_name": "commits",
                     "metric_name": "pg_transactions`commits",
-                    "period": 5000,
+                    "period": 0,
                     "range_high": 100,
                     "range_low": 0,
                     "thresholds": {
@@ -187,7 +182,7 @@
                         ]
                     },
                     "title": "txns",
-                    "_type": "text",
+                    "type": "text",
                     "value_type": "derive"
                 },
                 "type": "gauge",
@@ -206,7 +201,7 @@
                     "formula": "",
                     "metric_display_name": "cache hit ratio",
                     "metric_name": "pg_cache`{{=cosi.dashboard_instance}}`cache_hit_ratio",
-                    "period": 5000,
+                    "period": 0,
                     "range_high": 1,
                     "range_low": 0,
                     "thresholds": {
@@ -222,7 +217,7 @@
                         ]
                     },
                     "title": "cache hit ratio",
-                    "_type": "dial",
+                    "type": "dial",
                     "value_type": "gauge"
                 },
                 "type": "gauge",
@@ -238,7 +233,6 @@
                     "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
-                    "_graph_title": "{{=cosi.host_name}} Postgres Bgwriters",
                     "hide_xaxis": false,
                     "hide_yaxis": false,
                     "key_inline": false,
@@ -246,7 +240,7 @@
                     "key_size": "1",
                     "key_wrap": false,
                     "label": "{{=cosi.dashboard_instance}} bgwriters",
-                    "period": "2000",
+                    "period": 2000,
                     "realtime": false,
                     "show_flags": true
                 },
@@ -264,7 +258,6 @@
                     "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
-                    "_graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_instance}} Postgres Locks",
                     "hide_xaxis": false,
                     "hide_yaxis": false,
                     "key_inline": false,
@@ -272,7 +265,7 @@
                     "key_size": "1",
                     "key_wrap": false,
                     "label": "{{=cosi.dashboard_instance}} locks",
-                    "period": "2000",
+                    "period": 2000,
                     "realtime": false,
                     "show_flags": true
                 },
@@ -290,7 +283,6 @@
                     "account_id": null,
                     "date_window": "2w:2w",
                     "graph_id": null,
-                    "_graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_instance}} Postgres Database Size",
                     "hide_xaxis": false,
                     "hide_yaxis": false,
                     "key_inline": false,
@@ -298,7 +290,7 @@
                     "key_size": "1",
                     "key_wrap": false,
                     "label": "{{=cosi.dashboard_instance}} database size",
-                    "period": "2000",
+                    "period": 2000,
                     "realtime": false,
                     "show_flags": true
                 },
@@ -316,7 +308,6 @@
                     "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
-                    "_graph_title": "{{=cosi.host_name}} Postgres Transactions",
                     "hide_xaxis": false,
                     "hide_yaxis": false,
                     "key_inline": false,
@@ -324,7 +315,7 @@
                     "key_size": "1",
                     "key_wrap": false,
                     "label": "{{=cosi.dashboard_instance}} txns",
-                    "period": "2000",
+                    "period": 2000,
                     "realtime": false,
                     "show_flags": true
                 },
@@ -342,7 +333,6 @@
                     "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
-                    "_graph_title": "{{=cosi.host_name}} Postgres Connections",
                     "hide_xaxis": false,
                     "hide_yaxis": false,
                     "key_inline": false,
@@ -350,7 +340,7 @@
                     "key_size": "1",
                     "key_wrap": false,
                     "label": "{{=cosi.dashboard_instance}} connections",
-                    "period": "2000",
+                    "period": 2000,
                     "realtime": false,
                     "show_flags": true
                 },
@@ -368,7 +358,6 @@
                     "account_id": null,
                     "date_window": "2w",
                     "graph_id": null,
-                    "_graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_instance}} Postgres File System Space",
                     "hide_xaxis": false,
                     "hide_yaxis": false,
                     "key_inline": false,
@@ -376,14 +365,14 @@
                     "key_size": "1",
                     "key_wrap": false,
                     "label": "{{=cosi.dashboard_instance}} file system space",
-                    "period": "2000",
+                    "period": 2000,
                     "realtime": false,
                     "show_flags": true
                 },
                 "tags" : ["database:file_system_space"],
                 "type": "graph",
                 "widget_id": "w16",
-                "width": 6
+                "width": 3
             },
             {
                 "active": true,
@@ -394,7 +383,6 @@
                     "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
-                    "_graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_instance}} Postgres Transaction Detail",
                     "hide_xaxis": false,
                     "hide_yaxis": false,
                     "key_inline": false,
@@ -402,7 +390,7 @@
                     "key_size": "1",
                     "key_wrap": false,
                     "label": "{{=cosi.dashboard_instance}} database transaction details",
-                    "period": "2000",
+                    "period": 2000,
                     "realtime": false,
                     "show_flags": true
                 },
@@ -420,7 +408,6 @@
                     "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
-                    "_graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_instance}} Postgres Scans",
                     "hide_xaxis": false,
                     "hide_yaxis": false,
                     "key_inline": false,
@@ -428,7 +415,7 @@
                     "key_size": "1",
                     "key_wrap": false,
                     "label": "{{=cosi.dashboard_instance}} database scans",
-                    "period": "2000",
+                    "period": 2000,
                     "realtime": false,
                     "show_flags": true
                 },
@@ -436,7 +423,37 @@
                 "type": "graph",
                 "widget_id": "w15",
                 "width": 3
-            }
+            },
+            {
+               "width": 3,
+               "name": "Forecast",
+               "active": true,
+               "origin": "d6",
+               "height": 1,
+               "settings": {
+                   "metrics": [
+                       "fs_mount"
+                   ],
+                   "resource_limit": "100",
+                   "format": "standard",
+                   "resource_usage": "metric:average(\"{{=cosi.forecast_metrics[0].check_uuid}}\",p\"{{=cosi.forecast_metrics[0].metric_name}}\")",
+                   "title": "{{=cosi.dashboard_instance}} file system full forecast",
+                   "thresholds": {
+                       "values": [
+                           "30d",
+                           "5d"
+                       ],
+                       "colors": [
+                           "#008000",
+                           "#ffcc00",
+                           "#ee0000"
+                       ]
+                   },
+                   "trend": "auto"
+               },
+               "type": "forecast",
+               "widget_id": "w20"
+           }
         ]
     }
 }
