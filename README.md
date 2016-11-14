@@ -49,7 +49,7 @@ pertains to the repository itself.
 
 ## How to run COSI Site
 
-Read on, if you need to run an internal COSI site for my
+Read on, if you need to run an internal COSI site for your
 infrastructure which cannot reach the public COSI site hosted by
 Circonus.
 
