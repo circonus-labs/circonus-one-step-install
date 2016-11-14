@@ -808,17 +808,11 @@ cosi_initialize() {
 
     #
     # trigger error if needed commands are not found...
-    # note: perl is needed by NAD not the cosi-installer
     local cmd_list="awk cat chgrp chmod curl grep head ln mkdir pgrep sed tar tee uname"
     local cmd
     log_only "Verifying required commands exist. '${cmd_list}'"
     for cmd in $cmd_list; do
         type -P $cmd >> $cosi_install_log 2>&1 || fail "Unable to find '${cmd}' command. Ensure it is available in PATH '${PATH}' before continuing."
-    done
-    # note: perl is needed by NAD not the cosi-installer
-    cmd_list="perl"
-    for cmd in $cmd_list; do
-        type -P $cmd >> $cosi_install_log 2>&1 || fail "Unable to find '${cmd}' command which is required by NAD. Ensure it is available in PATH '${PATH}' before continuing."
     done
 
     set -o errexit
