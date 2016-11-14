@@ -1,25 +1,57 @@
-# Circonus One Step Installer
+# COSI - The Circonus One Step Installer
 
-## How to use
+The purpose of COSI is to simplify the task of getting metrics
+flowing from a new host into Circonus.
 
-### I want to use COSI to get a server sending metrics...
+## Quickstart
 
-1. Go to the [API Tokens](https://login.circonus.com/user/tokens) page. If there are no tokens listed, click the **New API Token** button to create one.
-2. Click the (i) information icon next to the token to use it.
-3. Copy and run the command displayed on the host to be setup.
+1. Log into your Circonus Account
 
-[Documentation on additional command line options](https://github.com/circonus-labs/circonus-one-step-install/wiki/Installer) for the installer.
+1. Go to the Checks page, click `[NEW HOST+]` on the top right.
+
+1. Copy and run the command displayed on the host to be setup.
+
+![Add Host Screenshot](https://cloud.githubusercontent.com/assets/2446981/20178396/38eeeec2-a751-11e6-93a1-1f3e828827c4.png)
+
+## Description
+
+The purpose of COSI is to simplify the task of getting metrics flowing
+from a new host into Circonus, consisting of:
+
+1. Install and configure the Circonus monitoring agent
+   [nad](https://github.com/circonus-labs/nad)
+1. Create and configure a Circonus check that receives data from the
+   agent
+1. Create graphs and worksheets for each of the basic metric groups
+   (e.g. cpu, memory, disk, network, filesystem, etc.)
+
+COSI automates all these steps with a single cut-n-paste command
+without inhibiting customization and orchestration/automation.
+
+This repository contains the following components:
+
+* [COSI installer](https://github.com/circonus-labs/circonus-one-step-install/wiki/Installer).
+  A shell script that interacts with the COSI site API.
+
+* [COSI utility](https://github.com/circonus-labs/circonus-one-step-install/tree/master/src/util).
+  A command line utility for configuring metrics, checks, graphs and worksheets created by COSI.
+
+* [COSI site](https://github.com/circonus-labs/circonus-one-step-install/tree/master/src).
+  A Node.js-based service that serves the COSI installer itself,
+  templates, and pointers to NAD packages. Most users will rely on the
+  hosted COSI site provided by Circonus (<https://onestep.circonus.com>).
+
+The [COSI user documentation](https://github.com/circonus-labs/circonus-one-step-install/wiki)
+is in the wiki for this repository. The documentation contained here
+pertains to the repository itself.
 
 ---
 
-## How to run
+## How to run COSI Site
 
-### I need to run an internal COSI site for my infrastructure which cannot reach the public COSI site hosted by Circonus...
-
-## Documentation
-
-The [COSI user documentation](https://github.com/circonus-labs/circonus-one-step-install/wiki) is in the wiki for this repository. The documentation contained here pertains to the repository itself.
-
+Read on, if you need to run an internal COSI site for my
+infrastructure which cannot reach the public COSI site hosted by
+Circonus.
 
 ## Installer Examples
 
