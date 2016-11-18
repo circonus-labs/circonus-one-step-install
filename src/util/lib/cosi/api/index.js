@@ -184,6 +184,10 @@ Api.prototype.do_request = function(options, callback) {
                     err_msg.detail = err;
                     err_msg.body = body;
                 }
+                if (res.statusCode === 400 && body.indexOf('Usage limit') !== -1) {
+                    err_msg.message = 'Account at or over metric limit';
+                }
+                err_msg.code = res.statusCode;
                 callback(res.statusCode, err_msg, null, body);
                 return;
             }
