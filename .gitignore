@@ -36,3 +36,7 @@ src/**/cosi-site.tar.gz
 *~
 
 config.yaml
+demo/cassandra/fixups/
+demo/cassandra/cassdata/pagecounts*.gz
+demo/cassandra/cassdata/data/
+
