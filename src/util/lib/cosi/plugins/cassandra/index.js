@@ -62,7 +62,7 @@ class Cassandra extends Plugin {
         this.enableClusters = false;
         this.logFile = path.resolve(path.join(cosi.log_dir, `plugin-${this.name}.log`));
         this.cfgFile = path.resolve(path.join(cosi.etc_dir, `plugin-${this.name}.json`));
-        this.iface = optinos.iface || 'auto';
+        this.iface = options.iface || 'auto';
     }
 
 
