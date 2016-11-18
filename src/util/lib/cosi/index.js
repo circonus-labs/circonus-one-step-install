@@ -35,6 +35,7 @@ class COSI {
         instance.cosi_dir = path.resolve(path.join(__dirname, '..', '..'));
         instance.lib_dir = __dirname;
         instance.etc_dir = path.resolve(path.join(instance.cosi_dir, 'etc'));
+        instance.log_dir = path.resolve(path.join(instance.cosi_dir, 'log'));
         instance.reg_dir = path.resolve(path.join(instance.cosi_dir, 'registration'));
         instance.ruleset_dir = path.resolve(path.join(instance.cosi_dir, 'rulesets'));
 
