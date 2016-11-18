@@ -83,7 +83,7 @@ $(STATSD):
 	tar -xzf master.tar.gz; \
 	mv statsd-master statsd; \
 	curl -sSL "https://raw.githubusercontent.com/maier/circonus-statsd-http/master/circonus.js" -o statsd/backends/circonus.js; \
-	cd statsd && npm --no-optional --production && cd ..; \
+	cd statsd && npm install --no-optional --production && cd ..; \
 	COPYFILE_DISABLE=true tar -czf ../$@ statsd
 	rm -rf tmp
 

@@ -48,7 +48,7 @@ install:
 	@exit 2
 
 init:
-	test -d node_modules || npm install
+	test -d node_modules || yarn
 	make -C util init
 
 package: utils $(SITE_TGZ)
