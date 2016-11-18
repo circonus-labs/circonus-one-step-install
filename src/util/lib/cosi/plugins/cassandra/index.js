@@ -59,12 +59,21 @@ class Cassandra extends Plugin {
         this.instance = 'cassandra';
         this.dashboardPrefix = 'cassandranode';
         this.graphPrefix = [ 'cassandra_', 'cassandra_protocol_observer' ];
+        this.enableClusters = false;
+        this.logFile = path.resolve(path.join(cosi.log_dir, `plugin-${this.name}.log`));
+        this.cfgFile = path.resolve(path.join(cosi.etc_dir, `plugin-${this.name}.json`));
     }
 
 
     enablePlugin(cb) {
         console.log(chalk.blue(this.marker));
         console.log('Enabling agent plugin for Cassandra database');
+
+        if (this._fileExists(this.cfgFile) && !this.options.force) {
+            console.log(chalk.green('\tPlugin scripts already enabled'), 'use --force to overwrite NAD plugin script config(s).');
+            cb(null);
+            return;
+        }
 
         let err = null;
 
@@ -160,6 +169,11 @@ class Cassandra extends Plugin {
             template.save(cfgFile, true);
             console.log(chalk.green('\tSaved'), `template ${cfgFile}`);
 
+            if (!self.enableClusters) {
+                self.emit('fetch.done');
+                return;
+            }
+
             const clusterTemplateID = 'dashboard-cassandracluster';
 
             console.log(`\tFetching ${clusterTemplateID} template`);
@@ -180,14 +194,20 @@ class Cassandra extends Plugin {
 
 
     activatePluginScripts(cb) {
-        console.log('\tActivating Cassandra plugin scripts');
+        console.log('\tActivating Cassandra plugin scripts - this may take a few minutes...');
 
         const self = this;
 
         // enable the cassandra plugin scripts and attempt to start protocol observer if applicable
         const script = path.resolve(path.join(__dirname, 'nad-enable.sh'));
+        const options = {
+            env: {
+                NAD_SCRIPTS_DIR: path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'node-agent.d')),
+                NAD_PLUGIN_CONFIG_FILE: this.cfgFile
+            }
+        };
 
-        child.exec(script, (error, stdout, stderr) => {
+        child.exec(`${script} | tee -a ${this.logFile}`, options, (error, stdout, stderr) => {
             if (error) {
                 cb(new Error(`${error} ${stderr}`), null);
                 return;
@@ -195,10 +215,15 @@ class Cassandra extends Plugin {
 
             let state = null;
 
+            console.log(`\tLoading plugin configuration ${self.cfgFile}`);
             try {
-                state = JSON.parse(stdout);
+                state = JSON.parse(fs.readFileSync(self.cfgFile));
             } catch (parseErr) {
-                cb(new Error(`Parsing enable script stdout ${parseErr} '${stdout}'`), null);
+                if (parseErr.code === 'MODULE_NOT_FOUND') {
+                    cb(new Error('Plugin configuration not found'));
+                    return;
+                }
+                cb(new Error(`Parsing plugin configuration ${parseErr}`), null);
                 return;
             }
 
@@ -364,6 +389,7 @@ class Cassandra extends Plugin {
         let height = dash.grid_layout.height;
         let widget_id = dash.widgets.length + 1;
         let graphs_added = 0;
+        const cf_graphs = [];
 
         for (const columnFamily in metrics.cassandra_cfstats) { // eslint-disable-line guard-for-in
             const matches = columnFamily.match(/^([^`]+)`read_count/);
@@ -372,7 +398,55 @@ class Cassandra extends Plugin {
                 continue;
             }
 
-            const cf = matches[1];
+            cf_graphs.push(matches[1]);
+        }
+
+        // add non-system cfs first
+        for (const cf of cf_graphs) {
+            if (cf.indexOf('system') !== -1) {
+                continue;
+            }
+
+            console.log(`\tAdding graph ${cf}`);
+
+            dash.widgets.push({
+                width,
+                name : 'Graph',
+                active : true,
+                origin : `a${height}`,
+                height : 1,
+                settings : {
+                    hide_yaxis: false,
+                    graph_id: null,
+                    show_flags: true,
+                    _graph_title: `{{=cosi.host_name}} {{=cosi.dashboard_instance}} ${cf}`,
+                    key_inline: false,
+                    period: 2000,
+                    key_size: 1,
+                    overlay_set_id: '',
+                    account_id: cosi.account_id,
+                    date_window: '2h',
+                    key_wrap: false,
+                    hide_xaxis: false,
+                    label: `{{=cosi.dashboard_instance}} ${cf}`,
+                    key_loc: 'noop',
+                    realtime: false
+                },
+                tags: [ `cassandra:cfstats:${cf}` ],
+                type: 'graph',
+                widget_id: `w${widget_id}`
+            });
+
+            widget_id += 1;
+            graphs_added += 1;
+            height += 1;
+        }
+
+        // add system cfs after non-system cfs
+        for (const cf of cf_graphs) {
+            if (cf.indexOf('system') === -1) {
+                continue;
+            }
 
             console.log(`\tAdding graph ${cf}`);
 
