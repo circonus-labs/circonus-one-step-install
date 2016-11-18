@@ -16,10 +16,11 @@ const Cassandra = require(path.resolve(path.join(cosi.lib_dir, 'plugins', 'cassa
 
 app.
     version(cosi.app_version).
-    option('--enable', 'enable the postgres plugin').
     option('--disable', 'disable the postgres plugin').
-    option('--noregister', 'do not perform automatic registration step').
+    option('--enable', 'enable the postgres plugin').
     option('--force', 'overwrite plugin configs if already enabled').
+    option('--iface', 'which interface is listening on tcp:9042').
+    option('--noregister', 'do not perform automatic registration step').
     parse(process.argv);
 
 if (!app.quiet) {
