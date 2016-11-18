@@ -106,9 +106,7 @@ class Graphs extends Registration {
 
             self.templates = [];
 
-            // for (const template of templates) {
-            for (let i = 0; i < templates.length; i++) {
-                const template = templates[i];
+            for (const template of templates) {
                 const templateType = template.config.type;
                 const templateId = template.config.id;
 
@@ -201,10 +199,7 @@ class Graphs extends Registration {
 
             console.log(`\tCreating graph ${graphIdx} config for ${template.id}.${item}`);
 
-            // for (const metric of variableMetricList[item]) {
-            for (let i = 0; i < variableMetricList[item].length; i++) {
-                const metric = variableMetricList[item][i];
-
+            for (const metric of variableMetricList[item]) {
                 graph.datapoints[metric.datapointIndex].metric_name = metric.name;
             }
 
@@ -276,9 +271,7 @@ class Graphs extends Registration {
         try {
             const files = fs.readdirSync(cosi.reg_dir);
 
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-
+            for (const file of files) {
                 if (file.match(/^config-graph-/)) {
                     graphConfigs.push(path.resolve(path.join(cosi.reg_dir, file)));
                 }
@@ -312,29 +305,6 @@ class Graphs extends Registration {
 
         console.log(chalk.blue(this.marker));
         console.log('Creating graph', cfgFile);
-
-        // if (graph.isPreConfig()) {
-        //     console.log(`\tUpdating pre-config with check ID ${this.checkId} and check uuid: ${this.checkUuid}`);
-        //
-        //     cfgFile = configFile.replace('.pre', '');
-        //     graph.preToConfig(this.checkId, this.checkUuid);
-        //
-        //     console.log('\tSaving config', cfgFile);
-        //     try {
-        //         graph.save(cfgFile);
-        //     } catch (err) {
-        //         this.emit('error', err);
-        //         return;
-        //     }
-        //
-        //     console.log('\tRemoving pre-config', configFile);
-        //     try {
-        //         fs.unlinkSync(configFile);
-        //     } catch (err) {
-        //         this.emit('error', err);
-        //         return;
-        //     }
-        // }
 
         const regFile = cfgFile.replace('config-', 'registration-');
 
@@ -387,9 +357,7 @@ class Graphs extends Registration {
         for (let dpIdx = 0; dpIdx < template.graphs[graphIdx].datapoints.length; dpIdx++) {
             const dp = template.graphs[graphIdx].datapoints[dpIdx];             // "metric_name": "fs`([^`]+)`df_used_percent"
 
-            // for (const metric of metrics) {
-            for (let metricIdx = 0; metricIdx < metrics.length; metricIdx++) {
-                const metric = metrics[metricIdx];
+            for (const metric of metrics) {
                 const parts = metric.match(dp.metric_name);                     // 'fs`/sys/fs/cgroup`df_used_percent'.match(/fs`([^`]+)`df_used_percent/)
 
                 if (parts) {
@@ -399,10 +367,7 @@ class Graphs extends Registration {
                     if (template.filter) {                                      // apply filters, if configured in template
                         if (template.filter.include && Array.isArray(template.filter.include)) {
                             keepMetric = false;
-                            // for (const filter of template.filter.include) {
-                            for (let filterIdx = 0; filterIdx < template.filter.include.length; filterIdx++) {
-                                const filter = template.filter.include[filterIdx];
-
+                            for (const filter of template.filter.include) {
                                 if (item.match(filter) !== null) {
                                     keepMetric = true;
                                     break;
@@ -411,10 +376,7 @@ class Graphs extends Registration {
                         }
 
                         if (keepMetric && template.filter.exclude && Array.isArray(template.filter.exclude)) {
-                            // for (const filter of template.filter.exclude) {
-                            for (let filterIdx = 0; filterIdx < template.filter.exclude.length; filterIdx++) {
-                                const filter = template.filter.exclude[filterIdx];
-
+                            for (const filter of template.filter.exclude) {
                                 if (item.match(filter) !== null) {
                                     keepMetric = false;
                                     break;
