@@ -62,6 +62,7 @@ class Cassandra extends Plugin {
         this.enableClusters = false;
         this.logFile = path.resolve(path.join(cosi.log_dir, `plugin-${this.name}.log`));
         this.cfgFile = path.resolve(path.join(cosi.etc_dir, `plugin-${this.name}.json`));
+        this.iface = optinos.iface || 'auto';
     }
 
 
@@ -612,6 +613,10 @@ class Cassandra extends Plugin {
             contents.push(`NADURL="${cosi.agent_url}"`);
         }
         // what if agent_url does === ''?
+
+        if (this.iface !== null) {
+            contents.push(`IFACE="${this.iface}"`);
+        }
 
         try {
             fs.writeFileSync(cass_po_conf_file, contents.join('\n'), { encoding: 'utf8', mode: 0o644, flag: 'w' });
