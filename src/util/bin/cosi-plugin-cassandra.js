@@ -19,6 +19,7 @@ app.
     option('--enable', 'enable the postgres plugin').
     option('--disable', 'disable the postgres plugin').
     option('--noregister', 'do not perform automatic registration step').
+    option('--force', 'overwrite plugin configs if already enabled').
     parse(process.argv);
 
 if (!app.quiet) {
