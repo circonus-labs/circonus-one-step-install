@@ -28,6 +28,7 @@ vagrant ssh -c "bash /vagrant/genrpm.sh"
 
 # echo "${BLUE}Destroying build VM${RESET}"
 # vagrant destroy --force
+vagrant halt
 
 echo "${BLUE}Cleaning up temporary files${RESET}"
 rm cosi-install.sh build.rpmmacros
