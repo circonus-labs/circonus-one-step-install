@@ -1,17 +1,34 @@
 #!/usr/bin/env bash
 
-# is this always true?
-NAD_SCRIPTS_DIR=/opt/circonus/etc/node-agent.d
+echo "Activating NAD Cassandra plugin $(date)"
+
+cfg_file=${NAD_PLUGIN_CONFIG_FILE:-/opt/circonus/cosi/etc/plugin-cassandra.json}
+: ${NAD_SCRIPTS_DIR:=/opt/circonus/etc/node-agent.d}
 CASS_SCRIPTS_DIR=$NAD_SCRIPTS_DIR/cassandra
 
 # determine if cassandra is running
-CASSREL=`nodetool version 2>/dev/null | grep ReleaseVersion`
-if [ -z "$CASSREL" ]; then
-    echo "Cassandra not detected, skipping setup"
-    exit 1;
-fi
+result=$(nodetool version)
+echo "[DEBUG] version: $result"
+[[ $(echo $result | grep -c ReleaseVersion) -gt 0 ]] || {
+    echo "error: no version"
+    >&2 echo "ERROR: requesting cassandra version ($result)"
+    exit 1
+}
 
-CASSCLUSTER=$(nodetool describecluster 2>/dev/null | grep 'Name:' | cut -d ':' -f 2)
+result=$(nodetool describecluster)
+echo "[DEBUG] cluster: $result"
+[[ $? -eq 0 ]] || {
+    echo "error: no cluster info"
+    >&2 echo "ERROR: requesting cluster name ($result)"
+    exit 1
+}
+cluster_name=$(echo $result | grep 'Name:' | cut -d ':' -f 2)
+[[ -z $cluster_name ]] && {
+    echo "error: no cluster name"
+    >&2 echo "ERROR: cluster name not found in output ($result)"
+    exit 1
+}
+echo "Cluster '$cluster_name'"
 
 cass_scripts=""
 read -r -d ' ' cass_scripts <<-f22a9a7b7066c7ed6486f71e6ac66e79
@@ -23,54 +40,84 @@ cassandra_po.sh
 f22a9a7b7066c7ed6486f71e6ac66e79
 enabled_scripts=()
 
-# turn on all cassandra stuff
+# enable cassandra scripts
 pushd $NAD_SCRIPTS_DIR >/dev/null
 for script in $cass_scripts; do
+    printf "Enabling %s: " "${CASS_SCRIPTS_DIR}/${script}"
     if [[ -x $CASS_SCRIPTS_DIR/$script ]]; then
-        [[ -h $script ]] || ln -s $CASS_SCRIPTS_DIR/$script
+        if [[ -h $script ]]; then
+            echo "already enabled"
+        else
+            ln -s $CASS_SCRIPTS_DIR/$script
+            [[ $? -eq 0 ]] || {
+                echo "error linking script"
+                >&2 echo "ERROR: enabling ${CASS_SCRIPTS_DIR}/${script}"
+                exit 1
+            }
+            echo "enabled"
+        fi
         enabled_scripts+=(${script%.*})
     fi
 done
-
-# execute one of the scripts to ensure it's working
-SECS=`./cassandra_info.sh | grep uptime_secs`
-if [ -z "$SECS" ]; then
-    echo "Could not execute a test script.  Is nodetool and gawk in your path"
-    for script in $cass_scripts; do
-        [[ -h $script ]] && rm $script
-    done
-    echo "{\"enabled\": false}"
-    exit 1
-fi
 popd > /dev/null
 
 # default protocol_observer location
 po=/opt/circonus/bin/protocol_observer
 [[ -x $po ]] || po=`type -P protocol_observer`
 PROTOCOL_OBSERVER="false"
-if [ -n "$po" ]; then
-  PROTOCOL_OBSERVER="true"
-fi
+[[ -n "$po" && -x $po ]] && PROTOCOL_OBSERVER="true"
+
+# give nad some time to initialize the scripts (because nodetool is *slow*)
+echo -n "Waiting 30s for NAD to pick up new scripts"
+for i in {1..30}; do
+    echo -n '.'
+    sleep 1
+done
+echo
 
 # ensure nad is exposing plugin scripts
+echo "Testing NAD for expected metrics"
 expected=${#enabled_scripts[@]}
 found=0
-for i in {0..10}; do
+for i in {1..4}; do
     res=$(curl -sS localhost:2609/)
     for x in ${enabled_scripts[*]}; do
+        printf "Checking for output from %s: " $x
         has=$(echo $res | grep -c $x)
-        [[ $has -gt 0 ]] && ((found++))
+        if [[ $has -gt 0 ]]; then
+            echo "OK"
+            ((found++))
+        else
+            echo "Not found"
+        fi
     done
     [[ $found -eq $expected ]] && break
-    sleep 3
+    echo "WARN: not all expected metrics found, attempt $i of 3."
+    echo -n "Waiting 30s for NAD to pick up new scripts: "
+    for i in {1..15}; do
+        echo -n '.'
+        sleep 1
+    done
+    echo
 done
 
 if [[ $found -ne $expected ]]; then
-    echo "{\"enabled\": false }"
+    echo "error: found $found results, expected $expected"
+    >&2 echo "Unable to verify enabled scripts, NAD is not exposing the expected metrics"
     exit 1
 fi
 
-echo "{\"enabled\": true, \"protocol_observer\": ${PROTOCOL_OBSERVER}, \"cluster_name\": \"${CASSCLUSTER}\", \"scripts\": \"${enabled_scripts[*]}\" }"
+echo "Saving configuration $cfg_file"
+cat << EOF > $cfg_file
+{
+    "enabled": true,
+    "protocol_observer": $PROTOCOL_OBSERVER,
+    "cluster_name": "$cluster_name",
+    "scripts": "${enabled_scripts[*]}",
+}
+EOF
+
+echo "Done activating NAD Cassandra plugin $(date)"
 
 # if we have arrived here, the cassandra plugin in NAD is installed and operating
 exit 0
