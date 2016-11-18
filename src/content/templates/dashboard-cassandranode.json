@@ -117,7 +117,7 @@
                     "formula": "",
                     "metric_display_name": "key cache hit pct",
                     "metric_name": "cassandra_info`key_cache_hit_pct",
-                    "period": 5000,
+                    "period": 0,
                     "range_high": 100,
                     "range_low": 50,
                     "thresholds": {
@@ -133,7 +133,7 @@
                         ]
                     },
                     "title": "key cache hit pct",
-                    "_type": "bar",
+                    "type": "bar",
                     "value_type": "gauge"
                 },
                 "type": "gauge",
@@ -152,7 +152,7 @@
                     "formula": "",
                     "metric_display_name": "row cache hit pct",
                     "metric_name": "cassandra_info`row_cache_hit_pct",
-                    "period": 5000,
+                    "period": 0,
                     "range_high": 100,
                     "range_low": 50,
                     "thresholds": {
@@ -168,7 +168,7 @@
                         ]
                     },
                     "title": "row cache hit pct",
-                    "_type": "bar",
+                    "type": "bar",
                     "value_type": "gauge"
                 },
                 "type": "gauge",
@@ -187,7 +187,7 @@
                     "formula": "",
                     "metric_display_name": "counter cache hit pct",
                     "metric_name": "cassandra_info`counter_cache_hit_pct",
-                    "period": 5000,
+                    "period": 0,
                     "range_high": 100,
                     "range_low": 50,
                     "thresholds": {
@@ -203,7 +203,7 @@
                         ]
                     },
                     "title": "counter cache hit pct",
-                    "_type": "bar",
+                    "type": "bar",
                     "value_type": "gauge"
                 },
                 "type": "gauge",
