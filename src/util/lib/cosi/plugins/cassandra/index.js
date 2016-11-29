@@ -123,10 +123,17 @@ class Cassandra extends Plugin {
         console.log(chalk.blue(this.marker));
         console.log(`Disabling agent plugin for Cassandra`);
 
-        // disable the cassandra plugin scripts and attempt to stop protocol observer if applicable
-        const script = path.resolve(path.join(__dirname, 'nad-disable.sh'));
+        const self = this;
 
-        child.exec(script, (error, stdout, stderr) => {
+        const script = path.resolve(path.join(__dirname, 'nad-disable.sh'));
+        const options = {
+            env: {
+                NAD_SCRIPTS_DIR: path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'node-agent.d')),
+                NAD_PLUGIN_CONFIG_FILE: this.cfgFile
+            }
+        };
+
+        child.exec(`${script} | tee -a ${this.logFile}`, options, (error, stdout, stderr) => {
             if (error) {
                 cb(new Error(`${error} ${stdout} ${stderr}`), null);
                 return;
