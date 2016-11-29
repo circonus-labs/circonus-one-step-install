@@ -307,7 +307,7 @@
                     "label": "{{=cosi.host_name}} network bandwidth",
                     "period": "2000",
                     "realtime": false,
-                    "show_flags": false
+                    "show_flags": true
                 },
                 "tags" : ["network:bandwidth"],
                 "type": "graph",
