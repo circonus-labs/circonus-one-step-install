@@ -19,7 +19,7 @@ app.
     option('--disable', 'disable the postgres plugin').
     option('--enable', 'enable the postgres plugin').
     option('--force', 'overwrite plugin configs if already enabled').
-    option('--iface', 'which interface is listening on tcp:9042').
+    option('--iface <interface>', 'which interface is listening on tcp:9042').
     option('--noregister', 'do not perform automatic registration step').
     parse(process.argv);
 
