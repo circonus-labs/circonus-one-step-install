@@ -7,7 +7,6 @@ Vagrant.require_version '>= 1.8.7'
 
 require 'yaml'
 require 'digest/sha1'
-
 config_file = 'config.yaml'
 unless File.file?(config_file)
     puts 'ERROR: config file not found.'
@@ -129,7 +128,7 @@ echo "Checking COSI"
 
 [[ -f /opt/circonus/etc/cass-po-conf.sh ]] || {
     echo "Enabling NAD Cassandra plugin"
-    /opt/circonus/cosi/bin/cosi plugin cassandra --enable
+    /opt/circonus/cosi/bin/cosi plugin cassandra --enable --iface enp0s8
 }
 SCRIPT
 
