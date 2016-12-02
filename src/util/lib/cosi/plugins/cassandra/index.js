@@ -63,6 +63,11 @@ class Cassandra extends Plugin {
         this.logFile = path.resolve(path.join(cosi.log_dir, `plugin-${this.name}.log`));
         this.cfgFile = path.resolve(path.join(cosi.etc_dir, `plugin-${this.name}.json`));
         this.iface = options.iface || 'auto';
+        this.execEnv = {
+            NAD_SCRIPTS_DIR: path.resolve(path.join(cosi.nad_etc_dir, 'node-agent.d')),
+            PLUGIN_SCRIPTS_DIR: path.resolve(path.join(cosi.nad_etc_dir, 'node-agent.d', this.name)),
+            NAD_PLUGIN_CONFIG_FILE: this.cfgFile
+        };
     }
 
 
@@ -123,15 +128,8 @@ class Cassandra extends Plugin {
         console.log(chalk.blue(this.marker));
         console.log(`Disabling agent plugin for Cassandra`);
 
-        const self = this;
-
         const script = path.resolve(path.join(__dirname, 'nad-disable.sh'));
-        const options = {
-            env: {
-                NAD_SCRIPTS_DIR: path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'node-agent.d')),
-                NAD_PLUGIN_CONFIG_FILE: this.cfgFile
-            }
-        };
+        const options = { env: this.execEnv };
 
         child.exec(`${script} | tee -a ${this.logFile}`, options, (error, stdout, stderr) => {
             if (error) {
@@ -139,7 +137,7 @@ class Cassandra extends Plugin {
                 return;
             }
 
-            const cassPoConfFile = path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'cass-po-conf.sh'));
+            const cassPoConfFile = path.resolve(path.join(cosi.nad_etc_dir, 'cass-po-conf.sh'));
 
             try {
                 fs.unlinkSync(cassPoConfFile);
@@ -202,18 +200,13 @@ class Cassandra extends Plugin {
 
 
     activatePluginScripts(cb) {
-        console.log('\tActivating Cassandra plugin scripts - this may take a few minutes...');
+        console.log(`\tActivating Cassandra plugin scripts - this may take a few minutes... (log: ${this.logFile})`);
 
         const self = this;
 
         // enable the cassandra plugin scripts and attempt to start protocol observer if applicable
         const script = path.resolve(path.join(__dirname, 'nad-enable.sh'));
-        const options = {
-            env: {
-                NAD_SCRIPTS_DIR: path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'node-agent.d')),
-                NAD_PLUGIN_CONFIG_FILE: this.cfgFile
-            }
-        };
+        const options = { env: this.execEnv };
 
         child.exec(`${script} | tee -a ${this.logFile}`, options, (error, stdout, stderr) => {
             if (error) {
@@ -255,10 +248,11 @@ class Cassandra extends Plugin {
     }
 
 
-    addCustomMetrics(cb) { // eslint-disable-line consistent-return
+    addCustomMetrics(cb) {
 
         if (!this.state.protocol_observer) {
-            return cb(null);
+            cb(null);
+            return;
         }
 
         /*
@@ -569,24 +563,24 @@ class Cassandra extends Plugin {
             vars: { cluster_name: this.globalMetadata.cluster_name }
         };
 
-        // for *GLOBAL* (available to all plugin visuals) meta data add attributes to this.globalMetaData
-        // these meta data files are dashboard-specific
+        // for *GLOBAL* meta data (available to all plugin visuals), add attributes to
+        // this.globalMetaData. the meta data file(s) created here are dashboard-specific
 
         /*
             using sys_graphs mapping: (sadly, it ties the code to the dashboard template atm)
                 dashboard_tag - the tag from the widget in the dashboard template
                 metric_group - the system metrics group (e.g. fs, vm, cpu, etc.)
-                metric_item - the specific item (for a variable graph) or null
+                metric_item - the specific graph item, for a variable graph, or null
                 graph_instance - the graph instance (some graph templates produce mulitple graphs) # or 0|null default: null
 
-            for example:
+            example:
                 dashboard_tag: 'database:file_system_space'
                 metric_group: 'fs'
                 metric_item: '/'
                 graph_instance: null
 
-            would result in the graph in registration-graph-fs-0-_.json being used for the widget
-            which has the tag database:file_system_space on the postgres dashboard
+            would result in the graph from 'registration-graph-fs-0-_.json' being used for
+            the widget which has the tag 'database:file_system_space' on the dashboard
         */
         // if (this.state.fs_mount && this.state.fs_mount !== '') {
         //     meta.sys_graphs.push({
@@ -599,10 +593,16 @@ class Cassandra extends Plugin {
 
         let metaFile = null;
 
+        // node dashboard meta data
         try {
             metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-cassandranode-${this.instance}.json`));
             fs.writeFileSync(metaFile, JSON.stringify(meta, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+        } catch (err) {
+            return err;
+        }
 
+        // cluster dashboard meta data
+        try {
             metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-cassandracluster-${this.instance}.json`));
             fs.writeFileSync(metaFile, JSON.stringify(meta, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
         } catch (err) {
@@ -613,19 +613,19 @@ class Cassandra extends Plugin {
     }
 
     _create_observer_conf() {
-        const cass_po_conf_file = '/opt/circonus/etc/cass-po-conf.sh';
         const contents = [];
 
         if (cosi.agent_url !== '') {
             contents.push(`NADURL="${cosi.agent_url}"`);
         }
-        // what if agent_url does === ''?
 
         if (this.iface !== null) {
             contents.push(`IFACE="${this.iface}"`);
         }
 
         try {
+            const cass_po_conf_file = path.resolve(path.join(cosi.nad_etc_dir, 'cass-po-conf.sh'));
+
             fs.writeFileSync(cass_po_conf_file, contents.join('\n'), { encoding: 'utf8', mode: 0o644, flag: 'w' });
         } catch (err) {
             return err;
