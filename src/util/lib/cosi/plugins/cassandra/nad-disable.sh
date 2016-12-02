@@ -11,12 +11,12 @@ echo "Disabling NAD Cassandra plugin scripts $(date)"
 
 cfg_file=${NAD_PLUGIN_CONFIG_FILE:-/opt/circonus/cosi/etc/plugin-cassandra.json}
 : ${NAD_SCRIPTS_DIR:=/opt/circonus/etc/node-agent.d}
-CASS_SCRIPTS_DIR=$NAD_SCRIPTS_DIR/cassandra
+: ${PLUGIN_SCRIPTS_DIR:=$NAD_SCRIPTS_DIR/cassandra}
 
 [[ -d $NAD_SCRIPTS_DIR ]] || fail "NAD plugin directory ($NAD_SCRIPTS_DIR) not found."
-[[ -d $CASS_SCRIPTS_DIR ]] || fail "Cassandra NAD plugin scripts directory ($CASS_SCRIPTS_DIR) not found."
+[[ -d $PLUGIN_SCRIPTS_DIR ]] || fail "Cassandra NAD plugin scripts directory ($PLUGIN_SCRIPTS_DIR) not found."
 
-for script in $CASS_SCRIPTS_DIR/*; do
+for script in $PLUGIN_SCRIPTS_DIR/*; do
     script_link="${NAD_SCRIPTS_DIR}/$(basename $script)"
     printf "Disabling %s: " $(basename script_link)
     if [[ -h $script_link ]]; then
@@ -35,5 +35,5 @@ if [[ -f $cfg_file ]]; then
 fi
 
 echo "Done disabling NAD Cassandra plugin scripts $(date)"
-
 exit 0
+# END
