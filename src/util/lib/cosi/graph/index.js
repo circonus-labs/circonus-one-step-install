@@ -70,7 +70,7 @@ module.exports = class Graph {
     // verifies all of the attributes are present for create but *does not*
     // validate the values of each attribute!!! (yet)
     //
-    verifyConfig(existing) { // eslint-disable-line complexity
+    verifyConfig(existing) {
         // default existing to false, most restrictive verify
         // (ensures attributes which could alter an *existing* graph are not present)
         existing = typeof existing === 'undefined' ? false : existing; // eslint-disable-line no-param-reassign
@@ -150,10 +150,7 @@ module.exports = class Graph {
 
         let errors = 0;
 
-        // for (const attr of requiredExistingAttributes) {
-        for (let i = 0; i < requiredExistingAttributes.length; i++) {
-            const attr = requiredExistingAttributes[i];
-
+        for (const attr of requiredExistingAttributes) {
             if (existing && !{}.hasOwnProperty.call(this, attr)) {
                 console.error(chalk.red('Missing attribute'), attr, 'required for', chalk.bold('existing'), 'graph');
                 errors += 1;
@@ -165,24 +162,15 @@ module.exports = class Graph {
             }
         }
 
-        // for (const attr of requiredAttributes) {
-        for (let i = 0; i < requiredAttributes.length; i++) {
-            const attr = requiredAttributes[i];
-
+        for (const attr of requiredAttributes) {
             if (!{}.hasOwnProperty.call(this, attr)) {
                 console.error(chalk.red('Missing attribute'), attr);
                 errors += 1;
             }
         }
 
-        // for (const datapoint of this.datapoints) {
-        for (let dpIdx = 0; dpIdx < this.datapoints.length; dpIdx++) {
-            const datapoint = this.datapoints[dpIdx];
-
-        //     for (const attr of requiredDatapointAttributes) {
-            for (let i = 0; i < requiredDatapointAttributes.length; i++) {
-                const attr = requiredDatapointAttributes[i];
-
+        for (const datapoint of this.datapoints) {
+            for (const attr of requiredDatapointAttributes) {
                 if (!{}.hasOwnProperty.call(datapoint, attr)) {
                     console.error(chalk.red('Missing attribute'), `datapoint '${datapoint.metric_name || datapoint.name}' requires '${attr}'`);
                     errors += 1;
@@ -195,14 +183,8 @@ module.exports = class Graph {
         }
 
         if (Array.isArray(this.composites)) {
-            // for (const composite of this.composites) {
-            for (let cIdx = 0; cIdx < this.composites.length; cIdx++) {
-                const composite = this.composites[cIdx];
-
-                // for (const attr of requiredCompositeAttributes) {
-                for (let i = 0; i < requiredCompositeAttributes.length; i++) {
-                    const attr = requiredCompositeAttributes[i];
-
+            for (const composite of this.composites) {
+                for (const attr of requiredCompositeAttributes) {
                     if (!{}.hasOwnProperty.call(composite, attr)) {
                         console.error(chalk.red('Missing attribute'), `composite '${composite.name}' requires '${attr}'`);
                         errors += 1;
@@ -212,14 +194,8 @@ module.exports = class Graph {
         }
 
         if (Array.isArray(this.guides)) {
-            // for (const guide of this.guides) {
-            for (let guideIdx = 0; guideIdx < this.guides.length; guideIdx++) {
-                const guide = this.guides[guideIdx];
-
-                // for (const attr of requiredGuideAttributes) {
-                for (let i = 0; i < requiredGuideAttributes.length; i++) {
-                    const attr = requiredGuideAttributes[i];
-
+            for (const guide of this.guides) {
+                for (const attr of requiredGuideAttributes) {
                     if (!{}.hasOwnProperty.call(guide, attr)) {
                         console.error(chalk.red('Missing attribute'), `guide '${guide.name}' requires '${attr}'`);
                         errors += 1;
@@ -229,14 +205,8 @@ module.exports = class Graph {
         }
 
         if (Array.isArray(this.metric_clusters)) {
-            // for (const cluster of this.metric_clusters) {
-            for (let clusterIdx = 0; clusterIdx < this.metric_clusters.length; clusterIdx++) {
-                const cluster = this.metric_clusters[clusterIdx];
-
-                // for (const attr of requiredMetricClusterAttributes) {
-                for (let i = 0; i < requiredMetricClusterAttributes.length; i++) {
-                    const attr = requiredMetricClusterAttributes[i];
-
+            for (const cluster of this.metric_clusters) {
+                for (const attr of requiredMetricClusterAttributes) {
                     if (!{}.hasOwnProperty.call(cluster, attr)) {
                         console.error(chalk.red('Missing attribute'), `metric cluster '${cluster.name}' requires '${attr}'`);
                         errors += 1;
@@ -249,11 +219,12 @@ module.exports = class Graph {
 
     }
 
-    create(cb) { // eslint-disable-line consistent-return
+    create(cb) {
         assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
         if (!this.verifyConfig(false)) {
-            return cb(new Error('Invalid configuration'));
+            cb(new Error('Invalid configuration'));
+            return;
         }
 
         const self = this;
@@ -266,7 +237,8 @@ module.exports = class Graph {
                 apiError.code = 'CIRCONUS_API_ERROR';
                 apiError.message = errAPI;
                 apiError.details = result;
-                return cb(apiError);
+                cb(apiError);
+                return;
             }
 
             if (code !== 200) {
@@ -275,22 +247,25 @@ module.exports = class Graph {
                 errResp.code = code;
                 errResp.message = 'UNEXPECTED_API_RETURN';
                 errResp.details = result;
-                return cb(errResp);
+                cb(errResp);
+                return;
 
             }
 
             self._init(result);
 
-            return cb(null, result);
+            cb(null, result);
+            return;
         });
     }
 
 
-    update(cb) { // eslint-disable-line consistent-return
+    update(cb) {
         assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
         if (!this.verifyConfig(true)) {
-            return cb(new Error('Invalid configuration'));
+            cb(new Error('Invalid configuration'));
+            return;
         }
 
         const self = this;
@@ -298,7 +273,8 @@ module.exports = class Graph {
         api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
         api.put(this._cid, this, (code, errAPI, result) => {
             if (errAPI) {
-                return cb(errAPI, result);
+                cb(errAPI, result);
+                return;
             }
 
             if (code !== 200) {
@@ -307,13 +283,15 @@ module.exports = class Graph {
                 errResp.code = code;
                 errResp.message = 'UNEXPECTED_API_RETURN';
                 errResp.details = result;
-                return cb(errResp);
+                cb(errResp);
+                return;
 
             }
 
             self._init(result);
 
-            return cb(null, result);
+            cb(null, result);
+            return;
         });
     }
 
@@ -326,38 +304,38 @@ module.exports = class Graph {
         api.get(self._cid, null, (getCode, getError, getResult) => { // eslint-disable-line consistent-return
             if (getCode === 404 && (getResult.code && getResult.code === 'ObjectError.InstanceNotFound')) {
                 console.log(`\t${self._cid}`, chalk.bold('not found'));
-                return cb(null);
+                cb(null);
+                return;
             }
 
             if (getCode < 200 || getCode > 299) { // eslint-disable-line no-magic-numbers
                 console.error(chalk.red('API RESULT CODE'), `API ${getCode}`, getError, getResult);
-                return cb(getError);
+                cb(getError);
+                return;
             }
 
             console.log(chalk.bold('\tDeleting'), `Graph ${self._cid}`);
 
             api.delete(self._cid, (code, errAPI, result) => {
                 if (errAPI) {
-                    return cb(errAPI, result);
+                    cb(errAPI, result);
+                    return;
                 }
 
                 if (code < 200 || code > 299) { // eslint-disable-line no-magic-numbers
                     console.error(chalk.red('API RESULT CODE'), `API ${code}`, errAPI, result);
-                    return cb(`unexpected code: ${code}`, result);
+                    cb(`unexpected code: ${code}`, result);
+                    return;
                 }
-                return cb(null, result);
+                cb(null, result);
+                return;
             });
         });
     }
 
 
     _init(config) {
-        const keys = Object.keys(config);
-
-        // for (const key of keys) {
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
-
+        for (const key in config) {
             if ({}.hasOwnProperty.call(config, key)) {
                 this[key] = config[key];
             }

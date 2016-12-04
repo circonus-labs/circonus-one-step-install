@@ -12,18 +12,14 @@ const app = require('commander');
 const chalk = require('chalk');
 
 const cosi = require(path.resolve(path.join(__dirname, '..', 'lib', 'cosi')));
-const Postgres = require(path.resolve(path.join(cosi.lib_dir, 'plugins', 'postgres')));
+const Cassandra = require(path.resolve(path.join(cosi.lib_dir, 'plugins', 'cassandra')));
 
 app.
     version(cosi.app_version).
-    option('--enable', 'enable the postgres plugin').
     option('--disable', 'disable the postgres plugin').
-    option('--force', 'force enable/disable of plugin').
-    option('--database <name>', 'the postgres database name to enable, default [postgres]', 'postgres').
-    option('--user <user>', 'postgres user for queries, default [postgres]', 'postgres').
-    option('--pass <pass>', 'postgres user password for queries, default none', '').
-    option('--port <port>', 'postgres server port, default [5432]', 5432).
-    option('--psql_cmd <path>', 'full path of psql command, default search $PATH').
+    option('--enable', 'enable the postgres plugin').
+    option('--force', 'overwrite plugin configs if already enabled').
+    option('--iface <interface>', 'which interface is listening on tcp:9042').
     option('--noregister', 'do not perform automatic registration step').
     parse(process.argv);
 
@@ -44,14 +40,14 @@ if (!app.enable && !app.disable) {
 }
 
 
-const plugin = new Postgres(app);
+const plugin = new Cassandra(app);
 
 plugin.once('plugin.done', (err) => {
     if (err !== null) {
         console.error(chalk.red('ERROR'), err);
         process.exit(1);
     }
-    console.log(chalk.blue('SUCCESS'), 'PostgreSQL plugin was', app.enable ? 'enabled' : 'disabled');
+    console.log(chalk.blue('SUCCESS'), 'Cassandra plugin was', app.enable ? 'enabled' : 'disabled');
 });
 
 if (app.enable) {

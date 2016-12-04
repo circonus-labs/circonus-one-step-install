@@ -1,0 +1,129 @@
+{
+    "description" : "The standard dashboard for monitoring a cassandra cluster.",
+    "notes" : [
+        "This will create an instance of a cluster dashboard."
+    ],
+    "config": {
+        "account_default": false,
+        "grid_layout": {
+            "height": 4,
+            "width": 6
+        },
+        "options": {
+            "access_configs": [],
+            "fullscreen_hide_title": true,
+            "hide_grid": false,
+            "linkages": [],
+            "scale_text": false,
+            "text_size": 12
+        },
+        "shared": true,
+        "title": "Cassandra cluster: {{=cosi.cluster_name}}",
+        "widgets": [
+            {
+                "widget_id": "w1",
+                "active": true,
+                "name": "Graph",
+                "type": "graph",
+                "origin": "a0",
+                "height": 1,
+                "width": 3,
+                "tags" : ["cassandra:cluster_key_cache"],
+                "settings": {
+                    "account_id": null,
+                    "date_window": "2h",
+                    "graph_id": null,
+                    "_graph_title": "cluster key cache entries",
+                    "hide_xaxis": false,
+                    "hide_yaxis": false,
+                    "key_inline": false,
+                    "key_loc": "noop",
+                    "key_size": "1",
+                    "key_wrap": false,
+                    "label": "cluster key cache entries",
+                    "period": "2000",
+                    "realtime": false,
+                    "show_flags": false
+                }
+            },
+            {
+                "widget_id": "w2",
+                "active": true,
+                "name": "Graph",
+                "type": "graph",
+                "origin": "d0",
+                "height": 1,
+                "width": 3,
+                "tags" : ["cassandra:cluster_key_cache_hit_pct"],
+                "settings": {
+                    "account_id": null,
+                    "date_window": "2h",
+                    "graph_id": null,
+                    "_graph_title": "cluster key cache hit %",
+                    "hide_xaxis": false,
+                    "hide_yaxis": false,
+                    "key_inline": false,
+                    "key_loc": "noop",
+                    "key_size": "1",
+                    "key_wrap": false,
+                    "label": "cluster key cache hit %",
+                    "period": "2000",
+                    "realtime": false,
+                    "show_flags": false
+                }
+            },
+            {
+                "widget_id": "w3",
+                "active": true,
+                "name": "Graph",
+                "type": "graph",
+                "origin": "a1",
+                "height": 1,
+                "width": 3,
+                "tags" : ["cassandra:cluster_row_cache"],
+                "settings": {
+                    "account_id": null,
+                    "date_window": "2h",
+                    "graph_id": null,
+                    "_graph_title": "cluster row cache entries",
+                    "hide_xaxis": false,
+                    "hide_yaxis": false,
+                    "key_inline": false,
+                    "key_loc": "noop",
+                    "key_size": "1",
+                    "key_wrap": false,
+                    "label": "cluster row cache entries",
+                    "period": "2000",
+                    "realtime": false,
+                    "show_flags": false
+                }
+            },
+            {
+                "widget_id": "w4",
+                "active": true,
+                "name": "Graph",
+                "type": "graph",
+                "origin": "d1",
+                "height": 1,
+                "width": 3,
+                "tags" : ["cassandra:cluster_row_cache_hit_pct"],
+                "settings": {
+                    "account_id": null,
+                    "date_window": "2h",
+                    "graph_id": null,
+                    "_graph_title": "cluster row cache hit %",
+                    "hide_xaxis": false,
+                    "hide_yaxis": false,
+                    "key_inline": false,
+                    "key_loc": "noop",
+                    "key_size": "1",
+                    "key_wrap": false,
+                    "label": "cluster row cache hit %",
+                    "period": "2000",
+                    "realtime": false,
+                    "show_flags": false
+                }
+            }
+        ]
+    }
+}

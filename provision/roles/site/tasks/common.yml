@@ -51,7 +51,7 @@
 
 - name: Install 'bunyan' nodejs module
   become: true
-  npm: executable="{{ npm_bin }}" path="{{ cosi_directory }}"  state="present" name="bunyan" version="1.8.1"
+  npm: executable="{{ npm_bin }}" path="{{ cosi_directory }}"  state="present" name="bunyan" version="1.8.5"
   notify: Restart Site
 
 - name: Install 'commander' nodejs module
@@ -66,5 +66,5 @@
 
 - name: Install 'restify' nodejs module
   become: true
-  npm: executable="{{ npm_bin }}" path="{{ cosi_directory }}"  state="present" name="restify" version="4.1.1"
+  npm: executable="{{ npm_bin }}" path="{{ cosi_directory }}"  state="present" name="restify" version="4.3.0"
   notify: Restart Site

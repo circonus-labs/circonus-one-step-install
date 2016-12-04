@@ -1,24 +1,30 @@
-"use strict";
+'use strict';
 
-/*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers */
+/* eslint-env node, es6 */
 
-const assert = require("assert");
-const path = require("path");
-const fs = require("fs");
+const path = require('path');
+const fs = require('fs');
 
-const Template = require(path.resolve(path.join(__dirname, "..")));
+const cosi = require(path.resolve(path.join(__dirname, '..', '..')));
+const Template = require(path.resolve(path.join(cosi.lib_dir, 'template')));
 
-function buildTemplateList(registrationDir, cb) {
-    assert.strictEqual(typeof registrationDir, "string", "registrationDir is required");
-    assert.strictEqual(typeof cb, "function", "cb must be a callback function");
-
+function buildTemplateList(dir, cb) {
+    let templateDir = cosi.reg_dir;
+    let callback = null;
     const templates = [];
 
-    fs.readdir(registrationDir, (err, files) => {
+    if (typeof dir === 'function') {
+        callback = dir;
+    } else {
+        templateDir = dir;
+        callback = cb;
+    }
+
+    fs.readdir(templateDir, (err, files) => {
         if (err) {
-            console.log("template list, readdir", err);
-            return cb(err);
+            console.log('template list, readdir', err);
+            callback(err);
+            return;
         }
 
         for (let i = 0; i < files.length; i++) {
@@ -28,17 +34,18 @@ function buildTemplateList(registrationDir, cb) {
                 try {
                     templates.push({
                         file,
-                        config: new Template(path.resolve(path.join(registrationDir, file)))
+                        config: new Template(path.resolve(path.join(cosi.reg_dir, file)))
                     });
-                }
-                catch (errFile) {
-                    console.log("template list, add to list", err);
-                    return cb(errFile);
+                } catch (errFile) {
+                    console.log('template list, add to list', err);
+                    callback(errFile);
+                    return;
                 }
             }
         }
 
-        return cb(null, templates);
+        callback(null, templates);
+        return;
     });
 
 }

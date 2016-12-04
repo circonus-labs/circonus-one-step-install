@@ -16,6 +16,7 @@ const Checks = require(path.resolve(cosi.lib_dir, 'registration', 'checks'));
 const templateList = require(path.join(cosi.lib_dir, 'template', 'list'));
 const Dashboard = require(path.resolve(cosi.lib_dir, 'dashboard'));
 const Graph = require(path.resolve(cosi.lib_dir, 'graph'));
+const api = require(path.resolve(cosi.lib_dir, 'api'));
 
 class Dashboards extends Registration {
 
@@ -210,7 +211,7 @@ class Dashboards extends Registration {
         console.log(`\tDashboard: ${dashboardID} (${templateFile})`);
 
         if (this._fileExists(configFile)) {
-            console.log('\tDashboard configuration already exists', configFile);
+            console.log(chalk.bold('\tConfiguration exists'), `- using ${configFile}`);
             this.emit('config.dashboard.next');
             return;
         }
@@ -247,6 +248,11 @@ class Dashboards extends Registration {
 
         data = this._mergeData(`dashboard-${dashboardID}`);
         data.dashboard_instance = dashboardInstance;
+        if ({}.hasOwnProperty.call(metaData, 'vars')) {
+            for (const dataVar in metaData.vars) { // eslint-disable-line guard-for-in
+                data[dataVar] = metaData.vars[dataVar];
+            }
+        }
 
         console.log(`\tInterpolating title ${config.title}`);
         config.title = this._expand(config.title, data);
@@ -443,27 +449,60 @@ class Dashboards extends Registration {
         const regFile = cfgFile.replace('config-', 'registration-');
 
         if (this._fileExists(regFile)) {
-            console.log(chalk.bold('\tRegistration exists'), `using ${regFile}`);
+            console.log(chalk.bold('\tRegistration exists'), `- using ${regFile}`);
             this.emit('create.dashboard.next');
             return;
+        }
+
+        if (!this._fileExists(cfgFile)) {
+            this.emit('error', new Error(`Missing dashboard configuration file '${cfgFile}'`));
+            return;
+        }
+
+        const dashboard = new Dashboard(cfgFile);
+
+        if (dashboard.verifyConfig()) {
+            console.log('\tValid dashboard config');
         }
 
         console.log('\tSending dashboard configuration to Circonus API');
 
         const self = this;
-        const dash = new Dashboard(cfgFile);
 
-        dash.create((err) => {
-            if (err) {
-                self.emit('error', err);
+        this._findDashboard(dashboard.title, (findErr, regConfig) => {
+            if (findErr !== null) {
+                self.emit('error', findErr);
                 return;
             }
 
-            console.log(`\tSaving registration ${regFile}`);
-            dash.save(regFile, true);
+            if (regConfig !== null) {
+                console.log(`\tSaving registration ${regFile}`);
+                try {
+                    fs.writeFileSync(regFile, JSON.stringify(regConfig, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+                } catch (saveErr) {
+                    self.emit('error', saveErr);
+                    return;
+                }
 
-            console.log(chalk.green('\tDashboard created:'), `${self.regConfig.account.ui_url}/dashboards/view/${dash._dashboard_uuid}`);
-            self.emit('create.dashboard.next');
+                console.log(chalk.green('\tDashboard:'), `${self.regConfig.account.ui_url}/dashboards/view/${dashboard._dashboard_uuid}`);
+                self.emit('create.dashboard.next');
+                return;
+            }
+
+            console.log('\tSending dashboard configuration to Circonus API');
+
+            dashboard.create((err) => {
+                if (err) {
+                    self.emit('error', err);
+                    return;
+                }
+
+                console.log(`\tSaving registration ${regFile}`);
+                dashboard.save(regFile, true);
+
+                console.log(chalk.green('\tDashboard created:'), `${self.regConfig.account.ui_url}/dashboards/view/${dashboard._dashboard_uuid}`);
+                self.emit('create.dashboard.next');
+            });
         });
     }
 
@@ -479,6 +518,46 @@ class Dashboards extends Registration {
     Utility methods
 
     */
+
+    _findDashboard(title, cb) {
+        if (title === null) {
+            cb(new Error('Invalid dashboard title'));
+            return;
+        }
+
+        console.log(`\tChecking API for existing dashboard with title '${title}'`);
+
+        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
+        api.get('/dashboard', { f_title: title }, (code, errAPI, result) => {
+            if (errAPI) {
+                const apiError = new Error();
+
+                apiError.code = 'CIRCONUS_API_ERROR';
+                apiError.message = errAPI;
+                apiError.details = result;
+                cb(apiError);
+                return;
+            }
+
+            if (code !== 200) {
+                const errResp = new Error();
+
+                errResp.code = code;
+                errResp.message = 'UNEXPECTED_API_RETURN';
+                errResp.details = result;
+                cb(errResp);
+                return;
+            }
+
+            if (Array.isArray(result) && result.length > 0) {
+                console.log(chalk.green('\tFound'), `${result.length} existing dashboard(s) with title '${title}'`);
+                cb(null, result[0]);
+                return;
+            }
+
+            cb(null, null);
+        });
+    }
 
 
     _findWidgetGraph(widget, metaData) {

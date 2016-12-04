@@ -14,6 +14,7 @@ const cosi = require(path.resolve(path.resolve(__dirname, '..', '..', '..', 'cos
 const Registration = require(path.resolve(cosi.lib_dir, 'registration'));
 const Template = require(path.join(cosi.lib_dir, 'template'));
 const Worksheet = require(path.resolve(cosi.lib_dir, 'worksheet'));
+const api = require(path.resolve(cosi.lib_dir, 'api'));
 
 class Worksheets extends Registration {
 
@@ -67,7 +68,7 @@ class Worksheets extends Registration {
         const templateFile = configFile.replace('config-', 'template-');
 
         if (this._fileExists(configFile)) {
-            console.log('\tWorksheet configuration already exists', configFile);
+            console.log(chalk.bold('\tConfiguration exists'), configFile);
             this.emit('worksheets.config.done');
             return;
         }
@@ -109,7 +110,7 @@ class Worksheets extends Registration {
         const cfgFile = regFile.replace('registration-', 'config-');
 
         if (this._fileExists(regFile)) {
-            console.log(chalk.bold('\tRegistration exists'), `using ${regFile}`);
+            console.log(chalk.bold('\tRegistration exists'), regFile);
             this.emit('worksheets.create.done');
             return;
         }
@@ -125,21 +126,84 @@ class Worksheets extends Registration {
             console.log('\tValid worksheet config');
         }
 
-        console.log('\tSending worksheet configuration to Circonus API');
-
-        worksheet.create((err) => {
-            if (err) {
-                self.emit('error', err);
+        this._findWorksheet(worksheet.title, (findErr, regConfig) => {
+            if (findErr !== null) {
+                self.emit('error', findErr);
                 return;
             }
 
-            console.log(`\tSaving registration ${regFile}`);
-            worksheet.save(regFile, true);
+            if (regConfig !== null) {
+                console.log(`\tSaving registration ${regFile}`);
+                try {
+                    fs.writeFileSync(regFile, JSON.stringify(regConfig, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+                } catch (saveErr) {
+                    self.emit('error', saveErr);
+                    return;
+                }
 
-            console.log(
-                chalk.green('\tWorksheet created:'),
-                `${self.regConfig.account.ui_url}/trending/worksheets/${worksheet._cid.replace('/worksheet/', '')}`);
-            self.emit('worksheets.create.done');
+                console.log(
+                    chalk.green('\tWorksheet:'),
+                    `${self.regConfig.account.ui_url}/trending/worksheets/${regConfig._cid.replace('/worksheet/', '')}`);
+                self.emit('worksheets.create.done');
+                return;
+            }
+
+            console.log('\tSending worksheet configuration to Circonus API');
+
+            worksheet.create((err) => {
+                if (err) {
+                    self.emit('error', err);
+                    return;
+                }
+
+                console.log(`\tSaving registration ${regFile}`);
+                worksheet.save(regFile, true);
+
+                console.log(
+                    chalk.green('\tWorksheet created:'),
+                    `${self.regConfig.account.ui_url}/trending/worksheets/${worksheet._cid.replace('/worksheet/', '')}`);
+                self.emit('worksheets.create.done');
+            });
+        });
+    }
+
+    _findWorksheet(title, cb) {
+        if (title === null) {
+            cb(new Error('Invalid worksheet title'));
+            return;
+        }
+
+        console.log(`\tChecking API for existing worksheet with title '${title}'`);
+
+        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
+        api.get('/worksheet', { f_title: title }, (code, errAPI, result) => {
+            if (errAPI) {
+                const apiError = new Error();
+
+                apiError.code = 'CIRCONUS_API_ERROR';
+                apiError.message = errAPI;
+                apiError.details = result;
+                cb(apiError);
+                return;
+            }
+
+            if (code !== 200) {
+                const errResp = new Error();
+
+                errResp.code = code;
+                errResp.message = 'UNEXPECTED_API_RETURN';
+                errResp.details = result;
+                cb(errResp);
+                return;
+            }
+
+            if (Array.isArray(result) && result.length > 0) {
+                console.log(chalk.green('\tFound'), `${result.length} existing worksheet(s) with title '${title}'`);
+                cb(null, result[0]);
+                return;
+            }
+
+            cb(null, null);
         });
     }
 

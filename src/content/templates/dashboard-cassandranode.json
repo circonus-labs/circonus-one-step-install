@@ -1,0 +1,371 @@
+{
+    "description" : "The standard dashboard for monitoring a cassandra node.",
+    "notes" : [
+        "This will create an instance of a dashboard.  A name will be ",
+        "passed to this dashboard for inclusion in templated output.  This will be ",
+        "made available to the dashboard as {{=cosi.dashboard_instance}}.  Each graph ",
+        "widget is mapped to an existing registered graph based on matching tags in ",
+        "the widget:tags field.",
+        "",
+        "If a match cannot be found for a widget:tag field to an existing graph, ",
+        "the graph will be removed from the dashboard."
+    ],
+    "config": {
+        "account_default": false,
+        "grid_layout": {
+            "height": 4,
+            "width": 6
+        },
+        "options": {
+            "access_configs": [],
+            "fullscreen_hide_title": true,
+            "hide_grid": false,
+            "linkages": [],
+            "scale_text": false,
+            "text_size": 12
+        },
+        "shared": true,
+        "title": "{{=cosi.host_name}} {{=cosi.dashboard_instance}}",
+        "widgets": [
+            {
+                "active": true,
+                "height": 1,
+                "name": "Graph",
+                "origin": "a0",
+                "settings": {
+                    "account_id": null,
+                    "date_window": "2h",
+                    "graph_id": null,
+                    "_graph_title": "{{=cosi.host_name}} Query Latency",
+                    "hide_xaxis": false,
+                    "hide_yaxis": false,
+                    "key_inline": false,
+                    "key_loc": "noop",
+                    "key_size": "1",
+                    "key_wrap": false,
+                    "label": "query latency",
+                    "period": "2000",
+                    "realtime": false,
+                    "show_flags": false
+                },
+                "tags" : ["cassandra:query_latency"],
+                "type": "graph",
+                "widget_id": "w1",
+                "width": 2
+            },
+            {
+                "active": true,
+                "height": 1,
+                "name": "Graph",
+                "origin": "c0",
+                "settings": {
+                    "account_id": null,
+                    "date_window": "2h",
+                    "graph_id": null,
+                    "_graph_title": "{{=cosi.host_name}} Execute Latency",
+                    "hide_xaxis": false,
+                    "hide_yaxis": false,
+                    "key_inline": false,
+                    "key_loc": "noop",
+                    "key_size": "1",
+                    "key_wrap": false,
+                    "label": "execute latency",
+                    "period": "2000",
+                    "realtime": false,
+                    "show_flags": false
+                },
+                "tags" : ["cassandra:execute_latency"],
+                "type": "graph",
+                "widget_id": "w2",
+                "width": 2
+            },
+            {
+                "active": true,
+                "height": 1,
+                "name": "Graph",
+                "origin": "e0",
+                "settings": {
+                    "account_id": null,
+                    "date_window": "2h",
+                    "graph_id": null,
+                    "_graph_title": "{{=cosi.host_name}} Prepare Latency",
+                    "hide_xaxis": false,
+                    "hide_yaxis": false,
+                    "key_inline": false,
+                    "key_loc": "noop",
+                    "key_size": "1",
+                    "key_wrap": false,
+                    "label": "prepare query latency",
+                    "period": "2000",
+                    "realtime": false,
+                    "show_flags": false
+                },
+                "tags" : ["cassandra:prepare_latency"],
+                "type": "graph",
+                "widget_id": "w3",
+                "width": 2
+            },
+            {
+                "active": true,
+                "height": 1,
+                "name": "Gauge",
+                "origin": "a1",
+                "settings": {
+                    "account_id": null,
+                    "check_uuid": null,
+                    "disable_autoformat": true,
+                    "formula": "",
+                    "metric_display_name": "key cache hit pct",
+                    "metric_name": "cassandra_info`key_cache_hit_pct",
+                    "period": 0,
+                    "range_high": 100,
+                    "range_low": 50,
+                    "thresholds": {
+                        "colors": [
+                            "#008000",
+                            "#ffcc00",
+                            "#ee0000"
+                        ],
+                        "flip": true,
+                        "values": [
+                            "75%",
+                            "87.5%"
+                        ]
+                    },
+                    "title": "key cache hit pct",
+                    "type": "bar",
+                    "value_type": "gauge"
+                },
+                "type": "gauge",
+                "widget_id": "w4",
+                "width": 2
+            },
+            {
+                "active": true,
+                "height": 1,
+                "name": "Gauge",
+                "origin": "c1",
+                "settings": {
+                    "account_id": null,
+                    "check_uuid": null,
+                    "disable_autoformat": true,
+                    "formula": "",
+                    "metric_display_name": "row cache hit pct",
+                    "metric_name": "cassandra_info`row_cache_hit_pct",
+                    "period": 0,
+                    "range_high": 100,
+                    "range_low": 50,
+                    "thresholds": {
+                        "colors": [
+                            "#008000",
+                            "#ffcc00",
+                            "#ee0000"
+                        ],
+                        "flip": true,
+                        "values": [
+                            "75%",
+                            "87.5%"
+                        ]
+                    },
+                    "title": "row cache hit pct",
+                    "type": "bar",
+                    "value_type": "gauge"
+                },
+                "type": "gauge",
+                "widget_id": "w5",
+                "width": 2
+            },
+            {
+                "active": true,
+                "height": 1,
+                "name": "Gauge",
+                "origin": "e1",
+                "settings": {
+                    "account_id": null,
+                    "check_uuid": null,
+                    "disable_autoformat": true,
+                    "formula": "",
+                    "metric_display_name": "counter cache hit pct",
+                    "metric_name": "cassandra_info`counter_cache_hit_pct",
+                    "period": 0,
+                    "range_high": 100,
+                    "range_low": 50,
+                    "thresholds": {
+                        "colors": [
+                            "#008000",
+                            "#ffcc00",
+                            "#ee0000"
+                        ],
+                        "flip": true,
+                        "values": [
+                            "75%",
+                            "87.5%"
+                        ]
+                    },
+                    "title": "counter cache hit pct",
+                    "type": "bar",
+                    "value_type": "gauge"
+                },
+                "type": "gauge",
+                "widget_id": "w6",
+                "width": 2
+            },
+            {
+                "active": true,
+                "height": 1,
+                "name": "Graph",
+                "origin": "a2",
+                "settings": {
+                    "account_id": null,
+                    "date_window": "2h",
+                    "graph_id": null,
+                    "_graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_instance}} key cache",
+                    "hide_xaxis": false,
+                    "hide_yaxis": false,
+                    "key_inline": false,
+                    "key_loc": "noop",
+                    "key_size": "1",
+                    "key_wrap": false,
+                    "label": "{{=cosi.dashboard_instance}} key cache",
+                    "period": "2000",
+                    "realtime": false,
+                    "show_flags": true
+                },
+                "tags" : ["cassandra:key_cache"],
+                "type": "graph",
+                "widget_id": "w7",
+                "width": 2
+            },
+            {
+                "active": true,
+                "height": 1,
+                "name": "Graph",
+                "origin": "c2",
+                "settings": {
+                    "account_id": null,
+                    "date_window": "2h",
+                    "graph_id": null,
+                    "_graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_instance}} row cache",
+                    "hide_xaxis": false,
+                    "hide_yaxis": false,
+                    "key_inline": false,
+                    "key_loc": "noop",
+                    "key_size": "1",
+                    "key_wrap": false,
+                    "label": "{{=cosi.dashboard_instance}} row cache",
+                    "period": "2000",
+                    "realtime": false,
+                    "show_flags": true
+                },
+                "tags" : ["cassandra:row_cache"],
+                "type": "graph",
+                "widget_id": "w8",
+                "width": 2
+            },
+            {
+                "active": true,
+                "height": 1,
+                "name": "Graph",
+                "origin": "e2",
+                "settings": {
+                    "account_id": null,
+                    "date_window": "2h",
+                    "graph_id": null,
+                    "_graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_instance}} counter cache",
+                    "hide_xaxis": false,
+                    "hide_yaxis": false,
+                    "key_inline": false,
+                    "key_loc": "noop",
+                    "key_size": "1",
+                    "key_wrap": false,
+                    "label": "{{=cosi.dashboard_instance}} counter cache",
+                    "period": "2000",
+                    "realtime": false,
+                    "show_flags": true
+                },
+                "tags" : ["cassandra:counter_cache"],
+                "type": "graph",
+                "widget_id": "w9",
+                "width": 2
+            },
+            {
+                "active": true,
+                "height": 1,
+                "name": "Graph",
+                "origin": "a3",
+                "settings": {
+                    "account_id": null,
+                    "date_window": "2h",
+                    "graph_id": null,
+                    "_graph_title": "{{=cosi.host_name}} bandwidth",
+                    "hide_xaxis": false,
+                    "hide_yaxis": false,
+                    "key_inline": false,
+                    "key_loc": "noop",
+                    "key_size": "1",
+                    "key_wrap": false,
+                    "label": "{{=cosi.host_name}} network bandwidth",
+                    "period": "2000",
+                    "realtime": false,
+                    "show_flags": true
+                },
+                "tags" : ["network:bandwidth"],
+                "type": "graph",
+                "widget_id": "w10",
+                "width": 2
+            },
+            {
+                "active": true,
+                "height": 1,
+                "name": "Graph",
+                "origin": "c3",
+                "settings": {
+                    "account_id": null,
+                    "date_window": "2h",
+                    "graph_id": null,
+                    "_graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_instance}} heap info",
+                    "hide_xaxis": false,
+                    "hide_yaxis": false,
+                    "key_inline": false,
+                    "key_loc": "noop",
+                    "key_size": "1",
+                    "key_wrap": false,
+                    "label": "{{=cosi.dashboard_instance}} heap info",
+                    "period": "2000",
+                    "realtime": false,
+                    "show_flags": true
+                },
+                "tags" : ["cassandra:heap"],
+                "type": "graph",
+                "widget_id": "w11",
+                "width": 2
+            },
+            {
+                "active": true,
+                "height": 1,
+                "name": "Graph",
+                "origin": "e3",
+                "settings": {
+                    "account_id": null,
+                    "date_window": "2h",
+                    "graph_id": null,
+                    "_graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_instance}} generation info",
+                    "hide_xaxis": false,
+                    "hide_yaxis": false,
+                    "key_inline": false,
+                    "key_loc": "noop",
+                    "key_size": "1",
+                    "key_wrap": false,
+                    "label": "{{=cosi.dashboard_instance}} generation info",
+                    "period": "2000",
+                    "realtime": false,
+                    "show_flags": true
+                },
+                "tags" : ["cassandra:generation"],
+                "type": "graph",
+                "widget_id": "w12",
+                "width": 2
+            }
+        ]
+    }
+}

@@ -144,6 +144,10 @@ class Checks extends Registration {
             for (let i = 0; i < check.metrics.length; i++) {
                 const metricName = check.metrics[i].name;
 
+                if (!Array.isArray(check.metrics[i].tags)) {
+                    check.metrics[i].tags = [];
+                }
+
                 if ({}.hasOwnProperty.call(metricTags, metricName)) {
                     const currTags = check.metrics[i].tags.join(',');
 

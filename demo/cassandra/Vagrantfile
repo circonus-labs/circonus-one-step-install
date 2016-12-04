@@ -1,0 +1,172 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+# rubocop:disable Metrics/LineLength
+# rubocop:disable Metrics/BlockLength
+
+Vagrant.require_version '>= 1.8.7'
+
+require 'yaml'
+require 'digest/sha1'
+config_file = 'config.yaml'
+unless File.file?(config_file)
+    puts 'ERROR: config file not found.'
+    puts "\nSee README.md for instructions to setup '#{config_file}'"
+    exit(1)
+end
+options = YAML.load_file('config.yaml') || {}
+
+api_key = (options['api_key'] || '').strip
+api_app = (options['api_app'] || 'cosi').strip
+
+msg = "\nCONFIG ERROR: '%s' cannot be empty, set it in #{config_file}\n\n"
+
+if api_key.empty?
+    puts msg % 'api_key'
+    exit(1)
+end
+
+if api_app.empty?
+    puts msg % 'api_app'
+    exit(1)
+end
+
+# this really isn't an "option" if changed, ensure node IPs are in same subnet
+site_ip = '192.168.10.10'
+node_ips = [
+    '192.168.10.11',
+    '192.168.10.12',
+    '192.168.10.13'
+]
+
+provision_script = <<SCRIPT
+node_id=$1
+node_ip=$2
+
+echo "Installing needed packages on $node_id"
+apt-get update && apt-get install -y curl vim git libpcap-dev openjdk-8-jdk-headless python-pip
+
+echo "Instaling datastax cassandra 3.6 repo"
+[[ -f /etc/apt/sources.list.d/cassandra.sources.list ]] || {
+    echo "deb http://debian.datastax.com/datastax-ddc 3.6 main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list
+    curl -sSL https://debian.datastax.com/debian/repo_key | sudo apt-key add -
+    apt-get update && apt-get install -y datastax-ddc
+
+    echo "Sleeping 30 seconds, waiting for cassandra to start..."
+    sleep 30
+    nodetool info > /dev/null
+    [[ $? -eq 0 ]] || {
+        echo "Issue(s) installing/starting cassandra ('nodetool' did not exit cleanly)."
+        exit 1
+    }
+
+    echo "Configuring cassandra node $node_id"
+    service cassandra stop && rm -rf /var/lib/cassandra/*
+    echo "Installing cassandra-driver, so that cqlsh works correctly. This will take a few minutes..."
+    # do this while cassandra is stopped (so that pip and cassandra are not fighting for vm resources...)
+    pip install cassandra-driver
+    echo "Installing node config ${node_id}-cassandra.yaml"
+    cp "/vagrant/${node_id}-cassandra.yaml" /etc/cassandra/cassandra.yaml
+    echo "Restarting cassandra on $node_id"
+    service cassandra start
+    echo "Sleeping 30 seconds, waiting for cassandra to start..."
+    sleep 30
+}
+
+echo "Check go (needed to build protocol_observer)"
+go_ver="1.7.3"
+go_file="go${go_ver}.linux-amd64.tar.gz"
+[[ -f $go_file ]] || {
+    echo "Installing go v${go_ver}"
+    go_url="https://storage.googleapis.com/golang/$go_file"
+    curl -sSL $go_url -o $go_file
+    tar -C /usr/local -zxf $go_file
+}
+
+circ_prof=/etc/profile.d/circonus.sh
+echo "Creating Circonus env profile ${circ_prof}"
+echo 'export PATH="$PATH:/opt/circonus/embedded/bin:/usr/local/go/bin:/opt/circonus/cosi/bin"' > $circ_prof
+echo 'export GOROOT="/usr/local/go"' >> $circ_prof
+echo "export GOPATH=\"/opt/circonus/godev\"" >> $circ_prof
+echo "export CQLSH_NO_BUNDLED=true" >> $circ_prof
+source $circ_prof
+
+echo "Checking Circonus protocol_observer"
+[[ -d $GOPATH ]] || mkdir -pv $GOPATH
+[[ -x /opt/circonus/bin/protocol_observer ]] || {
+    echo "Building Circonus protocol_observer"
+    cd $GOPATH && \
+    go get -u github.com/circonus-labs/wirelatency && \
+    cd src/github.com/circonus-labs/wirelatency/protocol_observer/ && \
+    go build
+    [[ -d /opt/circonus/bin ]] || mkdir -pv /opt/circonus/bin
+    cp -v protocol_observer /opt/circonus/bin
+    [[ $(grep -c protocol_observer /etc/sudoers) -eq 0 ]] && {
+        echo "Enabling user 'nobody' to run protocol_observer"
+        echo "nobody ALL=(root) NOPASSWD: /opt/circonus/bin/protocol_observer" >> /etc/sudoers
+    }
+}
+
+if [[ $node_id == "cass01" ]]; then
+    echo "Initializing demo keyspace - /vagrant/cassdata/init.cql"
+    cqlsh -f /vagrant/cassdata/init.cql $node_ip
+fi
+
+[[ $(grep -c cosi-site /etc/hosts) -eq 0 ]] && {
+    echo "Adding 'cosi-site' alias to /etc/hosts"
+    echo "#{site_ip} cosi-site" >> /etc/hosts
+}
+
+echo "Checking COSI"
+[[ -d /opt/circonus/cosi ]] || {
+    [[ -x /vagrant/fixups/agent_post_hook.sh ]] && {
+        mkdir -p /opt/circonus/cosi
+        cp -v /vagrant/fixups/agent_post_hook.sh /opt/circonus/cosi
+    }
+    echo "Running Circonus One Step Install (cosi)"
+    curl -sSL http://cosi-site/install | bash -s -- --cosiurl http://cosi-site --key #{api_key} --app #{api_app}
+}
+
+[[ -f /opt/circonus/etc/cass-po-conf.sh ]] || {
+    echo "Enabling NAD Cassandra plugin"
+    /opt/circonus/cosi/bin/cosi plugin cassandra --enable --iface enp0s8
+}
+SCRIPT
+
+Vagrant.configure(2) do |config|
+    #
+    # cosi-site
+    #
+    host_sig = Digest::SHA1.hexdigest("#{`hostname`}-cosi-site")[0..8]
+    config.vm.define 'site' do |site|
+        site.vm.box = 'maier/centos-7.2.1511-x86_64'
+        site.vm.hostname = "cosi-site-#{host_sig}"
+        site.vm.network 'private_network', ip: site_ip
+        site.vm.provision 'ansible' do |ansible|
+            ansible.playbook = '../../provision/cosi-site.yml'
+        end
+    end
+
+    #
+    # Cassandra client node(s)
+    #
+
+    node_ips.each_with_index do |node_ip, node_idx|
+        node_id = format('cass%02i', node_idx + 1)
+        node_sig = Digest::SHA1.hexdigest("#{`hostname`}-#{node_id}")[0..8]
+        config.vm.define node_id, autostart: false do |node|
+            node.vm.box = 'bento/ubuntu-16.04'
+            node.vm.hostname = "#{node_id}-#{node_sig}"
+            node.vm.network 'private_network', ip: node_ip
+            node.vm.provider 'virtualbox' do |vb|
+                vb.cpus = 2
+                vb.memory = 2048
+            end
+            node.vm.provision 'shell', inline: "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
+            node.vm.provision 'shell', inline: "ifconfig enp0s8 #{node_ip}"
+            node.vm.provision 'shell' do |p|
+                p.inline = provision_script
+                p.args = [node_id, node_ip]
+            end
+        end
+    end
+end
