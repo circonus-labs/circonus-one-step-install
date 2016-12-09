@@ -114,7 +114,7 @@
                     "account_id": null,
                     "check_uuid": null,
                     "disable_autoformat": true,
-                    "formula": "",
+                    "formula": "=round(VAL,1)",
                     "metric_display_name": "key cache hit pct",
                     "metric_name": "cassandra_info`key_cache_hit_pct",
                     "period": 0,
@@ -149,9 +149,9 @@
                     "account_id": null,
                     "check_uuid": null,
                     "disable_autoformat": true,
-                    "formula": "",
-                    "metric_display_name": "row cache hit pct",
-                    "metric_name": "cassandra_info`row_cache_hit_pct",
+                    "formula": "=round(VAL,1)",
+                    "metric_display_name": "chunk cache hit pct",
+                    "metric_name": "cassandra_info`chunk_cache_hit_pct",
                     "period": 0,
                     "range_high": 100,
                     "range_low": 50,
@@ -167,7 +167,7 @@
                             "87.5%"
                         ]
                     },
-                    "title": "row cache hit pct",
+                    "title": "chunk cache hit pct",
                     "type": "bar",
                     "value_type": "gauge"
                 },
@@ -184,7 +184,7 @@
                     "account_id": null,
                     "check_uuid": null,
                     "disable_autoformat": true,
-                    "formula": "",
+                    "formula": "=round(VAL,1)",
                     "metric_display_name": "counter cache hit pct",
                     "metric_name": "cassandra_info`counter_cache_hit_pct",
                     "period": 0,
@@ -245,19 +245,19 @@
                     "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
-                    "_graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_instance}} row cache",
+                    "_graph_title": "{{=cosi.host_name}} {{=cosi.dashboard_instance}} chunk cache",
                     "hide_xaxis": false,
                     "hide_yaxis": false,
                     "key_inline": false,
                     "key_loc": "noop",
                     "key_size": "1",
                     "key_wrap": false,
-                    "label": "{{=cosi.dashboard_instance}} row cache",
+                    "label": "{{=cosi.dashboard_instance}} chunk cache",
                     "period": "2000",
                     "realtime": false,
                     "show_flags": true
                 },
-                "tags" : ["cassandra:row_cache"],
+                "tags" : ["cassandra:chunk_cache"],
                 "type": "graph",
                 "widget_id": "w8",
                 "width": 2
@@ -369,3 +369,4 @@
         ]
     }
 }
+
