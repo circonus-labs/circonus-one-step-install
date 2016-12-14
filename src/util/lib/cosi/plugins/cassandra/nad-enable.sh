@@ -13,8 +13,8 @@ cfg_file=${NAD_PLUGIN_CONFIG_FILE:-/opt/circonus/cosi/etc/plugin-cassandra.json}
 : ${NAD_SCRIPTS_DIR:=/opt/circonus/etc/node-agent.d}
 : ${PLUGIN_SCRIPTS_DIR:=$NAD_SCRIPTS_DIR/cassandra}
 
-[[ -d $NAD_SCRIPTS_DIR ]] || fail "NAD plugin directory ($NAD_SCRIPTS_DIR) not found."
-[[ -d $PLUGIN_SCRIPTS_DIR ]] || fail "Cassandra NAD plugin scripts directory ($PLUGIN_SCRIPTS_DIR) not found."
+[[ -d $NAD_SCRIPTS_DIR ]] || fail "NAD plugin directory ($NAD_SCRIPTS_DIR) not found"
+[[ -d $PLUGIN_SCRIPTS_DIR ]] || fail "Cassandra NAD plugin scripts directory ($PLUGIN_SCRIPTS_DIR) not found"
 
 # determine if cassandra is running
 result=$(nodetool version)
@@ -92,11 +92,8 @@ for i in {1..4}; do
     done
     [[ $found -eq $expected ]] && break
     echo "WARN: not all expected metrics found, attempt $i of 3."
-    printf "Waiting 30s for NAD to pick up new scripts: "
-    for i in {1..15}; do
-        printf "."
-        sleep 1
-    done
+    printf "Waiting 10s for NAD to pick up new scripts"
+    for i in {1..10}; do printf "."; sleep 1; done
     echo
 done
 
