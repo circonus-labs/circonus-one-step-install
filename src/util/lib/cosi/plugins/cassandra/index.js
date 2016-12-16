@@ -535,7 +535,7 @@ class Cassandra extends Plugin {
         try {
             nt_test_stdout = child.execSync('nodetool version');
         } catch (err) {
-            return err;
+            return new Error(err.toString());
         }
 
         if (!nt_test_stdout || nt_test_stdout.indexOf('ReleaseVersion') === -1) {
