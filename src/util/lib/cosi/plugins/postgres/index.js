@@ -72,24 +72,44 @@ class Postgres extends Plugin {
         // psql_cmd has no default, leave it unset (to force search in PATH)
 
         this.name = 'postgres';
+        this.longName = 'postgresql';
+        this.shortName = 'pg';
         this.instance = this.options.database;
-        this.dashboardPrefix = 'postgres';
-        this.graphPrefix = [ 'pg_', 'postgres_protocol_observer' ];
+        this.dashboardPrefix = this.name;
+        this.graphPrefix = [ `${this.shortName}_`, `${this.name}_protocol_observer` ];
+        this.logFile = path.resolve(path.join(cosi.log_dir, `plugin-${this.name}.log`));
+        this.cfgFile = path.resolve(path.join(cosi.etc_dir, `plugin-${this.name}.json`));
+        this.settingsFile = path.resolve(path.join(cosi.nad_etc_dir, `${this.shortName}-conf.sh`));
+        this.protocolObserverConf = path.resolve(path.join(this.nad_etc_dir, `${this.shortName}_po_conf.sh`));
+        this.iface = options.iface || 'auto';
+        this.execEnv = {
+            NAD_SCRIPTS_DIR: path.resolve(path.join(cosi.nad_etc_dir, 'node-agent.d')),
+            PLUGIN_SCRIPTS_DIR: path.resolve(path.join(cosi.nad_etc_dir, 'node-agent.d', this.longName)),
+            PLUGIN_SETTINGS_FILE: this.settingsFile,
+            COSI_PLUGIN_CONFIG_FILE: this.cfgFile,
+            LOG_FILE: this.logFile
+        };
+
         this.state = null;
 
-        this.pg_conf_file = path.join(this.nad_etc_dir, 'pg-conf.sh');
-        this.po_conf_file = path.join(this.nad_etc_dir, 'pg-po-conf.sh');
     }
 
     enablePlugin(cb) {
-        if (fs.existsSync(this.pg_conf_file)) {
-            console.log(chalk.yellow('WARN'), `PostgreSQL plugin configuration found, plugin may already be enabled. ${this.pg_conf_file}`);
-            if (!this.options.force) {
-                process.exit(0);
-            }
-        }
         console.log(chalk.blue(this.marker));
         console.log(`Enabling agent plugin for PostgreSQL database '${this.instance}'`);
+
+        if (this._fileExists(this.cfgFile) && !this.options.force) {
+            const err = this._loadStateConfig();
+
+            if (err !== null) {
+                cb(err);
+                return;
+            }
+
+            console.log(chalk.yellow('\tPlugin scripts already enabled'), 'use --force to overwrite NAD plugin script config(s).');
+            cb(null);
+            return;
+        }
 
         let err = null;
 
@@ -98,11 +118,11 @@ class Postgres extends Plugin {
         err = this._test_psql();
         if (err === null) {
             console.log(chalk.green('\tPassed'), 'psql test');
-            err = this._create_plugin_conf();
+            err = this._createPluginSettingsConf();
         }
         if (err === null) {
             console.log(chalk.green('\tCreated'), 'plugin config');
-            err = this._create_observer_conf();
+            err = this._createProtocolObserverConf();
         }
         if (err !== null) {
             cb(err);
@@ -153,27 +173,25 @@ class Postgres extends Plugin {
 
         // disable the postgres plugin scripts and attempt to stop protocol observer if applicable
         const script = path.resolve(path.join(__dirname, 'nad-disable.sh'));
+        const options = { env: this.execEnv };
+        const self = this;
 
-        child.exec(script, (error, stdout, stderr) => {
-            if (error) {
-                cb(new Error(`${error} ${stdout} ${stderr}`), null);
+        child.exec(script, options, (error, stdout, stderr) => {
+            if (error !== null) {
+                cb(new Error(`${stderr} (exit code ${error.code})`));
                 return;
             }
 
-            const pgConfFile = path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'pg-conf.sh'));
-
             try {
-                fs.unlinkSync(pgConfFile);
-                console.log(`\tRemoved file: ${pgConfFile}`);
+                fs.unlinkSync(self.settingsFile);
+                console.log(`\tRemoved config file: ${self.settingsFile}`);
             } catch (unlinkErr) {
                 console.log(chalk.yellow('\tWARN'), 'ignoring...', unlinkErr.toString());
             }
 
-            const pgPoConfFile = path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'pg-po-conf.sh'));
-
             try {
-                fs.unlinkSync(pgPoConfFile);
-                console.log(`\tRemoved file: ${pgPoConfFile}`);
+                fs.unlinkSync(self.protocolObserverConf);
+                console.log(`\tRemoved config file: ${self.protocolObserverConf}`);
             } catch (unlinkErr) {
                 console.log(chalk.yellow('\tWARN'), 'ignoring...', unlinkErr.toString());
             }
@@ -193,28 +211,20 @@ class Postgres extends Plugin {
 
         // enable the postgresql plugin scripts
         const script = path.resolve(path.join(__dirname, 'nad-enable.sh'));
+        const options = { env: this.execEnv };
 
-        child.exec(script, (error, stdout, stderr) => {
-            if (error) {
-                cb(new Error(`${error} ${stderr}`), null);
+        child.exec(script, options, (error, stdout, stderr) => {
+            if (error !== null) {
+                cb(new Error(`${stderr} (exit code ${error.code})`));
                 return;
             }
 
-            let state = null;
+            const err = self._loadStateConfig();
 
-            try {
-                state = JSON.parse(stdout);
-            } catch (parseErr) {
-                cb(new Error(`Parsing enable script stdout ${parseErr} '${stdout}'`), null);
+            if (err !== null) {
+                cb(err);
                 return;
             }
-
-            if (state === null || state.enabled === false) {
-                cb(new Error(`Failed to enable plugin ${stdout} ${stderr}`));
-                return;
-            }
-
-            self.state = state;
 
             console.log(chalk.green('\tEnabled'), 'agent plugin for PostgreSQL');
 
@@ -222,7 +232,6 @@ class Postgres extends Plugin {
             return;
         });
     }
-
 
     addCustomMetrics(cb) { // eslint-disable-line consistent-return
 
@@ -415,7 +424,7 @@ class Postgres extends Plugin {
 
 
     preConfigDashboard() {
-        const metaErr = this._create_meta_conf();
+        const metaErr = this._createMetaConf();
 
         if (metaErr !== null) {
             this.emit('preconfig.done', metaErr);
@@ -474,7 +483,7 @@ class Postgres extends Plugin {
     }
 
 
-    _create_meta_conf() {
+    _createMetaConf() {
         const metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-${this.name}-${this.instance}.json`));
         const meta = { sys_graphs: [] };
 
@@ -512,9 +521,9 @@ class Postgres extends Plugin {
         return null;
     }
 
-    _create_plugin_conf() {
+    _createPluginSettingsConf() {
         // create config for postgres plugin scripts
-        const pg_conf_file = this.pg_conf_file;
+        const cfgFile = this.settingsFile;
         const contents = [];
 
         contents.push(`export PSQL_CMD=${this.options.psql_cmd}`);
@@ -533,11 +542,7 @@ class Postgres extends Plugin {
         }
 
         try {
-            fs.writeFileSync(
-                pg_conf_file,
-                contents.join('\n'),
-                { encoding: 'utf8', mode: 0o644, flag: 'w' }
-            );
+            fs.writeFileSync(cfgFile, contents.join('\n'), { encoding: 'utf8', mode: 0o644, flag: 'w' });
         } catch (err) {
             return err;
         }
@@ -545,24 +550,24 @@ class Postgres extends Plugin {
         return null;
     }
 
-    _create_observer_conf() {
-        // create protocol observer config
-        const pg_po_conf_file = this.po_conf_file;
-        const contents = [];
+    _loadStateConfig() {
+        let state = null;
 
-        if (cosi.agent_url !== '') {
-            contents.push(`NADURL="${cosi.agent_url}"`);
-        }
-
+        console.log(`\tLoading plugin configuration ${this.cfgFile}`);
         try {
-            fs.writeFileSync(
-                pg_po_conf_file,
-                contents.join('\n'),
-                { encoding: 'utf8', mode: 0o644, flag: 'w' }
-            );
+            state = require(this.cfgFile); // eslint-disable-line global-require
         } catch (err) {
-            return err;
+            if (err.code === 'MODULE_NOT_FOUND') {
+                return new Error('Plugin configuration not found');
+            }
+            return new Error(`Parsing plugin configuration ${err}`);
         }
+
+        if (state === null || state.enabled === false) {
+            return new Error(`Failed to enable plugin (see ${this.cfgFile})`);
+        }
+
+        this.state = state;
 
         return null;
     }
