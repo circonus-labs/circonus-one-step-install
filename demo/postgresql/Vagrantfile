@@ -115,7 +115,7 @@ Vagrant.configure(2) do |config|
             gopath="/opt/circonus/godev"
             [[ -d $gopath ]] || mkdir -pv $gopath
             circ_prof=/etc/profile.d/circonus.sh
-            echo 'export PATH="$PATH:/opt/circonus/embedded/bin:/usr/local/go/bin"' > $circ_prof
+            echo 'export PATH="$PATH:/opt/circonus/embedded/bin:/opt/circonus/cosi/bin:/usr/local/go/bin"' > $circ_prof
             echo "export GOPATH=\"${gopath}\"" >> $circ_prof
             [[ -x /opt/circonus/bin/protocol_observer ]] || {
                 echo "Building protocol_observer"
