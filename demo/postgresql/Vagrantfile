@@ -8,7 +8,7 @@ require 'digest/sha1'
 config_file = 'config.yaml'
 unless File.file?(config_file)
     puts 'ERROR: config file not found.'
-    puts "\nSee README.md for instructions to setup '#{config_file}'"
+    puts "\nSee example-config.yaml for instructions to setup '#{config_file}'"
     exit(1)
 end
 options = YAML.load_file('config.yaml') || {}
@@ -129,18 +129,13 @@ Vagrant.configure(2) do |config|
                 # allow 'nobody' to run protocol_observer
                 echo "nobody ALL=(root) NOPASSWD: /opt/circonus/bin/protocol_observer" >> /etc/sudoers
             }
-            [[ -d /opt/circonus/cosi ]] || {
-                echo "Running Circonus One Step Install (cosi)"
-                curl -sSL http://cosi.circonus.com/install | bash -s -- --cosiurl http://cosi.circonus.com --key #{api_key} --app #{api_app}
-            }
-            [[ -f /opt/circonus/etc/pg-conf.sh ]] || {
-                echo "Enabling NAD PostgreSQL plugin"
-                /opt/circonus/cosi/bin/cosi plugin postgres --enable --user=#{pg_user} --pass=#{pg_pass} --database=#{pg_user} --psql_cmd=/bin/psql
-            }
-            [[ -f /opt/circonus/cosi/registration/registration-check-system.json ]] || {
-                echo "Running cosi registration"
-                /opt/circonus/cosi/bin/cosi register
-            }
+
+            echo "Running Circonus One Step Install (cosi)"
+            curl -sSL http://cosi.circonus.com/install | bash -s -- --cosiurl http://cosi.circonus.com --key #{api_key} --app #{api_app}
+            
+            echo "Enabling NAD PostgreSQL plugin"
+            /opt/circonus/cosi/bin/cosi plugin postgres --enable --user=#{pg_user} --pass=#{pg_pass} --database=#{pg_user} --psql_cmd=/bin/psql
+
             # create table ct1 ( id serial primary key, data varchar (50) not null );
             # insert into ct1 ( data ) values ('foo'), ('bar'), ('baz');
             # insert into ct1 ( data ) values ('blah blah blah'), ('yadda yadda yadda');
