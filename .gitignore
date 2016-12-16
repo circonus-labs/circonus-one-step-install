@@ -3,6 +3,7 @@
 scratch/
 NOTES.md
 wiki/
+demo/**/go*.tar.gz
 
 # rpms
 cosi*noarch.rpm
