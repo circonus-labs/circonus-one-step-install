@@ -39,16 +39,10 @@ pg_bgwriter.sh
 pg_cache.sh
 pg_connections.sh
 pg_db_size.sh
-pg_isready.sh
 pg_locks.sh
-pg_partitions.sh
 pg_protocol_observer.sh
-pg_repl_lag.sh
-pg_repl_slots.sh
-pg_replication.sh
 pg_table_stats.sh
 pg_transactions.sh
-pg_vacuum.sh
 2f17fc42839fca05a41430b091f087e2
 enabled_scripts=()
 
