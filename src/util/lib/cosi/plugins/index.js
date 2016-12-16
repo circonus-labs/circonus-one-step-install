@@ -62,6 +62,8 @@ class Plugin extends Events {
             enabled: false
         };
 
+        this.iface = null;              // set/override in subclass (if needed for protocol_observer)
+
         this.nad_etc_dir = path.resolve(path.join(cosi.cosi_dir, '..', 'etc'));
 
         this.marker = '==========';
@@ -499,6 +501,32 @@ class Plugin extends Events {
             self.emit(doneEvent, stdout);
         });
     }
+
+    _createProtocolObserverConf() {
+        // if there is no protocol observer configuration file defined, plugin is assumed to not use/need one
+        if (!this.protocolObserverConf || this.protocolObserverConf === '') {
+            return null;
+        }
+
+        const contents = [];
+
+        if (cosi.agent_url && cosi.agent_url !== '') {
+            contents.push(`NADURL="${cosi.agent_url}"`);
+        }
+
+        if (this.iface && this.iface !== '') {
+            contents.push(`IFACE="${this.iface}"`);
+        }
+
+        try {
+            fs.writeFileSync(this.protocolObserverConf, contents.join('\n'), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+        } catch (err) {
+            return err;
+        }
+
+        return null;
+    }
+
 }
 
 module.exports = Plugin;
