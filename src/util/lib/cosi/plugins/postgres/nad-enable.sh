@@ -1,76 +1,114 @@
 #!/usr/bin/env bash
 
-# is this always true?
-NAD_SCRIPTS_DIR=/opt/circonus/etc/node-agent.d
-PG_SCRIPTS_DIR=$NAD_SCRIPTS_DIR/postgresql
-PG_CONF=/opt/circonus/etc/pg-conf.sh
-
-# determine if postgres is running
-PGPID="$(pgrep -n -f postgres)"
-[[ -n $PGPID ]] || {
-    >&2 echo "Postgres server not detected, skipping setup"
-    echo "{\"enabled\": false}"
+fail() {
+    msg="[ERROR] ${1:-Unknown error}"
+    echo $msg && >&2 echo $msg
     exit 1
 }
 
-# pull in the plugin settings
-source $PG_CONF
+: ${LOG_FILE:=/opt/circonus/cosi/log/plugin-postgres.log}
+exec 3>&1 1> >(tee -a $LOG_FILE)
+
+echo "Enabling NAD PostgreSQL plugin scripts $(date)"
+
+settings_file=${PLUGIN_SETTINGS_FILE:-/opt/circonus/etc/pg-conf.sh}
+cfg_file=${COSI_PLUGIN_CONFIG_FILE:-/opt/circonus/cosi/etc/plugin-postgres.json}
+: ${NAD_SCRIPTS_DIR:=/opt/circonus/etc/node-agent.d}
+: ${PLUGIN_SCRIPTS_DIR:=$NAD_SCRIPTS_DIR/postgresql}
+
+[[ -d $NAD_SCRIPTS_DIR ]] || fail "NAD plugin directory ($NAD_SCRIPTS_DIR) not found"
+[[ -d $PLUGIN_SCRIPTS_DIR ]] || fail "PostgreSQL NAD plugin scripts directory ($PLUGIN_SCRIPTS_DIR) not found"
+
+[[ -s $settings_file ]] || fail "PostgreSQL plugin settings file missing ($settings_file)"
+source $settings_file
+
+pgpid="$(pgrep -n -f postgres)"
+[[ -n "$pgpid" ]] || fail "PostgreSQL server not detected, skipping setup"
 
 # execute one of the scripts to ensure correct functionality
-SIZE="$(${PG_SCRIPTS_DIR}/pg_db_size.sh | grep postgres)"
-[[ $? -eq 0 && -n $SIZE ]] || {
-    >&2 echo "Could not execute test script.  Please configure /opt/circonus/etc/pg-conf.sh appropriately and re-run"
-    echo "{\"enabled\": false}"
-    exit 1
-}
+dbsize="$(${PLUGIN_SCRIPTS_DIR}/pg_db_size.sh | grep postgres)"
+[[ $? -eq 0 && -n "$dbsize" ]] || fail "Could not execute test script.  Please configure ${NAD_PLUGIN_SETTINGS_FILE} appropriately and re-run"
 
-pg_scripts=""
-read -r -d '' pg_scripts <<-2f17fc42839fca05a41430b091f087e2
+
+# explicit list of scripts to enable - there may be other files in
+# the plugin directory which should *not* be treated as scripts
+# (tools/utilities, config files, optional scripts, etc.)
+plugin_scripts=""
+read -r -d '' plugin_scripts <<-2f17fc42839fca05a41430b091f087e2
 pg_bgwriter.sh
 pg_cache.sh
 pg_connections.sh
 pg_db_size.sh
-pg_isready.sh
 pg_locks.sh
-pg_partitions.sh
 pg_protocol_observer.sh
-pg_repl_lag.sh
-pg_repl_slots.sh
-pg_replication.sh
 pg_table_stats.sh
 pg_transactions.sh
-pg_vacuum.sh
 2f17fc42839fca05a41430b091f087e2
 enabled_scripts=()
 
-# turn on all postgres stuff (create symlink if it doesn't already exist)
+# enable plugin scripts
 pushd $NAD_SCRIPTS_DIR >/dev/null
-for script in $pg_scripts; do
-    script_file="${PG_SCRIPTS_DIR}/${script}"
-    if [[ -x $script_file ]]; then
-        [[ -h $script ]] || ln -s $script_file .
+[[ $? -eq 0 ]] || fail "unable to change to $NAD_SCRIPTS_DIR"
+for script in $plugin_scripts; do
+    printf "Enabling %s: " "${PLUGIN_SCRIPTS_DIR}/${script}"
+    if [[ -x $PLUGIN_SCRIPTS_DIR/$script ]]; then
+        if [[ -h $script ]]; then
+            echo "already enabled"
+        else
+            ln -s $PLUGIN_SCRIPTS_DIR/$script
+            [[ $? -eq 0 ]] || fail "enabling ${PLUGIN_SCRIPTS_DIR}/${script}"
+            echo "enabled"
+        fi
         enabled_scripts+=(${script%.*})
+    else
+        echo "not executable, ignoring"
     fi
 done
+popd > /dev/null
 
+# give nad some time to initialize the scripts (because nodetool is *slow*)
+printf "Waiting 30s for NAD to pick up new scripts"
+for i in {1..30}; do
+    printf "."
+    sleep 1
+done
+echo
 
-# check for protocol observer (being installed)
-PROTOCOL_OBSERVER="false"
-po=/opt/circonus/bin/protocol_observer
-if [[ ! -x $po ]]; then
-    command -v protocol_observer >/dev/null 2>&1
-    [[ $? -eq 0 ]] && PROTOCOL_OBSERVER="true"
-else
-    PROTOCOL_OBSERVER="true"
-fi
+# ensure nad is exposing plugin scripts
+echo "Testing NAD for expected plugin metrics"
+expected=${#enabled_scripts[@]}
+found=0
+for i in {1..4}; do
+    res=$(curl -sS localhost:2609/)
+    for x in ${enabled_scripts[*]}; do
+        printf "Checking for output from %s: " $x
+        has=$(echo $res | grep -c $x)
+        if [[ $has -gt 0 ]]; then
+            echo "OK"
+            ((found++))
+        else
+            echo "Not found"
+        fi
+    done
+    [[ $found -eq $expected ]] && break
+    echo "WARN: not all expected metrics found, attempt $i of 3."
+    printf "Waiting 10s for NAD to pick up new scripts"
+    for i in {1..10}; do printf "."; sleep 1; done
+    echo
+done
 
-# obtain the database directory and subsequent filesystem on which that directory resides
+[[ $found -eq $expected ]] || fail "unable to verify, NAD not exposing expected metrics. ($found:$expected plugin modules)"
+
+echo "Determine PostgreSQL data directory for fs graph"
 [[ -n {PGPASS:-} ]] && export PGPASSWORD=$PGPASS
 DATA_DIR=$($PSQL_CMD -U $PGUSER -d $PGDATABASE -w -c "show data_directory;" -q -t)
 if [[ $? -ne 0 ]]; then
     unset PGPASSWORD
     DATA_DIR=$($PSQL_CMD -U postgres -d $PGDATABASE -w -c "show data_directory;" -q -t)
-    [[ $? -eq 0 ]] || DATA_DIR=$(sudo -u postgres $PSQL_CMD -d $PGDATABASE -w -c "show data_directory;" -q -t)
+    [[ $? -eq 0 ]] || {
+        DATA_DIR=$(sudo -u postgres $PSQL_CMD -d $PGDATABASE -w -c "show data_directory;" -q -t)
+        [[ $? -eq 0 ]] || fail "Unable to determine PostgreSQL data directory"
+    }
 fi
 FS_NAME=""
 if [[ -n "$DATA_DIR" ]]; then
@@ -78,31 +116,26 @@ if [[ -n "$DATA_DIR" ]]; then
     FS_NAME=$(df --output=target "$DATA_DIR" | tail -1)
 fi
 
-popd >/dev/null
+echo "Data directory : $DATA_DIR"
+echo "Filesystem name: $FS_NAME"
 
-expected=${#enabled_scripts[@]}
-found=0
-for i in {0..10}; do
-    found=0
-    res=$(curl -sS localhost:2609/)
-    for x in ${enabled_scripts[*]}; do
-       	has=$(echo $res | grep -c $x)
-       	if [[ $has -gt 0 ]]; then
-       		((found++))
-       	fi
-    done
-    if [[ $found -eq $expected ]]; then
-       		break;
-    fi
-    sleep 3
-done
+PROTOCOL_OBSERVER="false"
+# default protocol_observer location
+po=/opt/circonus/bin/protocol_observer
+[[ -x $po ]] || po=$(type -P protocol_observer)
+[[ -n "$po" && -x $po ]] && PROTOCOL_OBSERVER="true"
 
-if [[ $found -ne $expected ]]; then
-    >&2 echo "Could not verify valid output from all enabled plugin scripts (${found} != ${expected})"
-    echo "{\"enabled\": false }"
-    exit 1
-fi
+echo "Saving configuration $cfg_file"
+cat <<247f3f625cc73f881ca3e9b8c84e0767 > $cfg_file
+{
+    "enabled": true,
+    "fs_mount": "${FS_NAME}",
+    "data_dir": "${DATA_DIR}",
+    "protocol_observer": ${PROTOCOL_OBSERVER},
+    "scripts": "${enabled_scripts[*]}"
+}
+247f3f625cc73f881ca3e9b8c84e0767
 
-# if we have arrived here, the postgres plugin in NAD is installed and operating
-echo "{\"enabled\": true, \"fs_mount\": \"${FS_NAME}\", \"data_dir\": \"${DATA_DIR}\", \"protocol_observer\": ${PROTOCOL_OBSERVER}, \"scripts\": \"${enabled_scripts[*]}\" }"
+echo "Done enabling NAD PostgreSQL plugin scripts $(date)"
 exit 0
+# END

@@ -1,4 +1,5 @@
 ---
+# copy to config.yaml and edit accordingly
 
 # Paste value from API Token --key
 api_key: ""

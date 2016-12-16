@@ -55,18 +55,21 @@ class Cassandra extends Plugin {
 
     constructor(options) {
         super(options);
+
         this.name = 'cassandra';
         this.instance = 'cassandra';
-        this.dashboardPrefix = 'cassandranode';
-        this.graphPrefix = [ 'cassandra_', 'cassandra_protocol_observer' ];
+        this.dashboardPrefix = `${this.name}node`;
+        this.graphPrefix = [ `${this.name}_`, `${this.name}_protocol_observer` ];
         this.enableClusters = false;
         this.logFile = path.resolve(path.join(cosi.log_dir, `plugin-${this.name}.log`));
         this.cfgFile = path.resolve(path.join(cosi.etc_dir, `plugin-${this.name}.json`));
+        this.protocolObserverConf = path.resolve(path.join(cosi.nad_etc_dir, `${this.name}_po_conf.sh`));
         this.iface = options.iface || 'auto';
         this.execEnv = {
             NAD_SCRIPTS_DIR: path.resolve(path.join(cosi.nad_etc_dir, 'node-agent.d')),
             PLUGIN_SCRIPTS_DIR: path.resolve(path.join(cosi.nad_etc_dir, 'node-agent.d', this.name)),
-            NAD_PLUGIN_CONFIG_FILE: this.cfgFile
+            COSI_PLUGIN_CONFIG_FILE: this.cfgFile,
+            LOG_FILE: this.logFile
         };
     }
 
@@ -76,7 +79,14 @@ class Cassandra extends Plugin {
         console.log('Enabling agent plugin for Cassandra database');
 
         if (this._fileExists(this.cfgFile) && !this.options.force) {
-            console.log(chalk.green('\tPlugin scripts already enabled'), 'use --force to overwrite NAD plugin script config(s).');
+            const err = this._loadStateConfig();
+
+            if (err !== null) {
+                cb(err);
+                return;
+            }
+
+            console.log(chalk.yellow('\tPlugin scripts already enabled'), 'use --force to overwrite NAD plugin script config(s).');
             cb(null);
             return;
         }
@@ -86,7 +96,7 @@ class Cassandra extends Plugin {
         err = this._test_nodetool();
         if (err === null) {
             console.log(chalk.green('\tPassed'), 'nodetool test');
-            err = this._create_observer_conf();
+            err = this._createProtocolObserverConf();
         }
         if (err !== null) {
             cb(err);
@@ -130,18 +140,17 @@ class Cassandra extends Plugin {
 
         const script = path.resolve(path.join(__dirname, 'nad-disable.sh'));
         const options = { env: this.execEnv };
+        const self = this;
 
-        child.exec(`${script} | tee -a ${this.logFile}`, options, (error, stdout, stderr) => {
-            if (error) {
-                cb(new Error(`${error} ${stdout} ${stderr}`), null);
+        child.exec(script, options, (error, stdout, stderr) => {
+            if (error !== null) {
+                cb(new Error(`${stderr} (exit code ${error.code})`));
                 return;
             }
 
-            const cassPoConfFile = path.resolve(path.join(cosi.nad_etc_dir, 'cass-po-conf.sh'));
-
             try {
-                fs.unlinkSync(cassPoConfFile);
-                console.log(`\tRemoved file: ${cassPoConfFile}`);
+                fs.unlinkSync(self.protocolObserverConf);
+                console.log(`\tRemoved config file: ${self.protocolObserverConf}`);
             } catch (unlinkErr) {
                 console.log(chalk.yellow('\tWARN'), 'ignoring...', unlinkErr.toString());
             }
@@ -208,38 +217,18 @@ class Cassandra extends Plugin {
         const script = path.resolve(path.join(__dirname, 'nad-enable.sh'));
         const options = { env: this.execEnv };
 
-        child.exec(`${script} | tee -a ${this.logFile}`, options, (error, stdout, stderr) => {
-            if (error) {
-                cb(new Error(`${error} ${stderr}`), null);
+        child.exec(script, options, (error, stdout, stderr) => {
+            if (error !== null) {
+                cb(new Error(`${stderr} (exit code ${error.code})`));
                 return;
             }
 
-            let state = null;
+            const err = self._loadStateConfig();
 
-            console.log(`\tLoading plugin configuration ${self.cfgFile}`);
-            try {
-                state = JSON.parse(fs.readFileSync(self.cfgFile));
-            } catch (parseErr) {
-                if (parseErr.code === 'MODULE_NOT_FOUND') {
-                    cb(new Error('Plugin configuration not found'));
-                    return;
-                }
-                cb(new Error(`Parsing plugin configuration ${parseErr}`), null);
+            if (err !== null) {
+                cb(err);
                 return;
             }
-
-            if (state === null || state.enabled === false) {
-                cb(new Error(`Failed to enable plugin ${stdout}`));
-                return;
-            }
-
-            state.cluster_name = state.cluster_name.trim();
-            console.log('\tAdding cluster_name to global meta data');
-            self.globalMetadata.cluster_name = state.cluster_name;
-            console.log('\tAdding cluster_tag to global meta data');
-            self.globalMetadata.cluster_tag = `cluster:${state.cluster_name}`.toLowerCase();
-
-            self.state = state;
 
             console.log(chalk.green('\tEnabled'), 'agent plugin for Cassandra');
 
@@ -499,7 +488,7 @@ class Cassandra extends Plugin {
 
 
     preConfigDashboard() {
-        const metaErr = this._create_meta_conf();
+        const metaErr = this._createMetaConf();
 
         if (metaErr !== null) {
             this.emit('preconfig.done', metaErr);
@@ -546,7 +535,7 @@ class Cassandra extends Plugin {
         try {
             nt_test_stdout = child.execSync('nodetool version');
         } catch (err) {
-            return err;
+            return new Error(err.toString());
         }
 
         if (!nt_test_stdout || nt_test_stdout.indexOf('ReleaseVersion') === -1) {
@@ -557,7 +546,7 @@ class Cassandra extends Plugin {
     }
 
 
-    _create_meta_conf() {
+    _createMetaConf() {
         const meta = {
             sys_graphs: [],
             vars: { cluster_name: this.globalMetadata.cluster_name }
@@ -612,24 +601,30 @@ class Cassandra extends Plugin {
         return null;
     }
 
-    _create_observer_conf() {
-        const contents = [];
+    _loadStateConfig() {
+        let state = null;
 
-        if (cosi.agent_url !== '') {
-            contents.push(`NADURL="${cosi.agent_url}"`);
-        }
-
-        if (this.iface !== null) {
-            contents.push(`IFACE="${this.iface}"`);
-        }
-
+        console.log(`\tLoading plugin configuration ${this.cfgFile}`);
         try {
-            const cass_po_conf_file = path.resolve(path.join(cosi.nad_etc_dir, 'cass-po-conf.sh'));
-
-            fs.writeFileSync(cass_po_conf_file, contents.join('\n'), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+            state = require(this.cfgFile); // eslint-disable-line global-require
         } catch (err) {
-            return err;
+            if (err.code === 'MODULE_NOT_FOUND') {
+                return new Error('Plugin configuration not found');
+            }
+            return new Error(`Parsing plugin configuration ${err}`);
         }
+
+        if (state === null || state.enabled === false) {
+            return new Error(`Failed to enable plugin (see ${this.cfgFile})`);
+        }
+
+        state.cluster_name = state.cluster_name.trim();
+        console.log('\tAdding cluster_name to global meta data');
+        this.globalMetadata.cluster_name = state.cluster_name;
+        console.log('\tAdding cluster_tag to global meta data');
+        this.globalMetadata.cluster_tag = `cluster:${state.cluster_name}`.toLowerCase();
+
+        this.state = state;
 
         return null;
     }

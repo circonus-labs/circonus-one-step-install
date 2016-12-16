@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 
 fail() {
-    msg=${1:-Unknown error}
-    echo "[ERROR] $msg"
-    #[[ -t 1 ]] || >&2 echo $msg
+    msg="[ERROR] ${1:-Unknown error}"
+    echo $msg && >&2 echo $msg
     exit 1
 }
 
+: ${LOG_FILE:=/opt/circonus/cosi/log/plugin-cassandra.log}
+exec 3>&1 1> >(tee -a $LOG_FILE)
+
 echo "Disabling NAD Cassandra plugin scripts $(date)"
 
-cfg_file=${NAD_PLUGIN_CONFIG_FILE:-/opt/circonus/cosi/etc/plugin-cassandra.json}
+cfg_file=${COSI_PLUGIN_CONFIG_FILE:-/opt/circonus/cosi/etc/plugin-cassandra.json}
 : ${NAD_SCRIPTS_DIR:=/opt/circonus/etc/node-agent.d}
 : ${PLUGIN_SCRIPTS_DIR:=$NAD_SCRIPTS_DIR/cassandra}
 
@@ -32,6 +34,12 @@ if [[ -f $cfg_file ]]; then
     echo "Removing configuration $cfg_file"
     rm $cfg_file
     [[ $? -eq 0 ]] || fail "removing $cfg_file"
+fi
+
+popid=$(pgrep -n -f 'protocol_observer -wire cassandra_cql')
+if [[ -n "$popid" ]]; then
+    echo "Stopping Cassandra protocol_observer"
+    kill -p $popid
 fi
 
 echo "Done disabling NAD Cassandra plugin scripts $(date)"

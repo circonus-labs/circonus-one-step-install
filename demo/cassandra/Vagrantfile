@@ -42,14 +42,32 @@ provision_script = <<SCRIPT
 node_id=$1
 node_ip=$2
 
+sleep 10
+
+while true; do
+    res=$(ps -eaf | grep unattended-upgrade | grep -v grep)
+    if [[ -n "$res" ]]; then
+        echo "Waiting 30s for upgrade to complete"
+        sleep 30
+    else
+        break
+    fi
+done
+
 echo "Installing needed packages on $node_id"
 apt-get update && apt-get install -y curl vim git libpcap-dev openjdk-8-jdk-headless python-pip
 
-echo "Instaling datastax cassandra 3.6 repo"
-[[ -f /etc/apt/sources.list.d/cassandra.sources.list ]] || {
+if [[ ! -f /etc/apt/sources.list.d/cassandra.sources.list ]]; then
+    echo "Instaling datastax cassandra 3.6 repo"
     echo "deb http://debian.datastax.com/datastax-ddc 3.6 main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list
     curl -sSL https://debian.datastax.com/debian/repo_key | sudo apt-key add -
-    apt-get update && apt-get install -y datastax-ddc
+    apt-get update
+fi
+
+if [[ ! -x /usr/bin/nodetool ]]; then
+    echo "Installing cassandra"
+
+    apt-get install -y datastax-ddc
 
     echo "Sleeping 30 seconds, waiting for cassandra to start..."
     sleep 30
@@ -61,26 +79,33 @@ echo "Instaling datastax cassandra 3.6 repo"
 
     echo "Configuring cassandra node $node_id"
     service cassandra stop && rm -rf /var/lib/cassandra/*
+
     echo "Installing cassandra-driver, so that cqlsh works correctly. This will take a few minutes..."
     # do this while cassandra is stopped (so that pip and cassandra are not fighting for vm resources...)
     pip install cassandra-driver
+
     echo "Installing node config ${node_id}-cassandra.yaml"
     cp "/vagrant/${node_id}-cassandra.yaml" /etc/cassandra/cassandra.yaml
+
     echo "Restarting cassandra on $node_id"
     service cassandra start
+
     echo "Sleeping 30 seconds, waiting for cassandra to start..."
     sleep 30
-}
+fi
 
 echo "Check go (needed to build protocol_observer)"
-go_ver="1.7.3"
+go_ver="1.7.4"
 go_file="go${go_ver}.linux-amd64.tar.gz"
-[[ -f $go_file ]] || {
-    echo "Installing go v${go_ver}"
+if [[ ! -f "/vagrant/${go_file}" ]]; then
+    echo "Downloading go"
     go_url="https://storage.googleapis.com/golang/$go_file"
-    curl -sSL $go_url -o $go_file
-    tar -C /usr/local -zxf $go_file
-}
+    curl -sSL $go_url -o "/vagrant/${go_file}"
+fi
+if [[ ! -x /usr/local/go/bin/go ]]; then
+    echo "Installing go v${go_ver}"
+    tar -C /usr/local -zxf "/vagrant/${go_file}"
+fi
 
 circ_prof=/etc/profile.d/circonus.sh
 echo "Creating Circonus env profile ${circ_prof}"
@@ -92,19 +117,19 @@ source $circ_prof
 
 echo "Checking Circonus protocol_observer"
 [[ -d $GOPATH ]] || mkdir -pv $GOPATH
-[[ -x /opt/circonus/bin/protocol_observer ]] || {
+if [[ ! -x /opt/circonus/bin/protocol_observer ]]; then
     echo "Building Circonus protocol_observer"
-    cd $GOPATH && \
-    go get -u github.com/circonus-labs/wirelatency && \
-    cd src/github.com/circonus-labs/wirelatency/protocol_observer/ && \
+    cd $GOPATH
+    go get -u github.com/circonus-labs/wirelatency
+    cd src/github.com/circonus-labs/wirelatency/protocol_observer/
     go build
     [[ -d /opt/circonus/bin ]] || mkdir -pv /opt/circonus/bin
     cp -v protocol_observer /opt/circonus/bin
-    [[ $(grep -c protocol_observer /etc/sudoers) -eq 0 ]] && {
+    if [[ $(grep -c protocol_observer /etc/sudoers) -eq 0 ]]; then
         echo "Enabling user 'nobody' to run protocol_observer"
         echo "nobody ALL=(root) NOPASSWD: /opt/circonus/bin/protocol_observer" >> /etc/sudoers
-    }
-}
+    fi
+fi
 
 if [[ $node_id == "cass01" ]]; then
     echo "Initializing demo keyspace - /vagrant/cassdata/init.cql"
@@ -117,19 +142,16 @@ fi
 }
 
 echo "Checking COSI"
-[[ -d /opt/circonus/cosi ]] || {
-    [[ -x /vagrant/fixups/agent_post_hook.sh ]] && {
-        mkdir -p /opt/circonus/cosi
-        cp -v /vagrant/fixups/agent_post_hook.sh /opt/circonus/cosi
-    }
-    echo "Running Circonus One Step Install (cosi)"
-    curl -sSL http://cosi-site/install | bash -s -- --cosiurl http://cosi-site --key #{api_key} --app #{api_app}
-}
+if [[ -x /vagrant/fixups/agent_post_hook.sh ]]; then
+    mkdir -p /opt/circonus/cosi
+    cp -v /vagrant/fixups/agent_post_hook.sh /opt/circonus/cosi
+fi
 
-[[ -f /opt/circonus/etc/cass-po-conf.sh ]] || {
-    echo "Enabling NAD Cassandra plugin"
-    /opt/circonus/cosi/bin/cosi plugin cassandra --enable --iface enp0s8
-}
+echo "Running Circonus One Step Install (cosi)"
+curl -sSL http://cosi-site/install | bash -s -- --cosiurl http://cosi-site --key #{api_key} --app #{api_app}
+
+echo "Enabling NAD Cassandra plugin"
+/opt/circonus/cosi/bin/cosi plugin cassandra --enable --iface eht1
 SCRIPT
 
 Vagrant.configure(2) do |config|
@@ -141,6 +163,7 @@ Vagrant.configure(2) do |config|
         site.vm.box = 'maier/centos-7.2.1511-x86_64'
         site.vm.hostname = "cosi-site-#{host_sig}"
         site.vm.network 'private_network', ip: site_ip
+        site.vm.provision 'shell', inline: '/sbin/ifup enp0s8'
         site.vm.provision 'ansible' do |ansible|
             ansible.playbook = '../../provision/cosi-site.yml'
         end
@@ -154,7 +177,7 @@ Vagrant.configure(2) do |config|
         node_id = format('cass%02i', node_idx + 1)
         node_sig = Digest::SHA1.hexdigest("#{`hostname`}-#{node_id}")[0..8]
         config.vm.define node_id, autostart: false do |node|
-            node.vm.box = 'bento/ubuntu-16.04'
+            node.vm.box = 'maier/ubuntu-16.04-x86_64'
             node.vm.hostname = "#{node_id}-#{node_sig}"
             node.vm.network 'private_network', ip: node_ip
             node.vm.provider 'virtualbox' do |vb|
@@ -162,7 +185,6 @@ Vagrant.configure(2) do |config|
                 vb.memory = 2048
             end
             node.vm.provision 'shell', inline: "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
-            node.vm.provision 'shell', inline: "ifconfig enp0s8 #{node_ip}"
             node.vm.provision 'shell' do |p|
                 p.inline = provision_script
                 p.args = [node_id, node_ip]

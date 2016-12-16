@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 
 fail() {
-    msg=${1:-Unknown error}
-    echo "[ERROR] $msg"
-    #[[ -t 1 ]] || >&2 echo $msg
+    msg="[ERROR] ${1:-Unknown error}"
+    echo $msg && >&2 echo $msg
     exit 1
 }
 
+: ${LOG_FILE:=/opt/circonus/cosi/log/plugin-cassandra.log}
+exec 3>&1 1> >(tee -a $LOG_FILE)
+
 echo "Enabling NAD Cassandra plugin scripts $(date)"
 
-cfg_file=${NAD_PLUGIN_CONFIG_FILE:-/opt/circonus/cosi/etc/plugin-cassandra.json}
+cfg_file=${COSI_PLUGIN_CONFIG_FILE:-/opt/circonus/cosi/etc/plugin-cassandra.json}
 : ${NAD_SCRIPTS_DIR:=/opt/circonus/etc/node-agent.d}
 : ${PLUGIN_SCRIPTS_DIR:=$NAD_SCRIPTS_DIR/cassandra}
 
@@ -30,8 +32,8 @@ echo "Cluster '$cluster_name'"
 # explicit list of scripts to enable - there may be other files in
 # the plugin directory which should *not* be treated as scripts
 # (tools/utilities, config files, optional scripts, etc.)
-cass_scripts=""
-read -r -d ' ' cass_scripts <<-f22a9a7b7066c7ed6486f71e6ac66e79
+plugin_scripts=""
+read -r -d ' ' plugin_scripts <<-f22a9a7b7066c7ed6486f71e6ac66e79
 cassandra_cfstats.sh
 cassandra_compaction.sh
 cassandra_gcstats.sh
@@ -43,7 +45,7 @@ enabled_scripts=()
 # enable cassandra scripts
 pushd $NAD_SCRIPTS_DIR >/dev/null
 [[ $? -eq 0 ]] || fail "unable to change to $NAD_SCRIPTS_DIR"
-for script in $cass_scripts; do
+for script in $plugin_scripts; do
     printf "Enabling %s: " "${PLUGIN_SCRIPTS_DIR}/${script}"
     if [[ -x $PLUGIN_SCRIPTS_DIR/$script ]]; then
         if [[ -h $script ]]; then
