@@ -366,6 +366,7 @@ class Broker {
         }
 
         const enterpriseBrokers = [];
+        let numValidBrokers = 0;
 
         for (let i = 0; i < brokerList.length; i++) {
             const broker = brokerList[i];
@@ -376,6 +377,9 @@ class Broker {
             if (!this._isValidBroker(broker, checkType)) {
                 continue;
             }
+
+            numValidBrokers += 1;
+
             for (let j = 0; j < broker._details.length; j++) {
                 const detail = broker._details[j];
 
@@ -391,6 +395,10 @@ class Broker {
         }
 
         if (enterpriseBrokers.length === 0) {
+            if (numValidBrokers > 0) {
+                console.error(chalk.red('ERROR:'), numValidBrokers, 'enterprise brokers found, none could be reached.');
+                process.exit(1);
+            }
             return null;
         }
 
@@ -433,11 +441,8 @@ class Broker {
     _brokerConnectionTest(detail, maxResponseTime) {
         const maxTime = maxResponseTime || 500;
         const port = detail.external_port || 43191;
-        let host = detail.ipaddress;
-
-        if (detail.cn === detail.external_host) {
-            host = detail.external_host;
-        }
+        // preference external_host, if not defined use broker's IP
+        const host = detail.external_host || detail.ipaddress;
 
         const status = ct.test(host, port, maxTime);
 
