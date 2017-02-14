@@ -383,10 +383,11 @@ __lookup_os() {
         # (good to know i suppose, that if curl gets a non-http response '000' is the result code)
         fail "Unknown/invalid http result code: ${request_result[1]}\nmessage: ${request_result[0]}"
         ;;
-	(*)
+    (*)
         # unsupported distribution|version|architecture
-        fail "API result - http result code: ${request_result[1]}\nmessage: ${request_result[0]}"
-		;;
+        log "API result - http result code: ${request_result[1]}\nmessage: ${request_result[0]}"
+        log "No NAD packages will be available. Please install nad manually."
+	;;
 	esac
 }
 
@@ -669,7 +670,7 @@ __fetch_cosi_utils() {
 
     log "Verifying node version..." # oh FFS!
     node_bin=""     # omnibus packages              omnios packages
-    for f in /opt/circonus/embedded/bin/node /opt/circonus/bin/node; do
+    for f in /opt/circonus/embedded/bin/node /opt/circonus/bin/node "$(which node)"; do
         if [[ -x $f ]]; then
             node_bin=$f
             break
@@ -686,6 +687,7 @@ __fetch_cosi_utils() {
 
     log "Fixing cosi util shebangs..."
     for f in $(ls -1 /opt/circonus/cosi/bin/{cosi,circonus}*); do
+        # On OSX replace `-i""` with `-i ""` (add a space)
         sed -e "s#%%NODE_BIN%%#$node_bin#" -i"" $f
     done
 
