@@ -201,6 +201,8 @@ __detect_os() {
     cosi_os_dist=""
     cosi_os_vers="$(uname -r)"
     cosi_os_arch="$(uname -p)"
+    # try 'arch' if 'uname -p' emits 'unknown' (looking at you debian...)
+    [[ "$cosi_os_arch" == "unknown" ]] && cosi_os_arch=$(arch)
 
     set +e
     dmi=$(type -P dmidecode)
@@ -370,24 +372,24 @@ __lookup_os() {
     IFS='|' read -a request_result <<< "$curl_result"
     if [[ ${#request_result[@]} -ne 2 ]]; then
         fail "Unexpected response received from COSI request '${curl_result}'. Try curl -v '${request_url}' to see full transaction details."
-	fi
+    fi
 
     case ${request_result[1]} in
     (200)
         pass "\t$cosi_os_dist $cosi_os_vers $cosi_os_arch supported!"
         IFS='|' read -a cosi_agent_package_info <<< "${request_result[0]//%%/|}"
-    	;;
+        ;;
     (000)
         # outlier but, made it happen by trying to get curl to timeout
         # pointed cosi_url at a port being listened to and the daemon responded...doh!
         # (good to know i suppose, that if curl gets a non-http response '000' is the result code)
         fail "Unknown/invalid http result code: ${request_result[1]}\nmessage: ${request_result[0]}"
         ;;
-	(*)
+    (*)
         # unsupported distribution|version|architecture
         fail "API result - http result code: ${request_result[1]}\nmessage: ${request_result[0]}"
-		;;
-	esac
+        ;;
+    esac
 }
 
 
