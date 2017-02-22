@@ -1,3 +1,8 @@
+### 0.11.0 2017-02-22
+
+* add: debian 7.11 (wheezy) and 8.6 (jessie)
+* add: cassandra
+
 ### 0.10.2 2016-10-27
 
 * add: forecast widget support for dashboards
