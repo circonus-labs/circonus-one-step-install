@@ -1,3 +1,10 @@
+### 0.12.0 2017-02-28
+
+* add: `--broker-type` option (any|enterprise) default `any`.
+      * `any` try enterprise brokers, if none available, try public brokers. if no brokers available fail.
+      * `enterprise` will *only* use enterprise brokers and fail if there are no enterprise brokers or none can be used.
+* upd: revert default broker selection behavior to enterprise, then public if no enterprise brokers can be used.
+
 ### 0.11.0 2017-02-22
 
 * add: debian 7.11 (wheezy) and 8.6 (jessie)
