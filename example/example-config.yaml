@@ -29,53 +29,84 @@ statsd: false
 # Vagrant VMs
 # must be at least one enabled...
 vms:
-    "centos7.2":
-        enabled: true
-        id: "c72"
-        ip: "192.168.7.12"
-        box: "maier/centos-7.2.1511-x86_64"
-        puppet_package: "puppetlabs-release-pc1-el-7.noarch.rpm"
+    #
+    # CentOS
+    #
     "centos7.1":
         enabled: false
         id: "c71"
-        ip: "192.168.7.11"
+        ip: "192.168.1.10"
         box: "maier/centos-7.1.1503-x86_64"
         puppet_package: "puppetlabs-release-pc1-el-7.noarch.rpm"
-    "centos6.7":
+    "centos7.2":
+        enabled: true
+        id: "c72"
+        ip: "192.168.1.11"
+        box: "maier/centos-7.2.1511-x86_64"
+        puppet_package: "puppetlabs-release-pc1-el-7.noarch.rpm"
+    "centos6.3":
         enabled: false
-        id: "c67"
-        ip: "192.168.6.17"
-        box: "maier/centos-6.7-x86_64"
+        id: "c63"
+        ip: "192.168.1.12"
+        box: "maier/centos-6.3-x86_64"
         puppet_package: "puppetlabs-release-pc1-el-6.noarch.rpm"
     "centos6.6":
         enabled: false
         id: "c66"
-        ip: "192.168.6.16"
+        ip: "192.168.1.13"
         box: "maier/centos-6.6-x86_64"
         puppet_package: "puppetlabs-release-pc1-el-6.noarch.rpm"
-    "centos6.3":
+    "centos6.7":
         enabled: false
-        id: "c63"
-        ip: "192.168.6.13"
-        box: "maier/centos-6.3-x86_64"
+        id: "c67"
+        ip: "192.168.1.14"
+        box: "maier/centos-6.7-x86_64"
         puppet_package: "puppetlabs-release-pc1-el-6.noarch.rpm"
-    "ubuntu14":
-        enabled: false
-        id: "u14"
-        ip: "192.168.14.14"
-        box: "ubuntu/trusty64"
-        puppet_package: "puppetlabs-release-pc1-trusty.deb"
+    #
+    # Ubunutu
+    #
     "ubuntu12":
         enabled: false
         id: "u12"
-        ip: "192.168.12.14"
+        ip: "192.168.1.20"
         box: "ubuntu/precise64"
         puppet_package: "puppetlabs-release-pc1-precise.deb"
+    "ubuntu14":
+        enabled: false
+        id: "u14"
+        ip: "192.168.1.21"
+        box: "ubuntu/trusty64"
+        puppet_package: "puppetlabs-release-pc1-trusty.deb"
+    "ubuntu16":
+        enabled: false
+        id: "u16"
+        ip: "192.168.1.22"
+        box: "ubuntu/xenial64"
+        puppet_package: "puppetlabs-release-pc1-xenial.deb"
+    #
+    # OmniOS
+    #
     "omnios014":
         enabled: false
         id: "o14"
-        ip: "192.168.151.14"
+        ip: "192.168.1.30"
         box: "maier/omnios-r151014-x86_64"
         provisioner: "shell"
-
+    #
+    # Debian
+    #
+    "debian7":
+        enabled: false
+        id: "o14"
+        ip: "192.168.1.40"
+        box: "maier/debian-7.11.0-x86_64"
+        provisioner: "shell"
+        puppet_package: "puppetlabs-release-pc1-wheezy.deb"
+    "debian8":
+        enabled: false
+        id: "o14"
+        ip: "192.168.1.41"
+        box: "maier/debian-8.7.0-x86_64"
+        provisioner: "shell"
+        puppet_package: "puppetlabs-release-pc1-jessie.deb"
 #END

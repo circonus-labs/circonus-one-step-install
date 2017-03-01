@@ -7,19 +7,20 @@ Demonstrate running COSI on various operating systems using several different ty
 * CentOS (6.3, 6.6, 6.7, 7.1.1503, 7.2.1511)
 * Ubuntu (12.04-trusty, 14.04-precise)
 * OmniOS (r151014)
+* Debian (7.11, 8.7)
 
 #### Automation Options (provisioner)
 
-* Manual 
+* Manual
 * Shell
 * Ansible
 * Puppet
 * **coming soon**: Chef
 
 > Note on **manual** provisioner:
-> 
-> Simply spins up the VM and **does not** attempt to run COSI. The main purpose of this provisioner is to provide a set of pre-defined platforms for testing the cut-n-paste COSI command from the [API Tokens](https://login.circonus.com/user/tokens) page. 
-> 
+>
+> Simply spins up the VM and **does not** attempt to run COSI. The main purpose of this provisioner is to provide a set of pre-defined platforms for testing the cut-n-paste COSI command from the [API Tokens](https://login.circonus.com/user/tokens) page.
+>
 > Since the resulting *system* will be a VM leveraging the host's network connection, adding the `--agent push` option to the COSI command line is **strongly encouraged**.
 
 ## Prerequisites
@@ -70,7 +71,7 @@ This will **stop** the VM, it can be restarted using `vagrant up`.
 
 There is a script named `destroy.sh` in the root example directory. Using this to destroy/remove VMs, whether started in basic or advanced directories, will make cleanup much easier. Although Vagrant has a *destroy* command, it does not know about the checks, graphs, worksheets, etc. that COSI created in Circonus. The destroy script will run a command (`/opt/circonus/cosi/bin/cosi reset --all`) on the VM which will remove these artifacts so that they do not have to be manually deleted in the Circonus UI.
 
-`../destroy.sh <vm name>` note, in this case the specific VM to be destroyed is required. 
+`../destroy.sh <vm name>` note, in this case the specific VM to be destroyed is required.
 
 ## Example
 
@@ -95,4 +96,3 @@ vagrant up
 Details for inspecting/troubleshooting the COSI process can be found on the running VM (`vagrant ssh <vm name>`) in:
 
 * `/opt/circonus/cosi/log/install.log`
-
