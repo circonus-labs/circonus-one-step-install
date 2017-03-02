@@ -361,6 +361,14 @@ class Broker {
     _getEnterpriseBroker(checkType) {
         assert.strictEqual(typeof checkType, 'string', 'checkType must be a string');
 
+        let forceEnterprise = false;
+
+        if ({}.hasOwnProperty.call(cosi, 'cosi_broker_type')) {
+            if (cosi.cosi_broker_type.toLowerCase() === 'enterprise') {
+                forceEnterprise = true;
+            }
+        }
+
         if (this.verbose) {
             console.log('Checking for enterprise brokers');
         }
@@ -395,8 +403,12 @@ class Broker {
         }
 
         if (enterpriseBrokers.length === 0) {
-            if (numValidBrokers > 0) {
-                console.error(chalk.red('ERROR:'), numValidBrokers, 'enterprise brokers found, none could be reached.');
+            if (forceEnterprise) {
+                if (numValidBrokers > 0) {
+                    console.error(chalk.red('ERROR:'), numValidBrokers, 'broker type set to "enterprise", enterprise brokers found but, none could be reached.');
+                } else {
+                    console.error(chalk.red('ERROR:'), 'broker type set to "enterprise", no enterprise brokers found.');
+                }
                 process.exit(1);
             }
             return null;

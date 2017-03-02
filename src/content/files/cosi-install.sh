@@ -45,7 +45,11 @@ Options
 
   [--target]      Host IP/hostname to use as check target.
 
-  [--broker]      Broker to use ('Group ID' from a Broker on the Brokers page in Circonus UI).
+  [--broker]      Broker to use (numeric portion of broker CID e.g. cid=/broker/123, pass 123 as argument).
+
+  [--broker-type] Type of broker to use, (any|enterprise) default: any
+                  any - try enterprise brokers, if none available, try public brokers, if none available fail
+                  enterprise - only use enterprise brokers, fail if none available
 
   [--noreg]       Do not attempt to register this system. Using this option
                   will *${BOLD}require${NORMAL}* that the system be manually registered.
@@ -162,6 +166,17 @@ __parse_parameters() {
                 shift
             else
                 fail "--broker must be followed by Broker Group ID."
+            fi
+            ;;
+        (--broker-type)
+            if [[ -n "${1:-}" ]]; then
+                cosi_broker_type="$1"
+                shift
+                if [[ ! "${cosi_broker_type:-}" =~ ^(any|enterprise)$ ]]; then
+                    fail "--broker-type must be followed by type (any|enterprise)."
+                fi
+            else
+                fail "--broker-type must be followed by type (any|enterprise)."
             fi
             ;;
         (--noreg)
@@ -620,6 +635,7 @@ __save_cosi_register_config() {
     "custom_options_file": "${cosi_regopts_conf}",
     "cosi_host_target": "${cosi_host_target}",
     "cosi_broker_id": "${cosi_broker_id}",
+    "cosi_broker_type": "${cosi_broker_type}",
     "cosi_os_dist": "${cosi_os_dist}",
     "cosi_os_vers": "${cosi_os_vers}",
     "cosi_os_arch": "${cosi_os_arch}",
@@ -770,6 +786,7 @@ cosi_initialize() {
     : ${cosi_regopts_conf:=}
     : ${cosi_host_target:=}
     : ${cosi_broker_id:=}
+    : ${cosi_broker_type:=any}
     : ${cosi_save_config_flag:=0}
     : ${cosi_url:=https://onestep.circonus.com/}
     : ${cosi_api_url:=https://api.circonus.com/}
@@ -791,6 +808,7 @@ cosi_initialize() {
     cosi_agent_mode \
     cosi_host_target \
     cosi_broker_id \
+    cosi_broker_type \
     cosi_install_agent \
     cosi_statsd_flag \
     cosi_statsd_port \
