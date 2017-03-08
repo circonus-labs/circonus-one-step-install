@@ -551,7 +551,7 @@ __is_nad_running() {
     local ret
     if [[ $agent_state -eq 1 ]]; then
         set +e
-        pid=$(pgrep -n -f "nad")
+        pid=$(pgrep -n -f "sbin/nad")
         ret=$?
         set -e
         if [[ $ret -eq 0 && ${pid:-0} -gt 0 ]]; then
