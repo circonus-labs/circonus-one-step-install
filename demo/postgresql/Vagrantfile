@@ -41,8 +41,8 @@ if pg_pass.empty?
 end
 
 # this really isn't an "option" if changed, ensure node IPs are in same subnet
-site_ip = '192.168.10.10'
-c7_node_ip = '192.168.10.11'
+site_ip = '192.168.10.110'
+c7_node_ip = '192.168.10.111'
 
 Vagrant.configure(2) do |config|
     #
@@ -73,7 +73,7 @@ Vagrant.configure(2) do |config|
     #
 
     host_sig = Digest::SHA1.hexdigest("#{`hostname`}-c7pg")[0..8]
-    config.vm.define 'c7pg', autostart: false do |c7pg|
+    config.vm.define 'c7pg' do |c7pg|
         c7pg.vm.box = 'maier/centos-7.2.1511-x86_64'
         c7pg.vm.hostname = "c7pg-#{host_sig}"
         c7pg.vm.network 'private_network', ip: c7_node_ip
