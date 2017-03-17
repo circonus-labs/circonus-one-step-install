@@ -35,7 +35,6 @@
                 "name": "Graph",
                 "origin": "a0",
                 "settings": {
-                    "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
                     "hide_xaxis": false,
@@ -60,7 +59,6 @@
                 "name": "Graph",
                 "origin": "c0",
                 "settings": {
-                    "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
                     "hide_xaxis": false,
@@ -85,7 +83,6 @@
                 "name": "Graph",
                 "origin": "e0",
                 "settings": {
-                    "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
                     "hide_xaxis": false,
@@ -110,7 +107,6 @@
                 "name": "Graph",
                 "origin": "a2",
                 "settings": {
-                    "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
                     "hide_xaxis": false,
@@ -135,7 +131,6 @@
                 "name": "Graph",
                 "origin": "e1",
                 "settings": {
-                    "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
                     "hide_xaxis": false,
@@ -160,7 +155,6 @@
                 "name": "Gauge",
                 "origin": "d1",
                 "settings": {
-                    "account_id": null,
                     "check_uuid": null,
                     "disable_autoformat": false,
                     "formula": "=ceil(VAL)",
@@ -195,7 +189,6 @@
                 "name": "Gauge",
                 "origin": "c1",
                 "settings": {
-                    "account_id": null,
                     "check_uuid": null,
                     "disable_autoformat": true,
                     "formula": "",
@@ -230,7 +223,6 @@
                 "name": "Graph",
                 "origin": "c2",
                 "settings": {
-                    "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
                     "hide_xaxis": false,
@@ -255,7 +247,6 @@
                 "name": "Graph",
                 "origin": "e2",
                 "settings": {
-                    "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
                     "hide_xaxis": false,
@@ -280,7 +271,6 @@
                 "name": "Graph",
                 "origin": "a5",
                 "settings": {
-                    "account_id": null,
                     "date_window": "2w:2w",
                     "graph_id": null,
                     "hide_xaxis": false,
@@ -305,7 +295,6 @@
                 "name": "Graph",
                 "origin": "a1",
                 "settings": {
-                    "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
                     "hide_xaxis": false,
@@ -330,7 +319,6 @@
                 "name": "Graph",
                 "origin": "a3",
                 "settings": {
-                    "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
                     "hide_xaxis": false,
@@ -355,7 +343,6 @@
                 "name": "Graph",
                 "origin": "a6",
                 "settings": {
-                    "account_id": null,
                     "date_window": "2w",
                     "graph_id": null,
                     "hide_xaxis": false,
@@ -380,7 +367,6 @@
                 "name": "Graph",
                 "origin": "a4",
                 "settings": {
-                    "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
                     "hide_xaxis": false,
@@ -405,7 +391,6 @@
                 "name": "Graph",
                 "origin": "d4",
                 "settings": {
-                    "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
                     "hide_xaxis": false,

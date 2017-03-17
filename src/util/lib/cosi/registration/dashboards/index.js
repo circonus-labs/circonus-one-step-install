@@ -196,7 +196,7 @@ class Dashboards extends Registration {
         console.log(chalk.blue(this.marker));
         console.log(`Configuring dasbhoard`);
 
-        const templateMatch = template.file.match(/^template-dashboard-([^\-]+)-(.+)\.json$/);
+        const templateMatch = template.file.match(/^template-dashboard-([^-]+)-(.+)\.json$/);
 
         if (templateMatch === null) {
             this.emit('error', new Error(`Invalid template, no instance found. ${template.file}`));
@@ -271,7 +271,6 @@ class Dashboards extends Registration {
                 console.log(chalk.yellow('\tWARN'), 'No graph found for', widget.widget_id, 'with tag', widget.tags);
                 continue;
             }
-            widget.settings.account_id = this.regConfig.account.account_id;
             widget.settings.graph_id = this.graphs[graphIdx].id;
             widget.settings.label = this._expand(widget.settings.label, data);
             delete widget.tags; // tags property used to match graphs, remove before submission
@@ -302,7 +301,6 @@ class Dashboards extends Registration {
 
             if (foundMetric) {
                 widget.settings.metric_name = metric_name;
-                widget.settings.account_id = this.regConfig.account.account_id;
                 widget.settings.check_uuid = this.checkMeta.system.uuid;
             } else {
                 console.log(chalk.yellow('\tWARN'), 'No metric found for widget', widget.widget_id, 'matching', metric_name);
