@@ -85,9 +85,11 @@ Vagrant.configure(2) do |config|
         u16.vm.box = 'ubuntu/xenial64'
         u16.vm.hostname = "cosi-u16-#{host_sig}"
         u16.vm.network 'private_network', ip: '192.168.100.16'
-        u16.vm.provision 'fix-no-tty', type: 'shell' do |s|
-            s.privileged = false
-            s.inline = "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
+        u16.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
+        u16.vm.provider 'virtualbox' do |vb|
+            vb.name = "cosi-u16-#{host_sig}"
+            # disable creation of the boot console log in host's directory
+            vb.customize ['modifyvm', :id, '--uartmode1', 'disconnected']
         end
         u16.vm.provision 'shell', inline: <<-SHELL
             # add alias for cosi-site, so it will "resolve"
