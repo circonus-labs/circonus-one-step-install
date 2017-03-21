@@ -20,8 +20,6 @@ Demonstrate running COSI on various operating systems using several different ty
 > Note on **manual** provisioner:
 >
 > Simply spins up the VM and **does not** attempt to run COSI. The main purpose of this provisioner is to provide a set of pre-defined platforms for testing the cut-n-paste COSI command from the [API Tokens](https://login.circonus.com/user/tokens) page.
->
-> Since the resulting *system* will be a VM leveraging the host's network connection, adding the `--agent push` option to the COSI command line is **strongly encouraged**.
 
 ## Prerequisites
 
