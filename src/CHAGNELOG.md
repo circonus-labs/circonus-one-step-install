@@ -1,6 +1,10 @@
+### 0.12.2 2017-03-18
+
+* fix: API no longer requires account_id field for dashboard widgets. (cassandra)
+
 ### 0.12.1 2017-03-17
 
-* fix: API no longer requires account_id field for dashboard widgets.
+* fix: API no longer requires account_id field for dashboard widgets. (postgres)
 * fix: API async_metrics field for checks is string, 'true'.
 
 ### 0.12.0 2017-02-28
