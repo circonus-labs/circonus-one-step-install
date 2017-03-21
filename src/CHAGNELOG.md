@@ -1,3 +1,8 @@
+### 0.12.1 2017-03-17
+
+* fix: API no longer requires account_id field for dashboard widgets.
+* fix: API async_metrics field for checks is string, 'true'.
+
 ### 0.12.0 2017-02-28
 
 * add: `--broker-type` option (any|enterprise) default `any`.

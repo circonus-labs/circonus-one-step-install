@@ -347,7 +347,7 @@ class Checks extends Registration {
                 this.regConfig.broker.trap._cid // .replace('/broker/', '')
             ];
             check.config = {
-                asynch_metrics: "true",
+                asynch_metrics: 'true',
                 secret: crypto.randomBytes(2048).toString('hex').substr(0, 16)
             };
         } else {
