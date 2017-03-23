@@ -38,9 +38,6 @@ Options
                   push = Install NAD, metrics will be sent to broker at an interval
                   Note: If NAD is already installed, installation will be skipped
 
-  [--statsd]      Enable install of the StatsD server.
-  [--statsdport]  StatsD port [8125].
-
   [--regconf]     Configuration file with custom options to use during registration.
 
   [--target]      Host IP/hostname to use as check target.
@@ -131,17 +128,6 @@ __parse_parameters() {
                 fi
             else
                 fail "--agent must be followed by an agent mode (reverse|revonly|pull|push)."
-            fi
-            ;;
-        (--statsd)
-            cosi_statsd_flag=1
-            ;;
-        (--statsdport)
-            if [[ -n "${1:-}" ]]; then
-                cosi_statsd_port="$1"
-                shift
-            else
-                fail "--statsdport must be followed by a port number."
             fi
             ;;
         (--regconf)
@@ -630,8 +616,6 @@ __save_cosi_register_config() {
     "cosi_url": "${cosi_url}",
     "agent_mode": "${cosi_agent_mode}",
     "agent_url": "${agent_url}",
-    "statsd": ${cosi_statsd_flag},
-    "statsd_port": ${cosi_statsd_port},
     "custom_options_file": "${cosi_regopts_conf}",
     "cosi_host_target": "${cosi_host_target}",
     "cosi_broker_id": "${cosi_broker_id}",
@@ -793,8 +777,6 @@ cosi_initialize() {
     : ${cosi_api_key:=}
     : ${cosi_api_app:=cosi}
     : ${cosi_agent_mode:=reverse}
-    : ${cosi_statsd_flag:=0}
-    : ${cosi_statsd_port:=8125}
     : ${cosi_install_agent:=1}
     : ${package_install_cmd:=}
     : ${package_install_args:=--install}
@@ -810,8 +792,6 @@ cosi_initialize() {
     cosi_broker_id \
     cosi_broker_type \
     cosi_install_agent \
-    cosi_statsd_flag \
-    cosi_statsd_port \
     cosi_register_flag \
     cosi_register_config \
     cosi_quiet_flag \
@@ -897,11 +877,6 @@ cosi_initialize() {
         [[ $? -eq 0 ]] || fail "Unable to create bin_dir '${bin_dir}'."
     }
 
-    if [[ ${cosi_statsd_flag:-0} -eq 1 && -f "${etc_dir}/statsd.disabled" ]]; then
-        set +e
-        rm "${etc_dir}/statsd.disabled"
-        set -e
-    fi
 }
 
 
@@ -939,7 +914,6 @@ cosi_register() {
     local cosi_register_opt=""
     local install_nadpush="${cosi_dir}/bin/install_nadpush.sh"
     local install_nadreverse="${cosi_dir}/bin/install_nadreverse.sh"
-    local install_statsd="${cosi_dir}/bin/install_statsd.sh"
 
     echo
     __fetch_cosi_utils
@@ -978,20 +952,6 @@ cosi_register() {
             [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "Errors encountered during NAD ${cosi_agent_mode} configuration."
         else
             fail "Agent mode is ${cosi_agent_mode}, nadreverse installer not found."
-        fi
-    fi
-
-    if [[ ${cosi_statsd_flag:-0} -eq 1 ]]; then
-        if [[ ! -f "${etc_dir}/stastd.disabled" ]]; then
-            echo
-            echo
-            log "Installing Circonus StatsD"
-            if [[ -x "$install_statsd" ]]; then
-                $install_statsd | tee -a $cosi_install_log
-                [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "Errors encountered during Circonus StatsD installation."
-            else
-                fail "StatsD flag set but, installer not found."
-            fi
         fi
     fi
 
