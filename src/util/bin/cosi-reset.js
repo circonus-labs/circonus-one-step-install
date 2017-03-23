@@ -20,6 +20,7 @@
 const path = require('path');
 const fs = require('fs');
 const Events = require('events').EventEmitter;
+const child = require('child_process');
 
 const app = require('commander');
 const chalk = require('chalk');
@@ -173,33 +174,59 @@ function findItems(dir, itemType, itemId) {
     return entries;
 }
 
-function removeConfigs() {
-    const configFiles = [
-        path.resolve(path.join(cosi.etc_dir, 'cosi.json')),
-        path.resolve(path.join(cosi.etc_dir, 'circonus-nadreversesh')),
-        path.resolve(path.join(cosi.etc_dir, 'statsd.json')),
-        path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'circonus-nadpush.json')),
-        path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'pg-conf.sh')),
-        path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'pg-po-conf.sh')),
-        path.resolve(path.join(cosi.reg_dir, 'setup-config.json')),
-        path.resolve(path.join(cosi.reg_dir, 'setup-metrics.json'))
-    ];
-
+function removeConfigs(cb) {
     console.log('Removing COSI configuration files');
+    console.log(`\tre-installing default NAD config`);
+    child.exec(path.resolve(path.join(cosi.cosi_dir, 'bin', 'uninstall_nadreverse.sh')), (err, stdout, stderr) => {
+        if (err === null) {
+            if (stdout) {
+                const lines = stdout.split('\n');
 
-    for (let i = 0; i < configFiles.length; i++) {
-        const file = configFiles[i];
+                for (const line of lines) {
+                    if (line !== '') {
+                        console.log(`\t\t${line}`);
+                    }
+                }
+            }
+        } else {
+            console.error(chalk('red'), 'ERROR');
+            if (stdout) {
+                console.error(stdout);
+            }
+            if (stderr) {
+                console.error(stderr);
+            }
+            console.error(err);
+        }
 
-        try {
-            console.log(`\tremoving ${file}`);
-            fs.unlinkSync(file);
-        } catch (err) {
-            // ignore any files which are missing (some are --agent type dependent)
-            if (err.code !== 'ENOENT') {
-                console.error(chalk('red'), err);
+        const configFiles = [
+            path.resolve(path.join(cosi.etc_dir, 'cosi.json')),
+            path.resolve(path.join(cosi.etc_dir, 'circonus-nadreversesh')),
+            path.resolve(path.join(cosi.etc_dir, 'statsd.json')),
+            path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'circonus-nadpush.json')),
+            path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'pg-conf.sh')),
+            path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'pg-po-conf.sh')),
+            path.resolve(path.join(cosi.reg_dir, 'setup-config.json')),
+            path.resolve(path.join(cosi.reg_dir, 'setup-metrics.json'))
+        ];
+
+        for (let i = 0; i < configFiles.length; i++) {
+            const file = configFiles[i];
+
+            try {
+                console.log(`\tremoving ${file}`);
+                fs.unlinkSync(file);
+            } catch (unlinkErr) {
+                // ignore any files which are missing (some are --agent type specific)
+                if (unlinkErr.code !== 'ENOENT') {
+                    console.error(chalk('red'), unlinkErr);
+                }
             }
         }
-    }
+
+        cb();
+        return;
+    });
 }
 
 app.
@@ -298,9 +325,12 @@ if (items.length > 0) {
 
     events.on('done', () => {
         if (app.configs) {
-            removeConfigs();
+            removeConfigs(() => {
+                console.log('reset complete');
+            });
+        } else {
+            console.log('reset complete');
         }
-        console.log('reset complete');
     });
 
     events.emit('next');

@@ -64,15 +64,29 @@ if [[ $nadrev_enable -eq 1 ]]; then
 fi
 
 if [[ -f /etc/sysconfig/nad ]]; then
+    nad_conf="/etc/sysconfig/nad"
     # Linux (RHEL)
     service nad stop
-    echo "NAD_OPTS=\"${nadrev_opts}\"" > /etc/sysconfig/nad
+    orig_conf_backup="${cosi_dir}/cache/nad.conf.sysconfig.orig"
+    [[ ! -f  $orig_conf_backup ]] && {
+        cp $nad_conf $orig_conf_backup
+        pass "saved copy of default NAD config $orig_conf_backup"
+    }
+    echo "NAD_OPTS=\"${nadrev_opts}\"" > $nad_conf
+    pass "installed reverse config, restarting NAD"
     service nad start
     sleep 2
 elif [[ -f /etc/default/nad ]]; then
+    nad_conf="/etc/default/nad"
     # Linux (Ubuntu)
     service nad stop
-    echo "NAD_OPTS=\"${nadrev_opts}\"" > /etc/default/nad
+    orig_conf_backup="${cosi_dir}/cache/nad.conf.default.orig"
+    [[ ! -f  $orig_conf_backup ]] && {
+        cp $nad_conf $orig_conf_backup
+        pass "saved copy of default NAD config $orig_conf_backup"
+    }
+    echo "NAD_OPTS=\"${nadrev_opts}\"" > $nad_conf
+    pass "installed reverse config, restarting NAD"
     service nad start
     sleep 2
 elif [[ -d /var/svc/manifest && -x /usr/sbin/svcadm ]]; then
@@ -80,7 +94,13 @@ elif [[ -d /var/svc/manifest && -x /usr/sbin/svcadm ]]; then
     nad_method_script="/var/svc/method/circonus-nad"
     if [[ -f $nad_method_script ]]; then
         /usr/sbin/svcadm -v disable circonus/nad
+        orig_conf_backup="${cosi_dir}/cache/nad.method.orig"
+        [[ ! -f  $orig_conf_backup ]] && {
+            cp $nad_method_script $orig_conf_backup
+            pass "saved copy of default NAD config $orig_conf_backup"
+        }
         cp "${cosi_dir}/service/circonus-nad-reverse.method" $nad_method_script
+        pass "installed reverse config, restarting NAD"
         /usr/sbin/svcadm -v enable circonus/nad
         sleep 2
     else
