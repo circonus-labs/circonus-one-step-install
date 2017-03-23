@@ -1,3 +1,9 @@
+### 0.12.3 2017-03-23
+
+* add: save default nad config when setting up reverse
+* add: stop nad and re-install default nad config when `--configs` used with `cosi reset`
+* upd: remove statsd
+
 ### 0.12.2 2017-03-18
 
 * fix: API no longer requires account_id field for dashboard widgets. (cassandra)
