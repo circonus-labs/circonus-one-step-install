@@ -30,7 +30,6 @@
                 "width": 3,
                 "tags" : ["cassandra:cluster_key_cache"],
                 "settings": {
-                    "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
                     "_graph_title": "cluster key cache entries",
@@ -56,7 +55,6 @@
                 "width": 3,
                 "tags" : ["cassandra:cluster_key_cache_hit_pct"],
                 "settings": {
-                    "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
                     "_graph_title": "cluster key cache hit %",
@@ -82,7 +80,6 @@
                 "width": 3,
                 "tags" : ["cassandra:cluster_chunk_cache"],
                 "settings": {
-                    "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
                     "_graph_title": "cluster chunk cache entries",
@@ -108,7 +105,6 @@
                 "width": 3,
                 "tags" : ["cassandra:cluster_chunk_cache_hit_pct"],
                 "settings": {
-                    "account_id": null,
                     "date_window": "2h",
                     "graph_id": null,
                     "_graph_title": "cluster chunk cache hit %",

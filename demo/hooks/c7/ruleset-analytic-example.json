@@ -1,0 +1,26 @@
+{
+    "check": null,
+    "contact_groups": {
+        "1": [],
+        "2": [],
+        "3": [],
+        "4": [],
+        "5": []
+    },
+    "derive": "average",
+    "link": null,
+    "metric_name": "cpu`idle",
+    "metric_type": "numeric",
+    "notes": "example of an analytic ruleset",
+    "parent": null,
+    "rules": [
+        {
+            "windowing_duration": 60,
+            "windowing_function": "average",
+            "value": "5000",
+            "wait": 0,
+            "criteria": "min value",
+            "severity": 1
+        }
+    ]
+}

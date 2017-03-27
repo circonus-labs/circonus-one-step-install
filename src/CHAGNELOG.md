@@ -1,6 +1,20 @@
+### 0.12.4 2017-03-27
+
+* fix: `transform*` ruleset attributes no longer supported/required.
+
+### 0.12.3 2017-03-23
+
+* add: save default nad config when setting up reverse
+* add: stop nad and re-install default nad config when `--configs` used with `cosi reset`
+* upd: remove statsd
+
+### 0.12.2 2017-03-18
+
+* fix: API no longer requires account_id field for dashboard widgets. (cassandra)
+
 ### 0.12.1 2017-03-17
 
-* fix: API no longer requires account_id field for dashboard widgets.
+* fix: API no longer requires account_id field for dashboard widgets. (postgres)
 * fix: API async_metrics field for checks is string, 'true'.
 
 ### 0.12.0 2017-02-28

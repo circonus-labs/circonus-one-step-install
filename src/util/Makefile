@@ -5,7 +5,6 @@ BIN_SRC	:= $(shell git ls-files bin/*.{js,sh})
 LIB_SRC	:= $(shell git ls-files lib)
 
 UTILS	:= cosi-util.tar.gz
-STATSD	:= cosi-statsd.tar.gz
 
 # 'yes' = using node v4+, supports ES6 syntax/constructs
 # 'no' = old node, transpile down/back to ES5
@@ -29,7 +28,7 @@ else
 endif
 	install -m 0700 bin/install_nadpush.sh build/bin/.
 	install -m 0700 bin/install_nadreverse.sh build/bin/.
-	install -m 0700 bin/install_statsd.sh build/bin/.
+	install -m 0700 bin/uninstall_nadreverse.sh build/bin/.
 	echo '#!/usr/bin/env sh' > build/bin/circonus-nadpush && \
 	echo '":" //; exec %%NODE_BIN%% --expose-gc --max-old-space-size=32 --max-executable-size=64 "$$0" "$$@"' >> build/bin/circonus-nadpush && \
 	tail -n +3 build/bin/circonus-nadpush.js >> build/bin/circonus-nadpush && \
@@ -55,7 +54,6 @@ endif
 	# copy test data, if it exists
 	if [ -d etc ]; then cp -r etc build/. ; fi
 	if [ -d registration ]; then cp -r registration build/.; fi
-	cp cosi-statsd.tar.gz build/.
 	COPYFILE_DISABLE=true tar -czf $@ -C build bin lib node_modules service rulesets package.json README.md LICENSE $(STATSD)
 
 .PHONY: check
@@ -76,18 +74,6 @@ clean:
 
 package: $(UTILS)
 
-$(STATSD):
-	[ -d tmp ] || mkdir tmp
-	cd tmp; \
-	curl -sSL -O "https://github.com/etsy/statsd/archive/master.tar.gz"; \
-	tar -xzf master.tar.gz; \
-	mv statsd-master statsd; \
-	curl -sSL "https://raw.githubusercontent.com/maier/circonus-statsd-http/master/circonus.js" -o statsd/backends/circonus.js; \
-	cd statsd && npm install --no-optional --production && cd ..; \
-	COPYFILE_DISABLE=true tar -czf ../$@ statsd
-	rm -rf tmp
-
-
 ##
 ### the following are for use in development
 ##
@@ -102,8 +88,6 @@ define COSI_JSON
     "cosi_url": "https://onestep.circonus.com/",
     "agent_mode": "reverse",
     "agent_url": "http://127.0.0.1:2609/",
-    "statsd": 1,
-    "statsd_port": 8125,
     "custom_options_file": "",
     "cosi_host_target": "",
     "cosi_broker_id": "",
@@ -132,10 +116,6 @@ dev-install:
 ifeq (,$(wildcard /opt/circonus/cosi/etc/.cosi_id))
 	@# generate a cosi id if one does not exist
 	cat /proc/sys/kernel/random/uuid > /opt/circonus/cosi/etc/.cosi_id
-endif
-ifeq (,$(wildcard /opt/circonus/cosi/statsd))
-	@# install an up-to-date (from github) statsd
-	cd /opt/circonus/cosi && git clone https://github.com/etsy/statsd.git && cd statsd && /opt/node/bin/npm install --no-optional --production
 endif
 ifeq (,$(wildcard /opt/circonus/cosi/etc/cosi.json))
 	@# create a stub cosi config if one does not exist
