@@ -1,3 +1,7 @@
+### 0.12.4 2017-03-27
+
+* fix: `transform*` ruleset attributes no longer supported/required.
+
 ### 0.12.3 2017-03-23
 
 * add: save default nad config when setting up reverse
