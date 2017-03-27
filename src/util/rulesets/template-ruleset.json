@@ -17,9 +17,6 @@
         {
             "criteria": "",
             "severity": 1,
-            "transform": null,
-            "transform_options": {},
-            "transform_selection": null,
             "value": "",
             "wait": 0,
             "windowing_duration": null,

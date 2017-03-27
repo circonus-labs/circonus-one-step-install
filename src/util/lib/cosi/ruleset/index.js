@@ -1,17 +1,17 @@
-"use strict";
+'use strict';
 
-/*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers, global-require */
+/* eslint-env node, es6 */
+/* eslint-disable no-magic-numbers, global-require */
 
-const assert = require("assert");
-const path = require("path");
-const fs = require("fs");
-const util = require("util");
+const assert = require('assert');
+const path = require('path');
+const fs = require('fs');
+const util = require('util');
 
-const chalk = require("chalk");
+const chalk = require('chalk');
 
-const cosi = require(path.resolve(path.join(__dirname, "..")));
-const api = require(path.resolve(cosi.lib_dir, "api"));
+const cosi = require(path.resolve(path.join(__dirname, '..')));
+const api = require(path.resolve(cosi.lib_dir, 'api'));
 
 /*
 cosi_dir/rulesets/*.json (/opt/circonus/cosi/rulesets/*.json)
@@ -37,10 +37,10 @@ for more information on ruleset configurations, see:
 
 module.exports = class RuleSet {
     constructor(configFile) {
-        assert.strictEqual(typeof configFile, "string", "configFile is required");
+        assert.strictEqual(typeof configFile, 'string', 'configFile is required');
 
         if (!configFile) {
-            throw new Error("Missing Argument: configFile");
+            throw new Error('Missing Argument: configFile');
         }
 
         const cfgFile = path.resolve(configFile);
@@ -49,13 +49,11 @@ module.exports = class RuleSet {
             const cfg = require(cfgFile);
 
             this._init(cfg);
-        }
-        catch (err) {
-            if (err.code === "MODULE_NOT_FOUND") {
-                console.error(chalk.red("ERROR - ruleset configuration file not found:"), cfgFile);
-                process.exit(1); //eslint-disable-line no-process-exit
-            }
-            else {
+        } catch (err) {
+            if (err.code === 'MODULE_NOT_FOUND') {
+                console.error(chalk.red('ERROR - ruleset configuration file not found:'), cfgFile);
+                process.exit(1); // eslint-disable-line no-process-exit
+            } else {
                 throw err;
             }
         }
@@ -64,33 +62,31 @@ module.exports = class RuleSet {
     verifyConfig(existing) {
         // default existing to false, most restrictive verify
         // (ensures attributes which could alter an *existing* check are not present)
-        existing = typeof existing === "undefined" ? false : existing; //eslint-disable-line no-param-reassign
+        existing = typeof existing === 'undefined' ? false : existing; // eslint-disable-line no-param-reassign
 
         const requiredAttributes = [
-            "check",            // string, /^\/check\/[0-9]+$/
-            "contact_groups",   // array ["1": [strings], "2": [strings], ... "5": [strings]]
-            "derive",           // string or null
-            "link",             // url
-            "metric_name",      // string
-            "metric_type",      // string ^(numeric|text)$
-            "notes",            // string
-            "parent",           // string /^[0-9]+\_[a-z0-9]+$/
-            "rules"             // array of object
+            'check',            // string, /^\/check\/[0-9]+$/
+            'contact_groups',   // array ["1": [strings], "2": [strings], ... "5": [strings]]
+            'derive',           // string or null
+            'link',             // url
+            'metric_name',      // string
+            'metric_type',      // string ^(numeric|text)$
+            'notes',            // string
+            'parent',           // string /^[0-9]+\_[a-z0-9]+$/
+            'rules'             // array of object
         ];
 
         const requiredRuleAttributes = [
-            "criteria",             // string
-            "severity",             // number
-            "value",                // string
-            "wait",                 // number
-            "transform",            // object, or null
-            "transform_selection",  // string, output from transform or null
-            "windowing_duration",   // string, type or null
-            "windowing_function"    // string, type or null
+            'criteria',             // string
+            'severity',             // number
+            'value',                // string
+            'wait',                 // number
+            'windowing_duration',   // string, type or null
+            'windowing_function'    // string, type or null
         ];
 
         const requiredExistingAttributes = [
-            "_cid"
+            '_cid'
         ];
 
         let errors = 0;
@@ -98,13 +94,13 @@ module.exports = class RuleSet {
         for (let i = 0; i < requiredExistingAttributes.length; i++) {
             const attr = requiredExistingAttributes[i];
 
-            if (existing && !this.hasOwnProperty(attr)) {
-                console.error(chalk.red("Missing attribute"), attr, "required for", chalk.bold("existing"), "rule");
+            if (existing && !this.hasOwnProperty(attr)) { // eslint-disable-line no-prototype-builtins
+                console.error(chalk.red('Missing attribute'), attr, 'required for', chalk.bold('existing'), 'rule');
                 errors += 1;
             }
 
-            if (!existing && this.hasOwnProperty(attr)) {
-                console.error(chalk.red("Invalid attribute"), attr, "for", chalk.bold("new"), "rule");
+            if (!existing && this.hasOwnProperty(attr)) { // eslint-disable-line no-prototype-builtins
+                console.error(chalk.red('Invalid attribute'), attr, 'for', chalk.bold('new'), 'rule');
                 errors += 1;
             }
         }
@@ -112,8 +108,8 @@ module.exports = class RuleSet {
         for (let i = 0; i < requiredAttributes.length; i++) {
             const attr = requiredAttributes[i];
 
-            if (!this.hasOwnProperty(attr)) {
-                console.error(chalk.red("Missing attribute"), attr);
+            if (!this.hasOwnProperty(attr)) { // eslint-disable-line no-prototype-builtins
+                console.error(chalk.red('Missing attribute'), attr);
                 errors += 1;
             }
         }
@@ -124,8 +120,8 @@ module.exports = class RuleSet {
             for (let i = 0; i < requiredRuleAttributes.length; i++) {
                 const attr = requiredRuleAttributes[i];
 
-                if (!rule.hasOwnProperty(attr)) {
-                    console.error(chalk.red("Missing attribute"), `rule #${ruleIdx} requires '${attr}'`);
+                if (!{}.hasOwnProperty.call(rule, attr)) {
+                    console.error(chalk.red('Missing attribute'), `rule #${ruleIdx} requires '${attr}'`);
                     errors += 1;
                 }
             }
@@ -135,21 +131,21 @@ module.exports = class RuleSet {
 
     }
 
-    create(cb) { //eslint-disable-line consistent-return
-        assert.strictEqual(typeof cb, "function", "cb must be a callback function");
+    create(cb) { // eslint-disable-line consistent-return
+        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
         if (!this.verifyConfig(false)) {
-            return cb(new Error("Invalid configuration"));
+            return cb(new Error('Invalid configuration'));
         }
 
         const self = this;
 
         api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
-        api.post("/rule_set", this, (code, errAPI, result) => {
+        api.post('/rule_set', this, (code, errAPI, result) => {
             if (errAPI) {
                 const apiError = new Error();
 
-                apiError.code = "CIRCONUS_API_ERROR";
+                apiError.code = 'CIRCONUS_API_ERROR';
                 apiError.message = errAPI;
                 apiError.details = result;
                 return cb(apiError);
@@ -159,7 +155,7 @@ module.exports = class RuleSet {
                 const errResp = new Error();
 
                 errResp.code = code;
-                errResp.message = "UNEXPECTED_API_RETURN";
+                errResp.message = 'UNEXPECTED_API_RETURN';
                 errResp.details = result;
                 return cb(errResp);
 
@@ -172,11 +168,11 @@ module.exports = class RuleSet {
     }
 
 
-    update(cb) { //eslint-disable-line consistent-return
-        assert.strictEqual(typeof cb, "function", "cb must be a callback function");
+    update(cb) { // eslint-disable-line consistent-return
+        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
         if (!this.verifyConfig(true)) {
-            return cb(new Error("Invalid configuration"));
+            return cb(new Error('Invalid configuration'));
         }
 
         const self = this;
@@ -191,7 +187,7 @@ module.exports = class RuleSet {
                 const errResp = new Error();
 
                 errResp.code = code;
-                errResp.message = "UNEXPECTED_API_RETURN";
+                errResp.message = 'UNEXPECTED_API_RETURN';
                 errResp.details = result;
                 return cb(errResp);
 
@@ -203,11 +199,11 @@ module.exports = class RuleSet {
         });
     }
 
-    delete(cb) { //eslint-disable-line consistent-return
-        assert.strictEqual(typeof cb, "function", "cb must be a callback function");
+    delete(cb) { // eslint-disable-line consistent-return
+        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
         if (!this.verifyConfig(true)) {
-            return cb(new Error("Invalid configuration"));
+            return cb(new Error('Invalid configuration'));
         }
 
         api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
@@ -220,7 +216,7 @@ module.exports = class RuleSet {
                 const errResp = new Error();
 
                 errResp.code = code;
-                errResp.message = "UNEXPECTED_API_RETURN";
+                errResp.message = 'UNEXPECTED_API_RETURN';
                 if (result !== null) {
                     errResp.details = result;
                 }
@@ -232,22 +228,21 @@ module.exports = class RuleSet {
     }
 
     save(fileName, force) {
-        assert.strictEqual(typeof fileName, "string", "fileName is required");
-        force = force || false;  //eslint-disable-line no-param-reassign
+        assert.strictEqual(typeof fileName, 'string', 'fileName is required');
+        force = force || false;  // eslint-disable-line no-param-reassign
 
         const options = {
-            encoding: "utf8",
+            encoding: 'utf8',
             mode: 0o640,
-            flag: force ? "w" : "wx"
+            flag: force ? 'w' : 'wx'
         };
 
         try {
             fs.writeFileSync(fileName, JSON.stringify(this, null, 4), options);
-        }
-        catch (err) {
-            if (err.code === "EEXIST") {
+        } catch (err) {
+            if (err.code === 'EEXIST') {
                 console.error(chalk.red(`Rule set already exists, use --force to overwrite. '${fileName}'`));
-                process.exit(1); //eslint-disable-line no-process-exit
+                process.exit(1); // eslint-disable-line no-process-exit
             }
             throw err;
         }
@@ -261,14 +256,13 @@ module.exports = class RuleSet {
         try {
             const check = require(regFile);
 
-            if (check.hasOwnProperty("_checks")) {
+            if ({}.hasOwnProperty.call(check, '_checks')) {
                 if (util.isArray(check._checks) && check._checks.length > 0) {
                     return check._checks[0];
                 }
             }
-        }
-        catch (err) {
-            console.error(chalk.yellow("WARN"), "unable to find check ID", checkId, "for ruleset.");
+        } catch (err) {
+            console.error(chalk.yellow('WARN'), 'unable to find check ID', checkId, 'for ruleset.');
         }
 
         return null;
@@ -278,20 +272,20 @@ module.exports = class RuleSet {
     _init(config) {
         const keys = Object.keys(config);
 
-        if (config.hasOwnProperty("check")) {
+        if ({}.hasOwnProperty.call(config, 'check')) {
             if (config.check === null) {
-                config.check = "check-system"; //eslint-disable-line no-param-reassign
+                config.check = 'check-system'; // eslint-disable-line no-param-reassign
             }
 
-            if (config.check.match(/^check\-[a-z]+$/)) {
-                config.check = this._getCheckId(config.check); //eslint-disable-line no-param-reassign
+            if ((/^check-[a-z]+$/).test(config.check)) {
+                config.check = this._getCheckId(config.check); // eslint-disable-line no-param-reassign
             }
         }
 
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
 
-            if (config.hasOwnProperty(key)) {
+            if ({}.hasOwnProperty.call(config, key)) {
                 this[key] = config[key];
             }
         }
