@@ -542,11 +542,19 @@ class Checks extends Registration {
 
         const template = new Template(templateFile);
         const check = template.check;
+        const hash = crypto.createHash('sha256');
+
+        check.display_name = `{{=cosi.host_name}} cosi/statsd:${this.regConfig.statsd.group_id}`;
+        check.target = `statsd_group:${this.regConfig.statsd.group_id}`;
+
+        // we want a consistent check definition so that when other members of the group
+        // POST the check definition the *ONE* already created is returned.
+        hash.update(check.target);
 
         check.type = 'httptrap';
         check.config = {
             asynch_metrics: true,
-            secret: crypto.randomBytes(2048).toString('hex').substr(0, 16)
+            secret: hash.digest('hex').substr(0, 16)
         };
 
         // set the broker receiving for pulling metrics
@@ -558,19 +566,14 @@ class Checks extends Registration {
         if (!{}.hasOwnProperty.call(check, 'metrics') || !Array.isArray(check.metrics)) {
             check.metrics = [];
         }
-        if (check.metrics.length === 0) {
-            check.metrics.push({
-                name: 'statsd`num_stats',
-                type: 'numeric',
-                status: 'active'
-            });
-        }
 
         // set the notes with cosi signature
         check.notes = this.regConfig.cosiNotes;
 
         this._setTags(check, id);
         this._setCustomCheckOptions(check, id);
+
+        check.tags.push(`@statsd_group:${this.regConfig.statsd.group_id}`);
 
         // save the configuration
         try {

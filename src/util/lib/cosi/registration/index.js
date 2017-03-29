@@ -52,10 +52,15 @@ class Registration extends Events {
                 host_tags: cosi.custom_options.host_tags || []
             },
             statsd: {
-                enabled: cosi.statsd === 1,
-                port: cosi.statsd_port || 8125
+                enabled: false,
+                group_id: null
             }
         };
+
+        if (typeof cosi.statsd_group_id === 'string' && cosi.statsd_group_id.trim().length > 0) {
+            this.regConfig.statsd.enabled = true;
+            this.regConfig.statsd.group_id = cosi.statsd_group_id.trim();
+        }
 
         this.globalMeta = {};
         try {

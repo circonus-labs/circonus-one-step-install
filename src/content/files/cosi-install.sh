@@ -42,6 +42,8 @@ Options
 
   [--target]      Host IP/hostname to use as check target.
 
+  [--statsd-group] Unique identifier to use when creating/finding the StatsD group check. (e.g. 'webservers')
+
   [--broker]      Broker to use (numeric portion of broker CID e.g. cid=/broker/123, pass 123 as argument).
 
   [--broker-type] Type of broker to use, (any|enterprise) default: any
@@ -136,6 +138,14 @@ __parse_parameters() {
                 shift
             else
                 fail "--regconf must be followed by a filespec."
+            fi
+            ;;
+        (--statsd-group)
+            if [[ -n "${1:-}" ]]; then
+                statsd_group_id="$1"
+                shift
+            else
+                fail "--statsd-group must be followed by an ID string"
             fi
             ;;
         (--target)
@@ -624,7 +634,8 @@ __save_cosi_register_config() {
     "cosi_os_vers": "${cosi_os_vers}",
     "cosi_os_arch": "${cosi_os_arch}",
     "cosi_os_type": "${cosi_os_type}",
-    "cosi_os_dmi": "${cosi_os_dmi}"
+    "cosi_os_dmi": "${cosi_os_dmi}",
+    "statsd_group_id": "${statsd_group_id}"
 }
 EOF
     [[ $? -eq 0 ]] || fail "Unable to save COSI registration configuration '${cosi_register_config}'"
@@ -657,17 +668,6 @@ __fetch_cosi_utils() {
     log "Unpacking COSI utilities into $(pwd)"
     tar -oxzf "$cosi_utils_file"
     [[ $? -eq 0 ]] || fail "Unable to unpack COSI utiltities"
-
-    # log "Installing required node modules for COSI utilities"
-    # [[ -d node_modules ]] || {
-    #     mkdir node_modules
-    #     [[ $? -eq 0 ]] || fail "Unable to create node_modules directory in COSI utiltities"
-    # }
-    # for f in .modules/*.tgz; do tar -xzf "$f" -C node_modules/; done
-    # [[ $? -eq 0 ]] || fail "Issue(s) unpacking node modules for COSI utiltities"
-    #
-    # log "Cleaning up after node module installation"
-    # rm -rf .modules
 
     log "Verifying node version..." # oh FFS!
     node_bin=""     # omnibus packages              omnios packages
@@ -760,6 +760,7 @@ cosi_initialize() {
     cosi_os_vers=""
     cosi_os_dmi=""
     cosi_id=""
+    statsd_group_id=""
 
     #
     # set defaults (if config file not used or options left unset)
@@ -797,6 +798,7 @@ cosi_initialize() {
     cosi_quiet_flag \
     package_install_cmd \
     package_install_args \
+    statsd_group_id
     "
 
     #
