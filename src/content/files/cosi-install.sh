@@ -594,10 +594,19 @@ __start_agent() {
     log "Starting agent (if not already running)"
 
     if [[ ${agent_state:-0} -eq 1 ]]; then
-        if [[ ! -x "/etc/init.d/nad" ]]; then
-            fail "Agent init script /etc/init.d/nad not found!"
+        if [[ -f /lib/systemd/system/nad.service ]]; then
+            systemctl start nad
+        elif [[ -f /etc/init/nad.conf ]]; then
+            initctl start nad
+        elif [[ -x /etc/init.d/nad ]]; then
+            /etc/init.d/nad start
+        elif [[ -f /var/svc/manifest/network/circonus/nad.xml ]]; then
+            svcadm enable nad
+        else
+            fail "Agent installed, unable to determine how to start it."
         fi
-        /etc/init.d/nad start
+        # give nad time to start on slow systems...
+        sleep 5
     fi
 
     set +e
