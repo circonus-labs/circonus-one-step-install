@@ -42,7 +42,7 @@ Options
 
   [--target]      Host IP/hostname to use as check target.
 
-  [--statsd-group] Unique identifier to use when creating/finding the StatsD group check. (e.g. 'webservers')
+  [--group-name]  Unique identifier to use when creating/finding the group check. (e.g. 'webservers')
 
   [--broker]      Broker to use (numeric portion of broker CID e.g. cid=/broker/123, pass 123 as argument).
 
@@ -140,12 +140,12 @@ __parse_parameters() {
                 fail "--regconf must be followed by a filespec."
             fi
             ;;
-        (--statsd-group)
+        (--group-name)
             if [[ -n "${1:-}" ]]; then
                 statsd_group_id="$1"
                 shift
             else
-                fail "--statsd-group must be followed by an ID string"
+                fail "--group-name must be followed by an ID string"
             fi
             ;;
         (--target)
