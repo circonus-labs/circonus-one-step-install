@@ -145,9 +145,17 @@ function findItems(dir, itemType, itemId) {
 
     const entries = [];
 
-    // for (const file of files) {
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+    for (const file of files) {
+
+        if (itemType === 'check' && typeof itemId === 'undefined') {
+            // don't remove the group check unless it is explicitly
+            // specified on the command line. (--check=group).
+            // there is no way to know how many other systems
+            // still be depend on the check.
+            if (file.includes('-group')) {
+                continue;
+            }
+        }
 
         if (file.match(re)) {
             const regFile = path.resolve(path.join(dir, file));
@@ -275,8 +283,7 @@ if (app.all || app.ruleset) {
         console.error(chalk.yellow('WARN'), 'reading ruleset directory', err);
     }
 
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+    for (const file of files) {
         const cfgFile = null;
         const templateFile = null;
         let regFile = null;
