@@ -80,14 +80,11 @@ class COSI {
         }
 
         // additional settings (previous installs may not have these settings on a cosi re-run)
-        instance.statsd = cfg.statsd || 0;
-        instance.statsd_port = cfg.statsd_port || 8125;
-
         const optionalSettings = [
             'cosi_host_target',
             'cosi_broker_id',
             'cosi_broker_type',
-            'statsd_group_id'
+            'cosi_group_id'
         ];
 
         for (let i = 0; i < optionalSettings.length; i++) {
