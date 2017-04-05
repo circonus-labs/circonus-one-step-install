@@ -49,7 +49,8 @@ class Registration extends Events {
                 host_name: cosi.custom_options.host_name || os.hostname(),
                 host_target: null,
                 host_vars: cosi.custom_options.host_vars || {},
-                host_tags: cosi.custom_options.host_tags || []
+                host_tags: cosi.custom_options.host_tags || [],
+                host_group_id: null
             },
             group: {
                 enabled: false,
@@ -60,6 +61,7 @@ class Registration extends Events {
         if (typeof cosi.cosi_group_id === 'string' && cosi.cosi_group_id.trim().length > 0) {
             this.regConfig.group.enabled = true;
             this.regConfig.group.id = cosi.cosi_group_id.trim();
+            this.regConfig.templateData.host_vars.group_id = this.regConfig.group.id;
         }
 
         this.globalMeta = {};
