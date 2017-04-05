@@ -46,22 +46,26 @@ if [[ $nadrev_enable -ne 1 ]]; then
 fi
 
 install_conf=0
-NAD_OPTS=""
 nad_conf="${nad_dir}/etc/nad.conf"
 log "Checking for NAD config"
-if [[ -f $nad_conf ]]; then
-    pass "Found ${nad_conf}"
-    log "Loading NAD conf"
-    source $nad_conf
+if [[ ! -f $nad_conf ]]; then
+    fail "NAD conf not found ${nad_conf}"
 fi
 
-if [[ ! $NAD_OPTS =~ /-p/ ]]; then
-    NAD_OPTS+=" -p ${nadrev_listen_address}"
+if [[ $(grep -c "^NAD_OPTS" $nad_conf) -ne 0 ]]; then
+	sed -e 's#^NAD_OPTS#OLD_NAD_OPTS#' $nad_conf > $nad_conf.new
     install_conf=1
 fi
 
-if [[ ! $NAD_OPTS =~ /-r/ ]]; then
-    NAD_OPTS+=" --reverse"
+if [[ $(grep -c "^NAD_LISTEN" $nad_conf) -eq 0 ]]; then
+	[[ -f $nad_conf.new ]] || { cp $nad_conf $nad_conf.new; echo -e "\n\n# ADDED BY COSI\n\n" >> $nad_conf.new; }
+	echo 'NAD_LISTEN="127.0.0.1:2609"' >> $nad_conf.new
+    install_conf=1
+fi
+
+if [[ $(grep -c "^NAD_REVERSE" $nad_conf) -eq 0 ]]; then
+    [[ -f $nad_conf.new ]] || { cp $nad_conf $nad_conf.new; echo -e "\n\n# ADDED BY COSI\n\n" >> $nad_conf.new; }
+	echo 'NAD_REVERSE="yes"' >> $nad_conf.new
     install_conf=1
 fi
 
@@ -78,7 +82,13 @@ orig_conf_backup="${cosi_dir}/cache/nad.conf.orig"
     pass "saved copy of default NAD conf as ${orig_conf_backup}"
 }
 
-echo "NAD_OPTS=\"${NAD_OPTS}\"" > $nad_conf
+if [[ ! -f $nad_conf.new ]]; then
+    fail "Updated NAD conf ${nad_conf}.new not found"
+fi
+
+mv -f $nad_conf.new $nad_conf
+[[ $? -eq 0 ]] || fail "Unable to update ${nad_conf} with ${nad_conf}.new"
+
 pass "Installed reverse config, restarting NAD"
 
 if [[ -f /lib/systemd/system/nad.service ]]; then
@@ -110,8 +120,8 @@ else
     fail "Unknown system type '$(uname -s)', unable to determine how to restart NAD"
 fi
 
-log "Waiting 5s for NAD to restart"
-sleep 5
+log "Waiting for NAD to restart"
+sleep 2
 
 pass "NAD reverse configuration complete"
 exit 0
