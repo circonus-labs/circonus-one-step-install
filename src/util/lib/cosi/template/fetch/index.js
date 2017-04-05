@@ -34,7 +34,7 @@ class Fetch extends Events {
 
         this.agentUrl = cosi.agent_url;
         this.force = overwrite;
-        this.statsd = typeof cosi.statsd_group_id === 'string';
+        this.group = typeof cosi.group_id === 'string';
         this.extraTemplates = [];
         return this;
     }
@@ -129,8 +129,8 @@ class Fetch extends Events {
             // list of all templates applicable to this host
             const wantTemplates = [ 'check-system', 'worksheet-system' ];
 
-            if (self.statsd) {
-                wantTemplates.push('check-statsd');
+            if (self.group) {
+                wantTemplates.push('check-group');
             }
 
             if (self.extraTemplates) {
