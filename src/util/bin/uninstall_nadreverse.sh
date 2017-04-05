@@ -30,49 +30,44 @@ if [[ ! -f $reverse_conf ]]; then
 fi
 pass "Found $reverse_conf"
 
-if [[ -f /etc/sysconfig/nad ]]; then
-    # Linux (RHEL)
-    orig_conf_backup="${cosi_dir}/cache/nad.conf.sysconfig.orig"
-    if [[ -f  $orig_conf_backup ]]; then
-        pass "Found $orig_conf_backup"
-        echo "Stopping NAD service"
-        service nad stop
-        echo "Installing NAD config from saved copy"
-        cp $orig_conf_backup /etc/sysconfig/nad
-    else
-        fail "No original NAD 'config' backup found $orig_conf_backup"
-    fi
-elif [[ -f /etc/default/nad ]]; then
-    # Linux (Ubuntu)
-    orig_conf_backup="${cosi_dir}/cache/nad.conf.default.orig"
-    if [[ -f $orig_conf_backup ]]; then
-        pass "Found $orig_conf_backup"
-        echo "Stopping NAD service"
-        service nad stop
-        echo "Installing default NAD config from saved copy"
-        cp $orig_conf_backup /etc/default/nad
-    else
-        fail "No original NAD 'config' backup found $orig_conf_backup"
-    fi
-elif [[ -d /var/svc/manifest && -x /usr/sbin/svcadm ]]; then
-    # OmniOS
-    nad_method_script="/var/svc/method/circonus-nad"
-    if [[ -f $nad_method_script ]]; then
-        orig_conf_backup="${cosi_dir}/cache/nad.method.orig"
-        if [[ -f $orig_conf_backup ]]; then
-            pass "Found $orig_conf_backup"
-            echo "Stopping NAD service"
-            /usr/sbin/svcadm -v disable circonus/nad
-            echo "Installing default NAD 'method' scirpt from saved copy"
-            cp $orig_conf_backup $nad_method_script
-        else
-            fail "No original NAD 'method' script backup found $orig_conf_backup"
-        fi
-    else
-        fail "Unable to find NAD 'method' script in default location $nad_method_script"
-    fi
-else
-    fail "Unknown system type '$(uname -s)', do not know how to configure NAD for reverse mode."
+orig_conf_backup="${cosi_dir}/cache/nad.conf.orig"
+if [[ ! -f  $orig_conf_backup ]]; then
+    fail "No original NAD 'config' backup found $orig_conf_backup"
 fi
 
+pass "Found $orig_conf_backup"
+echo "Stopping NAD service"
+if [[ -f /lib/systemd/system/nad.service ]]; then
+    systemctl stop nad
+    [[ $? -eq 0 ]] || {
+        fail "Error stopping NAD, see log"
+    }
+elif [[ -f /etc/init/nad.conf ]]; then
+    initctl stop nad
+    [[ $? -eq 0 ]] || {
+        fail "Error stopping NAD, see log"
+    }
+elif [[ -f /etc/init.d/nad ]]; then
+    service stop nad
+    [[ $? -eq 0 ]] || {
+        fail "Error stopping NAD, see log"
+    }
+elif [[ -f /etc/rc.d/nad ]]; then
+    service stop nad
+    [[ $? -eq 0 ]] || {
+        fail "Error stopping NAD, see log"
+    }
+elif [[ -f /var/svc/manifest/network/circonus/nad.xml ]]; then
+    svcadm disable nad
+    [[ $? -eq 0 ]] || {
+        fail "Error stopping NAD, see log"
+    }
+else
+    fail "Unknown system type '$(uname -s)', unable to determine how to restart NAD"
+fi
+
+echo "Installing NAD config from saved copy"
+cp $orig_conf_backup /etc/sysconfig/nad
+
+pass "NAD reverse uninstalled"
 exit 0
