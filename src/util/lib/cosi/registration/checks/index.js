@@ -457,30 +457,10 @@ class Checks extends Registration {
         } else if (this.agentMode === 'reverse') {
             msgItem = 'NAD Reverse'; // console.log(`\tSaving NAD Reverse configuration ${nadCfgFile}`);
             cfgFile = path.resolve(path.join(cosi.etc_dir, 'circonus-nadreversesh'));
-            const nadOpts = [
-                `nadrev_plugin_dir="${path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'node-agent.d'))}"`,
+            cfg = [
                 'nadrev_listen_address="127.0.0.1:2609"',
-                'nadrev_enable=1',
-                `nadrev_check_id="${bundle_id}"`,
-                `nadrev_key="${cosi.api_key}"`
-            ];
-
-            const apiUrl = url.parse(cosi.api_url);
-
-            if (apiUrl.hostname !== 'api.circonus.com') {
-                nadOpts.push(`nadrev_apihost=${apiUrl.hostname}`);
-                nadOpts.push(`nadrev_apiprotocol=${apiUrl.protocol}`);
-
-                if (apiUrl.port !== null) {
-                    nadOpts.push(`nadrev_apiport=${apiUrl.port}`);
-                }
-
-                if (apiUrl.path !== '/') {
-                    nadOpts.push(`nadrev_apipath=${apiUrl.path}`);
-                }
-            }
-
-            cfg = nadOpts.join('\n');
+                'nadrev_enable=1'
+            ].join('\n');
         }
 
         if (cfgFile === null || cfg === null || msgItem === null) {
@@ -596,7 +576,7 @@ class Checks extends Registration {
         const cfgFile = regFile.replace('registration-', 'config-');
 
         if (this._fileExists(regFile)) {
-            console.log(chalk.bold('Registration exists'), `using ${regFile}`);
+            console.log(chalk.bold('\tRegistration exists'), `using ${regFile}`);
             this.emit('statsd.create.done', new Check(regFile));
             return;
         }
