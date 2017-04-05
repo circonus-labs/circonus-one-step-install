@@ -13,6 +13,7 @@ pass() { printf "${GREEN}"; log "$*"; printf "${NORMAL}"; }
 
 : ${cosi_dir:=}
 : ${cosi_bin_dir:=}
+: ${nad_dir:=}
 
 if [[ -z "${cosi_bin_dir:-}" ]]; then
     cosi_bin_dir="$(dirname `readlink -e ${BASH_SOURCE[0]}`)"
@@ -22,92 +23,95 @@ if [[ -z "${cosi_dir:-}" ]]; then
     cosi_dir="$(readlink -e $cosi_bin_dir/..)"
 fi
 
-reverse_conf="$cosi_dir/etc/circonus-nadreversesh"
+if [[ -z "${nad_dir:-}" ]]; then
+    nad_dir="$(readlink -e $cosi_dir/..)"
+fi
+
+reverse_conf="${cosi_dir}/etc/circonus-nadreversesh"
 log "Checking for NAD reverse config"
 if [[ ! -f $reverse_conf ]]; then
     fail "NAD reverse configuration not found!"
 fi
-pass "Found $reverse_conf"
+pass "Found ${reverse_conf}"
 
 log "Loading NAD reverse conf"
 source $reverse_conf
 
-: ${nadrev_plugin_dir:=/opt/circonus/etc/node-agent.d}
 : ${nadrev_listen_address:=127.0.0.1:2609}
 : ${nadrev_enable:=0}
-: ${nadrev_check_id:=}
-: ${nadrev_key:=}
-: ${nadrev_apihost:=}
-: ${nadrev_apiport:=}
-: ${nadrev_apipath:=}
-: ${nadrev_apiprotocol:=}
 
-[[ -d $nadrev_plugin_dir ]] || {
-    fail "NAD plugin directory not found. ${nadrev_plugin_dir}"
+if [[ $nadrev_enable -ne 1 ]]; then
+    log "NAD reverse not enabled, exiting"
+    exit 0
+fi
+
+install_conf=0
+NAD_OPTS=""
+nad_conf="${nad_dir}/etc/nad.conf"
+log "Checking for NAD config"
+if [[ -f $nad_conf ]]; then
+    pass "Found ${nad_conf}"
+    log "Loading NAD conf"
+    source $nad_conf
+fi
+
+if [[ ! $NAD_OPTS =~ /-p/ ]]; then
+    NAD_OPTS+=" -p ${nadrev_listen_address}"
+    install_conf=1
+fi
+
+if [[ ! $NAD_OPTS =~ /-r/ ]]; then
+    NAD_OPTS+=" --reverse"
+    install_conf=1
+fi
+
+if [[ $install_conf -eq 0 ]]; then
+    pass "NAD conf already has reverse config, exiting"
+    exit 0
+fi
+
+log "Updating NAD conf ${nad_conf}"
+
+orig_conf_backup="${cosi_dir}/cache/nad.conf.orig"
+[[ ! -f  $orig_conf_backup ]] && {
+    cp $nad_conf $orig_conf_backup
+    pass "saved copy of default NAD conf as ${orig_conf_backup}"
 }
 
-nadrev_opts="-c ${nadrev_plugin_dir} -p ${nadrev_listen_address}"
-if [[ $nadrev_enable -eq 1 ]]; then
-    [[ -n "${nadrev_check_id:-}" ]] || {
-        fail "NAD reverse check id not set."
-    }
-    [[ -n "${nadrev_key:-}" ]] || {
-        fail "NAD reverse key not set."
-    }
-    nadrev_opts+=" -r --cid ${nadrev_check_id} --authtoken ${nadrev_key}"
+echo "NAD_OPTS=\"${NAD_OPTS}\"" > $nad_conf
+pass "Installed reverse config, restarting NAD"
 
-    [[ -z "${nadrev_apihost:-}" ]] || nadrev_opts+=" --apihost ${nadrev_apihost}"
-    [[ -z "${nadrev_apiport:-}" ]] || nadrev_opts+=" --apiport ${nadrev_apiport}"
-    [[ -z "${nadrev_apipath:-}" ]] || nadrev_opts+=" --apipath ${nadrev_apipath}"
-    [[ -z "${nadrev_apiprotocol:-}" ]] || nadrev_opts+=" --apiprotocol ${nadrev_apiprotocol}"
-
-fi
-
-if [[ -f /etc/sysconfig/nad ]]; then
-    nad_conf="/etc/sysconfig/nad"
-    # Linux (RHEL)
-    service nad stop
-    orig_conf_backup="${cosi_dir}/cache/nad.conf.sysconfig.orig"
-    [[ ! -f  $orig_conf_backup ]] && {
-        cp $nad_conf $orig_conf_backup
-        pass "saved copy of default NAD config $orig_conf_backup"
+if [[ -f /lib/systemd/system/nad.service ]]; then
+    systemctl restart nad
+    [[ $? -eq 0 ]] || {
+        fail "Error restarting NAD, see log"
     }
-    echo "NAD_OPTS=\"${nadrev_opts}\"" > $nad_conf
-    pass "installed reverse config, restarting NAD"
-    service nad start
-    sleep 2
-elif [[ -f /etc/default/nad ]]; then
-    nad_conf="/etc/default/nad"
-    # Linux (Ubuntu)
-    service nad stop
-    orig_conf_backup="${cosi_dir}/cache/nad.conf.default.orig"
-    [[ ! -f  $orig_conf_backup ]] && {
-        cp $nad_conf $orig_conf_backup
-        pass "saved copy of default NAD config $orig_conf_backup"
+elif [[ -f /etc/init/nad.conf ]]; then
+    initctl restart nad
+    [[ $? -eq 0 ]] || {
+        fail "Error restarting NAD, see log"
     }
-    echo "NAD_OPTS=\"${nadrev_opts}\"" > $nad_conf
-    pass "installed reverse config, restarting NAD"
-    service nad start
-    sleep 2
-elif [[ -d /var/svc/manifest && -x /usr/sbin/svcadm ]]; then
-    # OmniOS
-    nad_method_script="/var/svc/method/circonus-nad"
-    if [[ -f $nad_method_script ]]; then
-        /usr/sbin/svcadm -v disable circonus/nad
-        orig_conf_backup="${cosi_dir}/cache/nad.method.orig"
-        [[ ! -f  $orig_conf_backup ]] && {
-            cp $nad_method_script $orig_conf_backup
-            pass "saved copy of default NAD config $orig_conf_backup"
-        }
-        cp "${cosi_dir}/service/circonus-nad-reverse.method" $nad_method_script
-        pass "installed reverse config, restarting NAD"
-        /usr/sbin/svcadm -v enable circonus/nad
-        sleep 2
-    else
-        fail "Unable to find NAD 'method' script in default location $nad_method_script"
-    fi
+elif [[ -f /etc/init.d/nad ]]; then
+    service restart nad
+    [[ $? -eq 0 ]] || {
+        fail "Error restarting NAD, see log"
+    }
+elif [[ -f /etc/rc.d/nad ]]; then
+    service restart nad
+    [[ $? -eq 0 ]] || {
+        fail "Error restarting NAD, see log"
+    }
+elif [[ -f /var/svc/manifest/network/circonus/nad.xml ]]; then
+    svcadm restart nad
+    [[ $? -eq 0 ]] || {
+        fail "Error restarting NAD, see log"
+    }
 else
-    fail "Unknown system type '$(uname -s)', do not know how to configure NAD for reverse mode."
+    fail "Unknown system type '$(uname -s)', unable to determine how to restart NAD"
 fi
 
+log "Waiting 5s for NAD to restart"
+sleep 5
+
+pass "NAD reverse configuration complete"
 exit 0
