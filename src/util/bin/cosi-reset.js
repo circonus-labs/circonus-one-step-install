@@ -189,7 +189,7 @@ function removeConfigs(cb) {
                 }
             }
         } else {
-            console.error(chalk('red'), 'ERROR');
+            console.error(chalk.red('ERROR'));
             if (stdout) {
                 console.error(stdout);
             }
@@ -335,7 +335,9 @@ if (items.length > 0) {
 
     events.emit('next');
 } else if (app.configs) {
-    removeConfigs();
+    removeConfigs(() => {
+        console.log('configs removed');
+    });
 }
 
 
