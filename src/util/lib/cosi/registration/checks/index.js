@@ -31,7 +31,7 @@ class Checks extends Registration {
 
         this.checks = {
             system: null,
-            statsd: null
+            group: null
         };
     }
 
@@ -53,22 +53,22 @@ class Checks extends Registration {
 
         this.once('check.finalize', this.finalizeSystemCheck);
         this.once('check.finalize.done', () => {
-            self.emit('statsd.config');
+            self.emit('group.config');
         });
 
-        this.once('statsd.config', this.configStatsdCheck);
-        this.once('statsd.config.done', () => {
-            self.emit('statsd.create');
+        this.once('group.config', this.configGroupCheck);
+        this.once('group.config.done', () => {
+            self.emit('group.create');
         });
 
-        this.once('statsd.create', this.createStatsdCheck);
-        this.once('statsd.create.done', (check) => {
-            self._setCheckMeta('statsd', check);
-            self.emit('statsd.finalize');
+        this.once('group.create', this.createGroupCheck);
+        this.once('group.create.done', (check) => {
+            self._setCheckMeta('group', check);
+            self.emit('group.finalize');
         });
 
-        this.once('statsd.finalize', this.finalizeStatsdCheck);
-        this.once('statsd.finalize.done', () => {
+        this.once('group.finalize', this.finalizeGroupCheck);
+        this.once('group.finalize.done', () => {
             self.emit('checks.done');
         });
 
@@ -287,11 +287,11 @@ class Checks extends Registration {
             }
         }
 
-        if (this.checks.statsd === null && this.regConfig.statsd.enabled) {
-            const regFile = path.resolve(path.join(cosi.reg_dir, 'registration-check-statsd.json'));
+        if (this.checks.group === null && this.regConfig.group.enabled) {
+            const regFile = path.resolve(path.join(cosi.reg_dir, 'registration-check-group.json'));
 
             if (!this._fileExists(regFile)) {
-                this.emit('error', new Error('StatsD check registration file not found'));
+                this.emit('error', new Error('Group check registration file not found'));
                 return null;
             }
             try {
@@ -351,10 +351,15 @@ class Checks extends Registration {
             check.config.url = cosi.agent_url;
         }
 
-        // add *ONLY* if there are no metrics defined in the template.
-        if (!{}.hasOwnProperty.call(check, 'metrics') || !Array.isArray(check.metrics)) {
-            check.metrics = [];
-        }
+        // some check types fail if there is not at least one metric...
+        // add the activated metrics
+        check.metrics = [
+            {
+                name: 'cosi_placeholder',
+                type: 'numeric',
+                status: 'active'
+            }
+        ];
 
         // set the notes with cosi signature
         check.notes = this.regConfig.cosiNotes;
@@ -484,28 +489,28 @@ class Checks extends Registration {
 
     /*
 
-    StatsD check
+    Group check
 
     */
 
 
-    configStatsdCheck() {
+    configGroupCheck() {
         console.log(chalk.blue(this.marker));
-        console.log(`Configuring StatsD check`);
+        console.log(`Configuring Group check`);
 
-        if (!this.regConfig.statsd.enabled) {
-            console.log('\tStatsD check disabled, skipping.');
-            this.emit('statsd.config.done');
+        if (!this.regConfig.group.enabled) {
+            console.log('\tGroup check disabled, skipping.');
+            this.emit('group.config.done');
             return;
         }
 
-        const id = 'check-statsd';
+        const id = 'check-group';
         const configFile = path.resolve(path.join(cosi.reg_dir, `config-${id}.json`));
         const templateFile = configFile.replace('config-', 'template-');
 
         if (this._fileExists(configFile)) {
             console.log('\tCheck configuration already exists.', configFile);
-            this.emit('statsd.config.done');
+            this.emit('group.config.done');
             return;
         }
 
@@ -513,18 +518,7 @@ class Checks extends Registration {
         const check = template.check;
         const hash = crypto.createHash('sha256');
 
-        // we want a consistent check definition so that when other members of the group
-        // POST the check definition the *ONE* already created is returned.
-
-        check.display_name = `{{=cosi.host_name}} cosi/statsd:${this.regConfig.statsd.group_id}`;
-        check.target = `statsd_group:${this.regConfig.statsd.group_id}`;
-        hash.update(check.target);
-
         check.type = 'httptrap';
-        check.config = {
-            asynch_metrics: true,
-            secret: hash.digest('hex').substr(0, 16)
-        };
 
         // set the broker receiving for pulling metrics
         check.brokers = [
@@ -542,7 +536,19 @@ class Checks extends Registration {
         this._setTags(check, id);
         this._setCustomCheckOptions(check, id);
 
-        check.tags.push(`@statsd_group:${this.regConfig.statsd.group_id}`);
+        // we want a consistent check definition so that when other members of the group
+        // POST the check definition the *ONE* already created is returned.
+        // e.g. display_name, target, tags, etc.
+
+        // update the hash after the target is set
+        hash.update(check.target);
+
+        check.config = {
+            asynch_metrics: true,
+            secret: hash.digest('hex').substr(0, 16)
+        };
+
+        check.tags.push(`@group:${this.regConfig.group.id}`);
 
         // save the configuration
         try {
@@ -556,33 +562,33 @@ class Checks extends Registration {
         }
 
         console.log(chalk.green('\tSaved configuration'), configFile);
-        this.emit('statsd.config.done');
+        this.emit('group.config.done');
 
     }
 
 
-    createStatsdCheck() {
+    createGroupCheck() {
         console.log(chalk.blue(this.marker));
-        console.log('Creating trap check for StatsD');
+        console.log('Creating trap check for Group');
 
-        if (!this.regConfig.statsd.enabled) {
-            console.log('\tStatsD check disabled, skipping.');
-            this.emit('statsd.create.done');
+        if (!this.regConfig.group.enabled) {
+            console.log('\tGroup check disabled, skipping.');
+            this.emit('group.create.done');
             return;
         }
 
         const self = this;
-        const regFile = path.resolve(path.join(cosi.reg_dir, 'registration-check-statsd.json'));
+        const regFile = path.resolve(path.join(cosi.reg_dir, 'registration-check-group.json'));
         const cfgFile = regFile.replace('registration-', 'config-');
 
         if (this._fileExists(regFile)) {
             console.log(chalk.bold('\tRegistration exists'), `using ${regFile}`);
-            this.emit('statsd.create.done', new Check(regFile));
+            this.emit('group.create.done', new Check(regFile));
             return;
         }
 
         if (!this._fileExists(cfgFile)) {
-            this.emit('error', new Error(`Missing statsd check configuration file '${cfgFile}'`));
+            this.emit('error', new Error(`Missing group check configuration file '${cfgFile}'`));
             return;
         }
 
@@ -603,16 +609,16 @@ class Checks extends Registration {
             console.log(`\tSaving registration ${regFile}`);
             check.save(regFile);
             console.log(chalk.green('\tCheck created:'), `${self.regConfig.account.ui_url}${check._checks[0].replace('/check/', '/checks/')}`);
-            self.emit('statsd.create.done', check);
+            self.emit('group.create.done', check);
         });
     }
 
 
-    finalizeStatsdCheck() {
+    finalizeGroupCheck() {
         console.log(chalk.blue(this.marker));
-        console.log(`Finalizing statsd check`);
+        console.log(`Finalizing group check`);
 
-        this.emit('statsd.finalize.done');
+        this.emit('group.finalize.done');
     }
 
 
