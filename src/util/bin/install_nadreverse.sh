@@ -58,13 +58,13 @@ if [[ $(grep -c "^NAD_OPTS" $nad_conf) -ne 0 ]]; then
 fi
 
 if [[ $(grep -c "^NAD_LISTEN" $nad_conf) -eq 0 ]]; then
-	[[ -f $nad_conf.new ]] || { cp $nad_conf $nad_conf.new; echo -e "\n\n# ADDED BY COSI\n\n" >> $nad_conf.new; }
+	[[ -f $nad_conf.new ]] || { cp $nad_conf $nad_conf.new; echo -e "\n\n# ADDED BY COSI\n" >> $nad_conf.new; }
 	echo 'NAD_LISTEN="127.0.0.1:2609"' >> $nad_conf.new
     install_conf=1
 fi
 
 if [[ $(grep -c "^NAD_REVERSE" $nad_conf) -eq 0 ]]; then
-    [[ -f $nad_conf.new ]] || { cp $nad_conf $nad_conf.new; echo -e "\n\n# ADDED BY COSI\n\n" >> $nad_conf.new; }
+    [[ -f $nad_conf.new ]] || { cp $nad_conf $nad_conf.new; echo -e "\n\n# ADDED BY COSI\n" >> $nad_conf.new; }
 	echo 'NAD_REVERSE="yes"' >> $nad_conf.new
     install_conf=1
 fi

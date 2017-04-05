@@ -13,6 +13,7 @@ pass() { printf "${GREEN}"; log "$*"; printf "${NORMAL}"; }
 
 : ${cosi_dir:=}
 : ${cosi_bin_dir:=}
+: ${nad_dir:=}
 
 if [[ -z "${cosi_bin_dir:-}" ]]; then
     cosi_bin_dir="$(dirname `readlink -e ${BASH_SOURCE[0]}`)"
@@ -21,6 +22,12 @@ fi
 if [[ -z "${cosi_dir:-}" ]]; then
     cosi_dir="$(readlink -e $cosi_bin_dir/..)"
 fi
+
+if [[ -z "${nad_dir:-}" ]]; then
+    nad_dir="$(readlink -e $cosi_dir/..)"
+fi
+
+nad_conf="${nad_dir}/etc/nad.conf"
 
 reverse_conf="$cosi_dir/etc/circonus-nadreversesh"
 log "Checking for NAD reverse config"
@@ -67,7 +74,7 @@ else
 fi
 
 echo "Installing NAD config from saved copy"
-cp $orig_conf_backup /etc/sysconfig/nad
+cp $orig_conf_backup $nad_conf
 
 pass "NAD reverse uninstalled"
 exit 0
