@@ -53,30 +53,24 @@ class Checks extends Registration {
 
         this.once('check.finalize', this.finalizeSystemCheck);
         this.once('check.finalize.done', () => {
-            if (self.regConfig.statsd.enabled) {
-                self.emit('statsd.config');
-            } else {
-                self.emit('checks.done');
-            }
+            self.emit('statsd.config');
         });
 
-        if (self.regConfig.statsd.enabled) {
-            this.once('statsd.config', this.configStatsdCheck);
-            this.once('statsd.config.done', () => {
-                self.emit('statsd.create');
-            });
+        this.once('statsd.config', this.configStatsdCheck);
+        this.once('statsd.config.done', () => {
+            self.emit('statsd.create');
+        });
 
-            this.once('statsd.create', this.createStatsdCheck);
-            this.once('statsd.create.done', (check) => {
-                self._setCheckMeta('statsd', check);
-                self.emit('statsd.finalize');
-            });
+        this.once('statsd.create', this.createStatsdCheck);
+        this.once('statsd.create.done', (check) => {
+            self._setCheckMeta('statsd', check);
+            self.emit('statsd.finalize');
+        });
 
-            this.once('statsd.finalize', this.finalizeStatsdCheck);
-            this.once('statsd.finalize.done', () => {
-                self.emit('checks.done');
-            });
-        }
+        this.once('statsd.finalize', this.finalizeStatsdCheck);
+        this.once('statsd.finalize.done', () => {
+            self.emit('checks.done');
+        });
 
         this.once('checks.done', () => {
             if (typeof cb === 'function') {
@@ -357,15 +351,10 @@ class Checks extends Registration {
             check.config.url = cosi.agent_url;
         }
 
-
-        // add the activated metrics
-        check.metrics = [
-            {
-                name: 'cosi_placeholder',
-                type: 'numeric',
-                status: 'active'
-            }
-        ];
+        // add *ONLY* if there are no metrics defined in the template.
+        if (!{}.hasOwnProperty.call(check, 'metrics') || !Array.isArray(check.metrics)) {
+            check.metrics = [];
+        }
 
         // set the notes with cosi signature
         check.notes = this.regConfig.cosiNotes;
@@ -544,11 +533,11 @@ class Checks extends Registration {
         const check = template.check;
         const hash = crypto.createHash('sha256');
 
-        check.display_name = `{{=cosi.host_name}} cosi/statsd:${this.regConfig.statsd.group_id}`;
-        check.target = `statsd_group:${this.regConfig.statsd.group_id}`;
-
         // we want a consistent check definition so that when other members of the group
         // POST the check definition the *ONE* already created is returned.
+
+        check.display_name = `{{=cosi.host_name}} cosi/statsd:${this.regConfig.statsd.group_id}`;
+        check.target = `statsd_group:${this.regConfig.statsd.group_id}`;
         hash.update(check.target);
 
         check.type = 'httptrap';
@@ -641,66 +630,7 @@ class Checks extends Registration {
 
     finalizeStatsdCheck() {
         console.log(chalk.blue(this.marker));
-        console.log(`Finalizing system check`);
-
-        if (!this.regConfig.statsd.enabled) {
-            console.log('\tStatsD check disabled, skipping.');
-            this.emit('statsd.finalize.done');
-            return;
-        }
-
-        const submit_url = this.checks.statsd.submit_url;
-
-        const statsdCfgFile = path.resolve(path.join(cosi.etc_dir, 'statsd.json'));
-        const circonusBackend = path.join('.', 'backends', 'circonus');
-
-        console.log(`\tCreating StatsD configuration ${statsdCfgFile}`);
-
-        // default configuration
-        let statsdConfig = {
-            port: this.regConfig.statsd.port,
-            address: '127.0.0.1',
-            flushInterval: 60000,
-            keyNameSanitize: false,
-            backends: [ circonusBackend ],
-            circonus: {
-                check_url: submit_url,
-                forceGC: true
-            }
-        };
-
-        // load an existing configuration, if it exists
-        try {
-            statsdConfig = require(statsdCfgFile);
-        } catch (err) {
-            if (err.code !== 'MODULE_NOT_FOUND') {
-                this.emit('error', err);
-                return;
-            }
-        }
-
-        // set check_url
-        if (!{}.hasOwnProperty.call(statsdConfig, 'circonus')) {
-            statsdConfig.circonus = {};
-        }
-        statsdConfig.circonus.check_url = submit_url;
-
-        // add circonus backend if it is not already defined
-        if (!{}.hasOwnProperty.call(statsdConfig, 'backends') || !Array.isArray(statsdConfig.backends)) {
-            statsdConfig.backends = [];
-        }
-        if (statsdConfig.backends.indexOf(circonusBackend) === -1) {
-            statsdConfig.backends.push(circonusBackend);
-        }
-
-        console.log(`\tCreating StatsD configuration`);
-        try {
-            fs.writeFileSync(statsdCfgFile, JSON.stringify(statsdConfig, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
-            console.log(chalk.green('\tSaved'), `StatsD configuration ${statsdCfgFile}`);
-        } catch (statsdConfigErr) {
-            this.emit('error', statsdConfigErr);
-            return;
-        }
+        console.log(`Finalizing statsd check`);
 
         this.emit('statsd.finalize.done');
     }
