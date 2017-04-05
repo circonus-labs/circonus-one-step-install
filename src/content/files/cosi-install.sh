@@ -42,7 +42,7 @@ Options
 
   [--target]      Host IP/hostname to use as check target.
 
-  [--group-name]  Unique identifier to use when creating/finding the group check. (e.g. 'webservers')
+  [--group]       Unique identifier to use when creating/finding the group check. (e.g. 'webservers')
 
   [--broker]      Broker to use (numeric portion of broker CID e.g. cid=/broker/123, pass 123 as argument).
 
@@ -140,12 +140,12 @@ __parse_parameters() {
                 fail "--regconf must be followed by a filespec."
             fi
             ;;
-        (--group-name)
+        (--group)
             if [[ -n "${1:-}" ]]; then
-                statsd_group_id="$1"
+                cosi_group_id="$1"
                 shift
             else
-                fail "--group-name must be followed by an ID string"
+                fail "--group must be followed by an ID string"
             fi
             ;;
         (--target)
@@ -646,7 +646,7 @@ __save_cosi_register_config() {
     "cosi_os_arch": "${cosi_os_arch}",
     "cosi_os_type": "${cosi_os_type}",
     "cosi_os_dmi": "${cosi_os_dmi}",
-    "statsd_group_id": "${statsd_group_id}"
+    "cosi_group_id": "${cosi_group_id}"
 }
 EOF
     [[ $? -eq 0 ]] || fail "Unable to save COSI registration configuration '${cosi_register_config}'"
@@ -771,7 +771,7 @@ cosi_initialize() {
     cosi_os_vers=""
     cosi_os_dmi=""
     cosi_id=""
-    statsd_group_id=""
+    cosi_group_id=""
 
     #
     # set defaults (if config file not used or options left unset)
@@ -809,7 +809,7 @@ cosi_initialize() {
     cosi_quiet_flag \
     package_install_cmd \
     package_install_args \
-    statsd_group_id
+    cosi_group_id
     "
 
     #
