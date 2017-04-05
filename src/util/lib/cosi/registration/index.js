@@ -51,15 +51,15 @@ class Registration extends Events {
                 host_vars: cosi.custom_options.host_vars || {},
                 host_tags: cosi.custom_options.host_tags || []
             },
-            statsd: {
+            group: {
                 enabled: false,
-                group_id: null
+                id: null
             }
         };
 
-        if (typeof cosi.statsd_group_id === 'string' && cosi.statsd_group_id.trim().length > 0) {
-            this.regConfig.statsd.enabled = true;
-            this.regConfig.statsd.group_id = cosi.statsd_group_id.trim();
+        if (typeof cosi.cosi_group_id === 'string' && cosi.cosi_group_id.trim().length > 0) {
+            this.regConfig.group.enabled = true;
+            this.regConfig.group.id = cosi.cosi_group_id.trim();
         }
 
         this.globalMeta = {};
