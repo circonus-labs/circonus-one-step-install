@@ -34,7 +34,7 @@ class Fetch extends Events {
 
         this.agentUrl = cosi.agent_url;
         this.force = overwrite;
-        this.statsd = cosi.statsd === 1;
+        this.statsd = typeof cosi.statsd_group_id === 'string';
         this.extraTemplates = [];
         return this;
     }
