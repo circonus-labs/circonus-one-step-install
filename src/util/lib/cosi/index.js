@@ -86,7 +86,8 @@ class COSI {
         const optionalSettings = [
             'cosi_host_target',
             'cosi_broker_id',
-            'cosi_broker_type'
+            'cosi_broker_type',
+            'statsd_group_id'
         ];
 
         for (let i = 0; i < optionalSettings.length; i++) {
