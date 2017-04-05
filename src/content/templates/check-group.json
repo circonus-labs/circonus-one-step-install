@@ -9,14 +9,14 @@
     "check": {
         "brokers": [],
         "config": {},
-        "display_name": "{{=cosi.host_group_id}} cosi/group",
+        "display_name": "{{=cosi.group_id}} cosi/group",
         "metric_limit": 0,
         "metrics": [],
         "notes": null,
         "period": 60,
         "status": "active",
         "tags": [],
-        "target": "group:{{=cosi.host_group_id}}",
+        "target": "group:{{=cosi.group_id}}",
         "timeout": 10,
         "type": null
     }
