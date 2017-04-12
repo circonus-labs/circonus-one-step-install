@@ -544,7 +544,7 @@ class Checks extends Registration {
         hash.update(check.target);
 
         check.config = {
-            asynch_metrics: 'false',
+            asynch_metrics: 'false', // NOTE must be false for per metric _fl settings function correctly
             secret: hash.digest('hex').substr(0, 16)
         };
 
