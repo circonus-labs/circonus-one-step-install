@@ -463,7 +463,7 @@ __install_agent() {
                 pkg_cmd_args="-v --install ${package_file}"
             elif [[ $package_file =~ \.deb$ ]]; then
                 pkg_cmd="dpkg"
-                pkg_cmd_args="--install ${package_file}"
+                pkg_cmd_args="--install --force-confold ${package_file}"
             else
                 fail "Unable to determine package installation command on '${cosi_os_dist}' for '${package_file}'. Please set package_install_cmd in config file to continue."
             fi
