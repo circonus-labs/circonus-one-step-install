@@ -539,12 +539,12 @@ class Checks extends Registration {
         // we want a consistent check definition so that when other members of the group
         // POST the check definition the *ONE* already created is returned.
         // e.g. display_name, target, tags, etc.
-
+        //
         // update the hash after the target is set
         hash.update(check.target);
 
         check.config = {
-            asynch_metrics: true,
+            asynch_metrics: 'false',
             secret: hash.digest('hex').substr(0, 16)
         };
 
