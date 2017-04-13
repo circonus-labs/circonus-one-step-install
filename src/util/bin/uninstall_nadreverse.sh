@@ -55,7 +55,7 @@ elif [[ -f /etc/init/nad.conf ]]; then
         fail "Error stopping NAD, see log"
     }
 elif [[ -f /etc/init.d/nad ]]; then
-    service stop nad
+    service nad stop
     [[ $? -eq 0 ]] || {
         fail "Error stopping NAD, see log"
     }

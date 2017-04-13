@@ -102,7 +102,7 @@ elif [[ -f /etc/init/nad.conf ]]; then
         fail "Error restarting NAD, see log"
     }
 elif [[ -f /etc/init.d/nad ]]; then
-    service restart nad
+    service nad restart
     [[ $? -eq 0 ]] || {
         fail "Error restarting NAD, see log"
     }
