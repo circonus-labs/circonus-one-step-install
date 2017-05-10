@@ -10,6 +10,7 @@ cosi*noarch.rpm
 
 # node modules
 node_modules/
+npm-debug.log
 
 # local provisioning customizations
 **/group_vars/all.yml
