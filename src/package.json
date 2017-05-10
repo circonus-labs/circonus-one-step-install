@@ -30,6 +30,10 @@
     "showenv": "echo \"Host system $(uname -srv)\" ; vagrant --version ; echo \"Virtualbox $(vboxmanage --version)\" ; ansible --version ; echo \"Node $(node --version)\" ; echo \"NPM $(npm --version)\" ; echo 'Global npm modules'; npm ls -g --depth=0; echo 'Local npm modules' ; npm ls --depth=0"
   },
   "devDependencies": {
+    "@maier/eslint-config-base": "0.1.0",
+    "@maier/eslint-config-node": "0.1.0",
+    "@maier/eslint-config-node-cmd": "0.1.0",
+    "eslint": "3.19.0",
     "tape": "^4.6.3"
   },
   "repository": {
