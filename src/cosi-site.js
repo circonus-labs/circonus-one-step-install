@@ -8,32 +8,30 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
-/*eslint-env node, es6 */
-
-"use strict";
+'use strict';
 
 // core modules
-const path = require("path");
+const path = require('path');
 
 // local modules
-const restify = require("restify");
+const restify = require('restify');
 
 // application modules
-const settings = require(path.normalize(path.join(__dirname, "lib", "settings")));
-const validate = require(path.resolve(path.join(__dirname, "lib", "validators")));
-const handler = require(path.resolve(path.join(__dirname, "lib", "handlers")));
-const log = require(path.resolve(path.join(__dirname, "lib", "logger")));
+const settings = require(path.normalize(path.join(__dirname, 'lib', 'settings')));
+const validate = require(path.resolve(path.join(__dirname, 'lib', 'validators')));
+const handler = require(path.resolve(path.join(__dirname, 'lib', 'handlers')));
+const log = require(path.resolve(path.join(__dirname, 'lib', 'logger')));
 
 const serverOptions = {
-    name: settings.app_name,
-    log
+    log,
+    name: settings.app_name
 };
 
 if (settings.ssl_cert_file !== null && settings.ssl_key_file !== null) {
     // add any valid options from nodejs https module's createServer call
     serverOptions.httpsServerOptions = {
-        cert: settings.ssl_cert_file,
-        key: settings.ssl_key_file
+        cert : settings.ssl_cert_file,
+        key  : settings.ssl_key_file
     };
 }
 
@@ -44,38 +42,38 @@ server.use(restify.bodyParser());
 server.use(restify.gzipResponse());
 server.use(restify.requestLogger());
 server.use(restify.throttle({
-    burst: 100,
-    rate: 50,
-    ip: true,
-    overrides: {
-        "127.0.0.1": {
-            rate: 0,        // unlimited
-            burst: 0
+    burst     : 100,
+    ip        : true,
+    overrides : {
+        '127.0.0.1': {
+            burst : 0,
+            rate  : 0        // unlimited
         }
-    }
+    },
+    rate: 50
 }));
 
 
 //
 // log each request coming in (for metrics)
 //
-server.on("after", restify.auditLogger({ log }));
+server.on('after', restify.auditLogger({ log }));
 
-server.on("uncaughtException", (req, res, route, err) => {
+server.on('uncaughtException', (req, res, route, err) => { // eslint-disable-line no-unused-vars
     log.fatal(`uncaughtException ${route} ${req.params} ${err.stack}`);
-    process.exit(1); //eslint-disable-line no-process-exit, no-magic-numbers
+    process.exit(1); // eslint-disable-line no-process-exit
 });
 
 
 //
 // return json listing distribution variants supported
 //
-server.get("/", handler.root);
+server.get('/', handler.root);
 
 //
 // generic robot response, disallow everything...
 //
-server.get("/robots.txt", handler.robots);
+server.get('/robots.txt', handler.robots);
 
 //
 // get the package to use for a specific distribution
@@ -85,7 +83,7 @@ server.get("/robots.txt", handler.robots);
 //                      about the value, just the presence of parameter.)
 //
 server.get(
-    { path: /^\/package\/?$/, version: "1.0.0" },
+    { path: /^\/package\/?$/, version: '1.0.0' },
     validate.requiredParameters,
     handler.agentPackage
 );
@@ -97,7 +95,7 @@ server.get(
 // required parameters: type, dist, vers, arch
 //
 server.get(
-    { path: /^\/templates\/?$/, version: "1.0.0" },
+    { path: /^\/templates\/?$/, version: '1.0.0' },
     validate.requiredParameters,
     handler.templateList
 );
@@ -108,7 +106,7 @@ server.get(
 // required parameters: type, dist, vers, arch, template type, template id
 //
 server.get(
-    { path: "/template/:t_cat/:t_name", version: "1.0.0" },
+    { path: '/template/:t_cat/:t_name', version: '1.0.0' },
     validate.requiredParameters,
     validate.templateId,
     handler.configTemplate
@@ -121,7 +119,7 @@ server.get(
 // agent type.
 //
 server.get(
-    { path: /^\/broker\/?$/, version: "1.0.0" },
+    { path: /^\/broker\/?$/, version: '1.0.0' },
     validate.agentMode,
     handler.defaultBroker
 );
@@ -130,7 +128,7 @@ server.get(
 // return default brokers for check types
 //
 server.get(
-    { path: /^\/brokers\/?$/, version: "1.0.0" },
+    { path: /^\/brokers\/?$/, version: '1.0.0' },
     handler.defaultBrokers
 );
 
@@ -141,9 +139,9 @@ server.get(
 //      \curl https://cosi.circonus.com/install | bash -s
 //
 server.get(/^\/install\/?$/, restify.serveStatic({
-    directory: "./content/files",
-    file: "cosi-install.sh",
-    maxAge: 0
+    directory : './content/files',
+    file      : 'cosi-install.sh',
+    maxAge    : 0
 }));
 
 //
@@ -154,9 +152,9 @@ server.get(/^\/install\/?$/, restify.serveStatic({
 //      \curl https://cosi.circonus.com/install/config > /etc/defaults/cosi-install
 //
 server.get(/^\/install\/conf(?:ig)?\/?$/, restify.serveStatic({
-    directory: "./content/files",
-    file: "cosi-install.conf",
-    maxAge: 0
+    directory : './content/files',
+    file      : 'cosi-install.conf',
+    maxAge    : 0
 }));
 
 
@@ -171,9 +169,9 @@ if (settings.installer_rpm_file !== null) {
     //      /opt/circonus/cosi/bin/cosi-install.sh --key ... --app ... ...
     //
     server.get(/^\/install\/rpm?$/, restify.serveStatic({
-        directory: "./content/files",
-        file: settings.installer_rpm_file,
-        maxAge: 0
+        directory : './content/files',
+        file      : settings.installer_rpm_file,
+        maxAge    : 0
     }));
 }
 
@@ -191,9 +189,9 @@ if (settings.installer_rpm_file !== null) {
 //      create worksheet containing default graphs
 //
 server.get(/^\/utils\/?$/, restify.serveStatic({
-    directory: "./content/files",
-    file: "cosi-util.tar.gz",
-    maxAge: 0
+    directory : './content/files',
+    file      : 'cosi-util.tar.gz',
+    maxAge    : 0
 }));
 
 
@@ -203,9 +201,9 @@ server.get(/^\/utils\/?$/, restify.serveStatic({
 // return the cosi-statsd (containing circonus backend)
 //
 server.get(/^\/statsd\/?$/, restify.serveStatic({
-    directory: "./content/files",
-    file: "cosi-statsd.tar.gz",
-    maxAge: 0
+    directory : './content/files',
+    file      : 'cosi-statsd.tar.gz',
+    maxAge    : 0
 }));
 
 
@@ -213,13 +211,12 @@ server.get(/^\/statsd\/?$/, restify.serveStatic({
 // fire in the hole!
 //
 server.listen(settings.port, settings.listen, () => {
-    log.info({ addr: server.address() }, "listening");
+    log.info({ addr: server.address() }, 'listening');
     if (settings.user !== null && process.seteuid) {
         log.info(`Changing "effective user" to "${settings.user}".`);
         try {
             process.seteuid(settings.user);
-        }
-        catch (err) {
+        } catch (err) {
             throw err;
         }
     }
