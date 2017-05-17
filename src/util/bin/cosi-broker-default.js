@@ -1,21 +1,25 @@
 #!/usr/bin/env node
 
-/*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers, no-process-exit */
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-"use strict";
+/* eslint-disable no-restricted-properties */
+/* eslint-disable no-underscore-dangle */
 
-const path = require("path");
+'use strict';
 
-const app = require("commander");
-const chalk = require("chalk");
+const path = require('path');
 
-const cosi = require(path.resolve(path.join(__dirname, "..", "lib", "cosi")));
-const Broker = require(path.join(cosi.lib_dir, "broker"));
+const app = require('commander');
+const chalk = require('chalk');
+
+const cosi = require(path.resolve(path.join(__dirname, '..', 'lib', 'cosi')));
+const Broker = require(path.join(cosi.lib_dir, 'broker'));
 
 app.
     version(cosi.app_version).
-    option("-q, --quiet", "no header lines. '|' delimited, parsable output.").
+    option('-q, --quiet', "no header lines. '|' delimited, parsable output.").
     parse(process.argv);
 
 if (!app.quiet) {
@@ -23,12 +27,12 @@ if (!app.quiet) {
 }
 
 const bh = new Broker(app.quiet);
-let checkType = "json";
+let checkType = 'json';
 
-console.log(cosi.cosi_os_type, cosi.cosi_os_dist, `v${cosi.cosi_os_vers}`, cosi.cosi_os_arch, cosi.agent_mode, "agent mode.");
+console.log(cosi.cosi_os_type, cosi.cosi_os_dist, `v${cosi.cosi_os_vers}`, cosi.cosi_os_arch, cosi.agent_mode, 'agent mode.');
 
-console.log(chalk.bold("====="));
-console.log("Determining default broker for check type", checkType);
+console.log(chalk.bold('====='));
+console.log('Determining default broker for check type', checkType);
 
 bh.getDefaultBroker(checkType, (err, broker) => {
     if (err) {
@@ -36,11 +40,11 @@ bh.getDefaultBroker(checkType, (err, broker) => {
         throw err;
     }
 
-    console.log(chalk.bold("Default broker:"), "for check type", checkType, broker._cid.replace("/broker/", ""), "-", broker._name);
+    console.log(chalk.bold('Default broker:'), 'for check type', checkType, broker._cid.replace('/broker/', ''), '-', broker._name);
 
-    checkType = "httptrap";
-    console.log(chalk.bold("====="));
-    console.log("Determining default broker for check type", checkType);
+    checkType = 'httptrap';
+    console.log(chalk.bold('====='));
+    console.log('Determining default broker for check type', checkType);
 
     bh.getDefaultBroker(checkType, (err2, broker2) => {
         if (err2) {
@@ -48,6 +52,6 @@ bh.getDefaultBroker(checkType, (err, broker) => {
             throw err2;
         }
 
-        console.log(chalk.bold("Default"), "broker for", checkType, "check type:", broker._cid.replace("/broker/", ""), "-", broker2._name);
+        console.log(chalk.bold('Default'), 'broker for', checkType, 'check type:', broker._cid.replace('/broker/', ''), '-', broker2._name);
     });
 });
