@@ -4,9 +4,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-/* eslint-disable no-restricted-properties */
-/* eslint-disable no-underscore-dangle */
-
 'use strict';
 
 const path = require('path');
