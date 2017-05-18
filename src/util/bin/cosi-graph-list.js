@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
-/* eslint-env node, es6 */
-/* eslint-disable no-magic-numbers */
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
 'use strict';
 
@@ -9,11 +10,19 @@ const path = require('path');
 
 const app = require('commander');
 const chalk = require('chalk');
-const sprintf = require('sprintf-js').sprintf;
+const { sprintf } = require('sprintf-js');
 
 const cosi = require(path.resolve(path.join(__dirname, '..', 'lib', 'cosi')));
 const graphList = require(path.join(cosi.lib_dir, 'graph', 'list'));
 
+/**
+ * generic function to print lines
+ * @arg {Number} maxIdLen max length of an ID
+ * @arg {String} id definition
+ * @arg {String} title of graph
+ * @arg {String} description of graph
+ * @returns {Undefined} nothing
+ */
 function emitLine(maxIdLen, id, title, description) {
     const maxTitleLen = 40;
     const maxDescriptionLen = 40;
@@ -31,6 +40,11 @@ function emitLine(maxIdLen, id, title, description) {
     }
 }
 
+/**
+ * generic function to print info in long format
+ * @arg {Object} graph definition
+ * @returns {Undefined} nothing
+ */
 function emitLong(graph) {
     console.log('================');
     console.log(chalk.bold('Graph ID       :'), graph.id);
