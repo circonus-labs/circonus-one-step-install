@@ -1,40 +1,44 @@
 #!/usr/bin/env node
 
-/*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers, no-process-exit */
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-"use strict";
+'use strict';
 
-const path = require("path");
-const fs = require("fs");
+const path = require('path');
+const fs = require('fs');
 
-const app = require("commander");
-const chalk = require("chalk");
+const app = require('commander');
+const chalk = require('chalk');
 
-const cosi = require(path.resolve(path.join(__dirname, "..", "lib", "cosi")));
-const Ruleset = require(path.join(cosi.lib_dir, "ruleset"));
+const cosi = require(path.resolve(path.join(__dirname, '..', 'lib', 'cosi')));
+const Ruleset = require(path.join(cosi.lib_dir, 'ruleset'));
 
+/**
+ * call api to create each individual ruleset
+ * @arg {Array} rulesets list of ruleset files
+ * @returns {Undefined} nothing
+ */
 function createRulesets(rulesets) {
     for (let i = 0; i < rulesets.length; i++) {
         const cfgFile = rulesets[i];
-        const regFile = cfgFile.replace(".json", "-cosi.json");
+        const regFile = cfgFile.replace('.json', '-cosi.json');
         let submitRuleset = false;
 
         try {
             fs.statSync(regFile);
-            console.log(chalk.yellow("WARN"), regFile, "already exists, skipping.");
-        }
-        catch (err) {
-            if (err.code === "ENOENT") {
+            console.log(chalk.yellow('WARN'), regFile, 'already exists, skipping.');
+        } catch (err) {
+            if (err.code === 'ENOENT') {
                 submitRuleset = true;
-            }
-            else {
-                console.error(chalk.red("ERROR"), `accessing ${regFile}, skipping`, err);
+            } else {
+                console.error(chalk.red('ERROR'), `accessing ${regFile}, skipping`, err);
             }
         }
 
         if (submitRuleset) {
-            console.log("Sending", cfgFile, "to Circonus API.");
+            console.log('Sending', cfgFile, 'to Circonus API.');
             const ruleset = new Ruleset(cfgFile);
 
             ruleset.create((errCreate) => {
@@ -44,10 +48,9 @@ function createRulesets(rulesets) {
                         console.error(errCreate.details);
                     }
                     console.dir(errCreate);
-                }
-                else {
+                } else {
                     ruleset.save(regFile, true);
-                    console.log(chalk.green("Saved"), regFile);
+                    console.log(chalk.green('Saved'), regFile);
                 }
             });
         }
@@ -56,27 +59,26 @@ function createRulesets(rulesets) {
 
 app.
     version(cosi.app_version).
-    option("-c, --config <file>", `specific config file (default: ${cosi.ruleset_dir}/*.json)`).
+    option('-c, --config <file>', `specific config file (default: ${cosi.ruleset_dir}/*.json)`).
     parse(process.argv);
 
 console.log(chalk.bold(app.name()), `v${app.version()}`);
 
-process.on("createRuleSets", createRulesets);
+process.on('createRuleSets', createRulesets);
 
 if (app.config) {
     const rulesets = [ path.resolve(app.config) ];
 
-    process.emit("createRuleSets", rulesets);
-}
-else {
+    process.emit('createRuleSets', rulesets);
+} else {
     fs.readdir(cosi.ruleset_dir, (err, files) => {
         if (err) {
-            console.error(chalk.red("ERROR"), "reading ruleset directory.", err);
+            console.error(chalk.red('ERROR'), 'reading ruleset directory.', err);
             process.exit(1);
         }
 
         if (files.length === 0) {
-            console.log(chalk.yellow("WARN"), `no rulesets found in ${cosi.ruleset_dir}`);
+            console.log(chalk.yellow('WARN'), `no rulesets found in ${cosi.ruleset_dir}`);
             process.exit(0);
         }
 
@@ -85,13 +87,13 @@ else {
         for (let i = 0; i < files.length; i++) {
             const cfgFile = path.resolve(path.join(cosi.ruleset_dir, files[i]));
 
-            if (cfgFile.match(/\.json$/) && cfgFile.indexOf("-cosi.json") === -1) {
-                if (path.basename(cfgFile) !== "template-ruleset.json") {
+            if (cfgFile.match(/\.json$/) && cfgFile.indexOf('-cosi.json') === -1) {
+                if (path.basename(cfgFile) !== 'template-ruleset.json') {
                     rulesets.push(cfgFile);
                 }
             }
         }
 
-        process.emit("createRuleSets", rulesets);
+        process.emit('createRuleSets', rulesets);
     });
 }

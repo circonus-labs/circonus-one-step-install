@@ -1,20 +1,27 @@
 #!/usr/bin/env node
 
-/*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers, no-process-exit */
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-"use strict";
+'use strict';
 
-const path = require("path");
-const fs = require("fs");
+const path = require('path');
+const fs = require('fs');
 
-const app = require("commander");
-const chalk = require("chalk");
-const sprintf = require("sprintf-js").sprintf;
+const app = require('commander');
+const chalk = require('chalk');
+const { sprintf } = require('sprintf-js');
 
-const cosi = require(path.resolve(path.join(__dirname, "..", "lib", "cosi")));
-const Ruleset = require(path.join(cosi.lib_dir, "ruleset"));
+const cosi = require(path.resolve(path.join(__dirname, '..', 'lib', 'cosi')));
+const Ruleset = require(path.join(cosi.lib_dir, 'ruleset'));
 
+/**
+ * generic function to print lines
+ * @arg {Object} ruleset object
+ * @arg {String} id of ruleset
+ * @returns {Undefined} nothing
+ */
 function emitLine(ruleset, id) {
     const maxMetricNameLen = 45;
     const lineFormat = `%-10s %-${maxMetricNameLen}s %6s %s`;
@@ -28,14 +35,13 @@ function emitLine(ruleset, id) {
 
         console.log(sprintf(
             lineFormat,
-            ruleset.check.replace("/check/", ""),
+            ruleset.check.replace('/check/', ''),
             metricName,
             ruleset.rules.length,
             id
         ));
-    }
-    else {
-        console.log(chalk.underline(sprintf(lineFormat, "Check", "Metric", "#Rules", "Ruleset ID")));
+    } else {
+        console.log(chalk.underline(sprintf(lineFormat, 'Check', 'Metric', '#Rules', 'Ruleset ID')));
     }
 }
 
@@ -47,12 +53,13 @@ console.log(chalk.bold(app.name()), `v${app.version()}`);
 
 fs.readdir(cosi.ruleset_dir, (err, files) => {
     if (err) {
-        console.error(chalk.red("ERROR"), "reading ruleset directory.", err);
+        console.error(chalk.red('ERROR'), 'reading ruleset directory.', err);
         process.exit(1);
     }
 
     if (files.length === 0) {
-        console.log(chalk.yellow("WARN"), "no COSI rulesets found.");
+        console.log(chalk.yellow('WARN'), 'no COSI rulesets found.');
+
         return;
     }
 
@@ -64,8 +71,7 @@ fs.readdir(cosi.ruleset_dir, (err, files) => {
         if (file.match(/-cosi\.json$/)) {
             const ruleset = new Ruleset(file);
 
-            emitLine(ruleset, path.basename(file).replace("-cosi.json", ""));
+            emitLine(ruleset, path.basename(file).replace('-cosi.json', ''));
         }
     }
-
 });

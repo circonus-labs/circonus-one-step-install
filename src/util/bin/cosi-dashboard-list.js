@@ -18,7 +18,7 @@ const dashList = require(path.join(cosi.lib_dir, 'dashboard', 'list'));
 /**
  * generic function to print lines
  * @arg {Number} maxIdLen max length of an ID
- * @arg {String} id dashboard uuid
+ * @arg {String} id dashboard id
  * @arg {String} title of dashboard
  * @returns {Undefined} nothing
  */

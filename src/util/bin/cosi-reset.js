@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
-/* eslint-env node, es6 */
-/* eslint-disable no-warning-comments, no-process-exit, no-magic-numbers, global-require */
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
 /**
  * COSI reset
@@ -28,23 +29,36 @@ const chalk = require('chalk');
 const cosi = require(path.resolve(path.join(__dirname, '..', 'lib', 'cosi')));
 const api = require(path.resolve(cosi.lib_dir, 'api'));
 
-function deleteItem(item, keepTemplates, cb) { // eslint-disable-line consistent-return
+/**
+ * delete a specific item
+ * @arg {Object} item definition
+ * @arg {Boolean} keepTemplates flag
+ * @arg {Function} cb callback
+ * @returns {Undefined} nothing
+ */
+function deleteItem(item, keepTemplates, cb) {
     let cfg = {};
 
     try {
-        cfg = require(item.regFile);
+        cfg = require(item.regFile); // eslint-disable-line global-require
     } catch (err) {
         if (err.code === 'MODULE_NOT_FOUND') {
             console.log(chalk.yellow('WARN'), 'Registration not found', item.regFile);
-            return cb(null);
+
+            cb(null);
+
+            return;
         }
-        return cb(err);
+
+        cb(err);
+
+        return;
     }
 
     const itemURL = cfg._cid;
     const itemName = cfg.display_name || cfg.title || cfg.description || '';
 
-    const cleaner = () => { // eslint-disable-line func-style
+    const cleaner = () => {
         try {
             console.log(`\tremoving ${item.regFile}`);
             fs.unlinkSync(item.regFile);
@@ -76,6 +90,7 @@ function deleteItem(item, keepTemplates, cb) { // eslint-disable-line consistent
                 }
             }
         }
+
         return null;
     };
 
@@ -84,20 +99,28 @@ function deleteItem(item, keepTemplates, cb) { // eslint-disable-line consistent
         if (getError !== null) {
             if ({}.hasOwnProperty.call(getError, 'detail') && getError.detail.message.indexOf('not found') !== -1) {
                 console.log(`\t${itemURL}`, chalk.bold('not found'), '- cleaning up orphaned files.');
-                return cb(cleaner());
+                cb(cleaner());
+
+                return;
             }
             console.error(chalk.red('ERROR'), 'An API error occurred', getError);
-            return cb(getError);
+            cb(getError);
+
+            return;
         }
 
         if (getCode === 404 && (getResult.code && getResult.code === 'ObjectError.InstanceNotFound')) {
             console.log(`\t${itemURL}`, chalk.bold('not found'), '- cleaning up orphaned files.');
-            return cb(cleaner());
+            cb(cleaner());
+
+            return;
         }
 
         if (getCode < 200 || getCode > 299) { // eslint-disable-line no-magic-numbers
             console.error(chalk.red('API RESULT CODE'), `API ${getCode}`, getError, getResult);
-            return cb(getError);
+            cb(getError);
+
+            return;
         }
 
         console.log(chalk.bold('\tDeleting'), `${itemName} ${itemURL}`);
@@ -111,15 +134,24 @@ function deleteItem(item, keepTemplates, cb) { // eslint-disable-line consistent
 
             if (code < 200 || code > 299) { // eslint-disable-line no-magic-numbers
                 console.error(chalk.red('API RESULT CODE'), `API ${code}`, apiError, result);
-                return cb(apiError);
+                cb(apiError);
+
+                return;
             }
 
-            return cb(cleaner());
+            cb(cleaner());
         });
     });
 }
 
 
+/**
+ * find asset registrations
+ * @arg {String} dir to search
+ * @arg {String} itemType to search for
+ * @arg {String} itemId of specific asset
+ * @returns {Array} list of items
+ */
 function findItems(dir, itemType, itemId) {
     let id = null;
 
@@ -146,7 +178,6 @@ function findItems(dir, itemType, itemId) {
     const entries = [];
 
     for (const file of files) {
-
         if (itemType === 'check' && typeof itemId === 'undefined') {
             // don't remove the group check unless it is explicitly
             // specified on the command line. (--check=group).
@@ -171,17 +202,23 @@ function findItems(dir, itemType, itemId) {
             }
 
             entries.push({
-                regFile,
                 cfgFile,
+                regFile,
                 templateFile
             });
         }
     }
 
     console.log(`Found ${entries.length} ${itemType}s.`);
+
     return entries;
 }
 
+/**
+ * remove configuration files
+ * @arg {Function} cb callback
+ * @returns {Undefined} nothing
+ */
 function removeConfigs(cb) {
     console.log('Removing COSI configuration files');
     console.log(`\tre-installing default NAD config`);
@@ -233,7 +270,6 @@ function removeConfigs(cb) {
         }
 
         cb();
-        return;
     });
 }
 
@@ -250,7 +286,7 @@ app.
     option('-q, --quiet', 'Only error output').
     parse(process.argv);
 
-// // main
+// main
 
 if (!app.all && !app.check && !app.graph && !app.worksheet) {
     console.error(chalk.red('No option(s) provided, at least one (-c, -g, -w, or -a) is required.'));
@@ -262,15 +298,15 @@ api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
 const items = [];
 
 if (app.all || app.worksheet) {
-    items.push.apply(items, findItems(cosi.reg_dir, 'worksheet', app.worksheet));
+    items.push(...findItems(cosi.reg_dir, 'worksheet', app.worksheet));
 }
 
 if (app.all || app.graph) {
-    items.push.apply(items, findItems(cosi.reg_dir, 'graph', app.graph));
+    items.push(...findItems(cosi.reg_dir, 'graph', app.graph));
 }
 
 if (app.all || app.dashboard) {
-    items.push.apply(items, findItems(cosi.reg_dir, 'dashboard', app.dashboard));
+    items.push(...findItems(cosi.reg_dir, 'dashboard', app.dashboard));
 }
 
 
@@ -297,8 +333,8 @@ if (app.all || app.ruleset) {
 
         if (regFile !== null) {
             items.push({
-                regFile,
                 cfgFile,
+                regFile,
                 templateFile
             });
         }
@@ -307,7 +343,7 @@ if (app.all || app.ruleset) {
 
 // always do checks last, remove everything dependent on the check(s) first
 if (app.all || app.check) {
-    items.push.apply(items, findItems(cosi.reg_dir, 'check', app.check));
+    items.push(...findItems(cosi.reg_dir, 'check', app.check));
 }
 
 if (items.length > 0) {
@@ -318,6 +354,7 @@ if (items.length > 0) {
 
         if (typeof item === 'undefined') {
             events.emit('done');
+
             return;
         }
 
