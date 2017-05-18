@@ -81,7 +81,7 @@ const list = checkList();
 
 if (list.length === 0) {
     console.error(chalk.red('No local checks found'));
-    process.exit(1); // eslint-disable-line no-process-exit
+    process.exit(1);
 }
 
 if (!app.quiet && !app.long) {

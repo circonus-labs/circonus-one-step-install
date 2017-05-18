@@ -24,7 +24,7 @@ console.log(chalk.bold(app.name()), `v${app.version()}`);
 if (app.args.length === 0) {
     console.error(chalk.red('config_file is requried'));
     app.outputHelp();
-    process.exit(1); // eslint-disable-line no-process-exit
+    process.exit(1);
 }
 
 const cfgFile = path.resolve(app.args[0]);
@@ -37,7 +37,7 @@ graph.update((err, result) => {
             console.error(err.details.join('\n'));
         }
         console.dir(err);
-        process.exit(1); // eslint-disable-line no-process-exit
+        process.exit(1);
     }
 
     graph.save(cfgFile, true);

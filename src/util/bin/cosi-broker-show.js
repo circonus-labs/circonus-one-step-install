@@ -28,7 +28,7 @@ if (!app.quiet) {
 if (app.args.length !== 1) {
     console.error(chalk.red('\nbroker_id is required.'), 'See `cosi broker list` for Broker IDs.');
     app.outputHelp();
-    process.exit(1); // eslint-disable-line no-process-exit
+    process.exit(1);
 }
 
 const [ broker_id ] = app.args;

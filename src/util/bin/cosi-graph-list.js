@@ -67,7 +67,7 @@ const list = graphList();
 
 if (list.length === 0) {
     console.error(chalk.red('No local graphs found'));
-    process.exit(1); // eslint-disable-line no-process-exit
+    process.exit(1);
 }
 
 let maxIdLen = 20;

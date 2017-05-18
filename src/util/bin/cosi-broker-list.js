@@ -68,8 +68,5 @@ bh.getBrokerList((err, brokers) => {
         if (name !== 'composite') {
             emitLine(app.quiet, id, name, type);
         }
-        // for (const detail of item._details) {
-        //     console.log(detail.status, detail.ipaddress, detail.cn);
-        // }
     }
 });

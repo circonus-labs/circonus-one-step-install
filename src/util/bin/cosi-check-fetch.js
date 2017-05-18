@@ -61,17 +61,17 @@ let urlPath = '/check_bundle';
 let query = { f_type: circonusCheckType };
 
 if (app.display_name) {
-    query.f_display_name = app.display_name; // eslint-disable-line camelcase
+    query.f_display_name = app.display_name;
     criteria = `display_name='${app.display_name}' `;
 }
 
 if (app.target_host) {
-    query.f_target = app.target_host; // eslint-disable-line camelcase
+    query.f_target = app.target_host;
     criteria += `target='${app.target_host}'`;
 }
 
 if (!app.display_name && !app.target_host) {
-    query.f_notes_wildcard = `cosi:register*cosi_id:${cosi.cosi_id}*`; // eslint-disable-line camelcase
+    query.f_notes_wildcard = `cosi:register*cosi_id:${cosi.cosi_id}*`;
     criteria = `this host's COSI ID (${cosi.cosi_id})`;
 }
 
@@ -97,7 +97,7 @@ api.get(urlPath, query, (code, err, result) => {
 
     if (result.length === 0) {
         console.error(chalk.red(`No ${checkType} checks found for ${criteria}.`));
-        process.exit(1); // eslint-disable-line no-process-exit
+        process.exit(1);
     }
 
     if (app.save) {
@@ -105,15 +105,13 @@ api.get(urlPath, query, (code, err, result) => {
 
         fs.writeFileSync(file, JSON.stringify(result, null, 4));
         console.log(chalk.green('Saved'), `check configuration to ${file}`);
-    } else {
-        if (Array.isArray(result)) { // eslint-disable-line no-lonely-if
-            for (let i = 0; i < result.length; i++) {
-                if (result[i].type === circonusCheckType) {
-                    console.dir(result[i]);
-                }
+    } else if (Array.isArray(result)) {
+        for (let i = 0; i < result.length; i++) {
+            if (result[i].type === circonusCheckType) {
+                console.dir(result[i]);
             }
-        } else {
-            console.dir(result);
         }
+    } else {
+        console.dir(result);
     }
 });
