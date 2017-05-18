@@ -1,25 +1,29 @@
-/* eslint-env node, es6 */
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
 /* eslint-disable global-require */
-/* eslint-disable no-process-exit */
-/* eslint-disable no-process-env */
 
 'use strict';
 
-const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs');
+const path = require('path');
 const url = require('url');
-const ProxyAgent = require('https-proxy-agent');
 
 const chalk = require('chalk');
+const ProxyAgent = require('https-proxy-agent');
 
 const pkg = require(path.resolve(path.join(__dirname, '..', '..', 'package.json')));
 
 let instance = null;
 
 class COSI {
-    constructor() {
+
+    /**
+     * initialize cosi instance
+     */
+    constructor() { // eslint-disable-line max-statements
         if (instance !== null) {
             return instance;
         }
@@ -67,10 +71,7 @@ class COSI {
             'cosi_os_arch'
         ];
 
-        // for (const prop of requiredSettings) {
-        for (let i = 0; i < requiredSettings.length; i++) {
-            const prop = requiredSettings[i];
-
+        for (const prop of requiredSettings) {
             if ({}.hasOwnProperty.call(cfg, prop)) {
                 instance[prop] = cfg[prop];
             } else {
@@ -87,9 +88,7 @@ class COSI {
             'cosi_group_id'
         ];
 
-        for (let i = 0; i < optionalSettings.length; i++) {
-            const prop = optionalSettings[i];
-
+        for (const prop of optionalSettings) {
             if ({}.hasOwnProperty.call(cfg, prop) && cfg[prop] !== '') {
                 instance[prop] = cfg[prop];
             }
@@ -112,7 +111,10 @@ class COSI {
                 process.exit(1);
             }
 
-            instance.cosi_id = crypto.createHash('sha256').update(crypto.randomBytes(2048)).digest('hex');
+            instance.cosi_id = crypto.
+                createHash('sha256').
+                update(crypto.randomBytes(2048)).
+                digest('hex');
             try {
                 fs.writeFileSync(idFile, instance.cosi_id);
             } catch (writeError) {
@@ -139,13 +141,18 @@ class COSI {
             const info = require(regInfoFile);
 
             instance.ui_url = info.account.ui_url;
-        } catch (err) {
+        } catch (ignoreErr) {
             // ignore
         }
 
         return instance;
     }
 
+    /**
+     * set up request object with proxy settings if applicable
+     * @arg {String} reqUrl request url
+     * @returns {Object} request options with proxy server (if any)
+     */
     getProxySettings(reqUrl) {
         const reqOptions = url.parse(reqUrl);
         const proxyServer = this._getProtocolProxyUrl(reqOptions.protocol);
@@ -158,8 +165,12 @@ class COSI {
         return reqOptions;
     }
 
-    // extract proxy setting from environment for a specific protocol
-    _getProtocolProxyUrl(urlProtocol) {
+    /**
+     * extract proxy setting from environment for a specific protocol
+     * @arg {String} urlProtocol protocol
+     * @returns {String} proxy url or null
+     */
+    _getProtocolProxyUrl(urlProtocol) { // eslint-disable-line class-methods-use-this
         let proxyServer = null;
 
         if (urlProtocol === 'http:') {
@@ -183,6 +194,7 @@ class COSI {
 
         return proxyServer;
     }
+
 }
 
 module.exports = new COSI();
