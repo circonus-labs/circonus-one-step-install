@@ -46,17 +46,13 @@ bh.getBrokerList((errGBL) => {
     let maxCheckWidth = 0;
     let active = false;
 
-    for (let i = 0; i < broker._details.length; i++) {
-        const detail = broker._details[i];
-
+    for (const detail of broker._details) {
         if (detail.status === 'active') {
             active = true;
-            for (let j = 0; j < detail.modules.length; j++) {
-                const module_id = detail.modules[j];
-
-                if (module_id !== 'selfcheck' && module_id.substr(0, 7) !== 'hidden:') {
-                    checkTypes[module_id] = true;
-                    maxCheckWidth = Math.max(maxCheckWidth, module_id.length);
+            for (const check_module of detail.modules) {
+                if (check_module !== 'selfcheck' && check_module.substr(0, 7) !== 'hidden:') {
+                    checkTypes[check_module] = true;
+                    maxCheckWidth = Math.max(maxCheckWidth, check_module.length);
                 }
             }
         }

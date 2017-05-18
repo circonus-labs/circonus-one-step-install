@@ -46,7 +46,11 @@ if (app.id) {
             process.exit(2);
         }
     });
-} else if (app.all) {
+
+    process.exit(0);
+}
+
+if (app.all) {
     fs.readdir(cosi.ruleset_dir, (err, files) => {
         if (err) {
             console.error(chalk.red('ERROR'), 'reading ruleset directory.', err);

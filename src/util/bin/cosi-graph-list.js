@@ -72,10 +72,7 @@ if (list.length === 0) {
 
 let maxIdLen = 20;
 
-// for (const graph of list) {
-for (let i = 0; i < list.length; i++) {
-    const graph = list[i];
-
+for (const graph of list) {
     if (graph.id.length > maxIdLen) {
         maxIdLen = graph.id.length;
     }
@@ -85,10 +82,7 @@ if (!app.quiet && !app.long) {
     emitLine(maxIdLen);
 }
 
-// for (const graph of list) {
-for (let i = 0; i < list.length; i++) {
-    const graph = list[i];
-
+for (const graph of list) {
     if (app.long) {
         emitLong(graph);
     } else {

@@ -54,19 +54,20 @@ const bh = new Broker(app.quiet);
 
 bh.getBrokerList((err, brokers) => {
     if (err) {
+        console.log(chalk.red('ERROR'), 'fetching broker list', err);
         process.exit(1);
     }
 
     emitLine(app.quiet);
 
-    for (let i = 0; i < brokers.length; i++) {
-        const broker = brokers[i];
-        const id = broker._cid.replace('/broker/', '');
-        const type = broker._type;
-        const name = broker._name;
-
-        if (name !== 'composite') {
-            emitLine(app.quiet, id, name, type);
+    for (const broker of brokers) {
+        if (broker._name !== 'composite') {
+            emitLine(
+                app.quiet,
+                broker._cid.replace('/broker/', ''),
+                broker._type,
+                broker._name
+            );
         }
     }
 });

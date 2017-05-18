@@ -80,16 +80,14 @@ if (!app.quiet && !app.long) {
     emitLine(maxIdLen);
 }
 
-for (let i = 0; i < list.length; i++) {
-    const dash = list[i];
-
+for (const dashboard of list) {
     if (app.long) {
-        emitLong(dash);
+        emitLong(dashboard);
     } else {
         emitLine(
             maxIdLen,
-            dash.id,
-            dash.config.title
+            dashboard.id,
+            dashboard.config.title
         );
     }
 }

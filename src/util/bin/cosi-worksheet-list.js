@@ -66,15 +66,13 @@ if (!app.quiet) {
 const list = worksheetList();
 
 if (list.length === 0) {
-    console.error(chalk.red('No local graphs found'));
+    console.error(chalk.red('No local worksheets found'));
     process.exit(1);
 }
 
 let maxIdLen = 20;
 
-for (let i = 0; i < list.length; i++) {
-    const worksheet = list[i];
-
+for (const worksheet of list) {
     if (worksheet.id.length > maxIdLen) {
         maxIdLen = worksheet.id.length;
     }
@@ -84,10 +82,7 @@ if (!app.quiet && !app.long) {
     emitLine(maxIdLen);
 }
 
-// for (const worksheet of list) {
-for (let i = 0; i < list.length; i++) {
-    const worksheet = list[i];
-
+for (const worksheet of list) {
     if (app.long) {
         emitLong(worksheet);
     } else {

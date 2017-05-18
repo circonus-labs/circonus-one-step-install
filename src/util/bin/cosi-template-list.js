@@ -44,7 +44,7 @@ if (!app.quiet) {
 
 templateList(cosi.reg_dir, (err, list) => {
     if (err) {
-        console.log('template list, list', err);
+        console.log('template list', list, err);
         process.exit(1);
     }
 
@@ -57,11 +57,11 @@ templateList(cosi.reg_dir, (err, list) => {
         emitLine();
     }
 
-    for (let i = 0; i < list.length; i++) {
+    for (const template of list) {
         emitLine(
-            list[i].config.id,
-            list[i].config.type,
-            list[i].config.description
+            template.id,
+            template.type,
+            template.description
         );
     }
 });

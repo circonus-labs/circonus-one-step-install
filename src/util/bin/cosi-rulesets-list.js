@@ -65,8 +65,8 @@ fs.readdir(cosi.ruleset_dir, (err, files) => {
 
     emitLine();
 
-    for (let i = 0; i < files.length; i++) {
-        const file = path.resolve(path.join(cosi.ruleset_dir, files[i]));
+    for (const file_name of files) {
+        const file = path.resolve(path.join(cosi.ruleset_dir, file_name));
 
         if (file.match(/-cosi\.json$/)) {
             const ruleset = new Ruleset(file);
