@@ -14,7 +14,7 @@ module.exports = {
         'max-len': [
             'error',
             {
-                code                   : 100,
+                code                   : 120,
                 tabWidth               : 4,
                 ignoreComments         : true,
                 ignoreTrailingComments : true,
@@ -24,6 +24,14 @@ module.exports = {
                 ignoreRegExpLiterals   : true
             }
         ],
+        'max-lines': [
+            'error',
+            {
+                max: 1000
+            }
+        ],
+        // destructuring not supported on all omnios nodejs builds yet
+        'prefer-destructuring': 'off',
         // most api objects use an underscore prefix to
         // annotate attributes which may not be modified.
         'no-underscore-dangle': 'off',

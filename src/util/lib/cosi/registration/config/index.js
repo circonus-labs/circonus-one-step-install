@@ -1,5 +1,7 @@
 'use strict';
 
+throw new Error('config is unused');
+
 /* eslint-env node, es6 */
 /* eslint-disable no-magic-numbers, global-require, camelcase */
 
@@ -26,7 +28,6 @@ class Config extends Registration {
         this.checkMetrics = null;
 
         throw new Error('deprecated');
-
     }
 
     config() {
@@ -77,6 +78,7 @@ class Config extends Registration {
             this.regConfig = require(this.regConfigFile);
         } catch (err) {
             this.emit('error', err);
+
             return;
         }
 
@@ -95,12 +97,12 @@ class Config extends Registration {
             this.metrics = require(metricsFile);
         } catch (err) {
             this.emit('error', err);
+
             return;
         }
 
         console.log(chalk.green('Metrics loaded'), metricsFile);
         this.emit('metrics.load.done');
-
     }
 
 
@@ -113,6 +115,7 @@ class Config extends Registration {
         templateList(this.regDir, (listError, templates) => {
             if (listError) {
                 self.emit('error', listError);
+
                 return;
             }
 
@@ -141,7 +144,6 @@ class Config extends Registration {
             }
 
             self.emit('templates.find.done');
-
         });
     }
 
@@ -237,6 +239,7 @@ class Config extends Registration {
                     );
                 } catch (err) {
                     this.emit('error', err);
+
                     return;
                 }
 
@@ -254,6 +257,7 @@ class Config extends Registration {
 
         if (this._fileExists(configFile)) {
             console.log('\tGraph configuration already exists.', configFile);
+
             return;
         }
 
@@ -275,11 +279,11 @@ class Config extends Registration {
             fs.writeFileSync(preConfigFile, JSON.stringify(graph, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
         } catch (err) {
             this.emit('error', err);
+
             return;
         }
 
         console.log(chalk.green('\tSaved pre-config'), preConfigFile);
-
     }
 
 
@@ -295,6 +299,7 @@ class Config extends Registration {
         if (this._fileExists(configFile)) {
             console.log('\tCheck configuration already exists.', configFile);
             this.emit('check.config.done');
+
             return;
         }
 
@@ -308,8 +313,8 @@ class Config extends Registration {
                 this.regConfig.broker.trap._cid.replace('/broker/', '')
             ];
             check.config = {
-                asynch_metrics: true,
-                secret: crypto.randomBytes(2048).toString('hex').substr(0, 16)
+                asynch_metrics : true,
+                secret         : crypto.randomBytes(2048).toString('hex').substr(0, 16)
             };
         } else {
             check.brokers = [
@@ -337,13 +342,13 @@ class Config extends Registration {
                 { encoding: 'utf8', mode: 0o644, flag: 'w' });
         } catch (err) {
             this.emit('error', err);
+
             return;
         }
 
         console.log(chalk.green('\tSaved configuration'), configFile);
         // this.checkMetrics = checkMetrics;
         this.emit('check.config.done');
-
     }
 
 
@@ -356,6 +361,7 @@ class Config extends Registration {
         if (!this.regConfig.statsd.enabled) {
             console.log('\tStatsD check disabled, skipping.');
             this.emit('statsd.config.done');
+
             return;
         }
 
@@ -365,6 +371,7 @@ class Config extends Registration {
         if (this._fileExists(configFile)) {
             console.log('\tCheck configuration already exists.', configFile);
             this.emit('statsd.config.done');
+
             return;
         }
 
@@ -373,8 +380,8 @@ class Config extends Registration {
 
         check.type = 'httptrap';
         check.config = {
-            asynch_metrics: true,
-            secret: crypto.randomBytes(2048).toString('hex').substr(0, 16)
+            asynch_metrics : true,
+            secret         : crypto.randomBytes(2048).toString('hex').substr(0, 16)
         };
 
         // set the broker receiving for pulling metrics
@@ -388,9 +395,9 @@ class Config extends Registration {
         }
         if (check.metrics.length === 0) {
             check.metrics.push({
-                name: 'statsd`num_stats',
-                type: 'numeric',
-                status: 'active'
+                name   : 'statsd`num_stats',
+                type   : 'numeric',
+                status : 'active'
             });
         }
 
@@ -408,12 +415,12 @@ class Config extends Registration {
                 { encoding: 'utf8', mode: 0o644, flag: 'w' });
         } catch (err) {
             this.emit('error', err);
+
             return;
         }
 
         console.log(chalk.green('\tSaved configuration'), configFile);
         this.emit('statsd.config.done');
-
     }
 
 
@@ -429,6 +436,7 @@ class Config extends Registration {
         if (this._fileExists(configFile)) {
             console.log('\tWorksheet configuration already exists', configFile);
             this.emit('worksheet.config.done');
+
             return;
         }
 
@@ -437,9 +445,9 @@ class Config extends Registration {
 
         config.smart_queries = [
             {
-                name: 'Circonus One Step Install',
-                order: [],
-                query: `(notes:"${this.regConfig.cosiNotes}*")`
+                name  : 'Circonus One Step Install',
+                order : [],
+                query : `(notes:"${this.regConfig.cosiNotes}*")`
             }
         ];
 
@@ -454,12 +462,12 @@ class Config extends Registration {
                 { encoding: 'utf8', mode: 0o644, flag: 'w' });
         } catch (err) {
             this.emit('error', err);
+
             return;
         }
 
         console.log('\tSaved configuration', configFile);
         this.emit('worksheet.config.done');
-
     }
 
     _writeDashboardConfig(template, config, id, data, registeredGraphs, registeredCheck) { // eslint-disable-line max-params
@@ -471,6 +479,7 @@ class Config extends Registration {
         if (this._fileExists(configFile)) {
             console.log('\tDashboard configuration already exists', configFile);
             this.emit('dashboard.config.done', configFile);
+
             return;
         }
 
@@ -549,9 +558,9 @@ class Config extends Registration {
                 } else {
                     /* need to ensure the needed metric is active in the check */
                     checkMetrics.push({
-                        name: metric_name,
-                        type: metric._type === 's' ? 'text' : 'numeric',
-                        status: 'active'
+                        name   : metric_name,
+                        type   : metric._type === 's' ? 'text' : 'numeric',
+                        status : 'active'
                     });
                     widget.settings.account_id = this.regConfig.account.account_id;
                     widget.settings.check_uuid = registeredCheck._check_uuids[0];
@@ -568,6 +577,7 @@ class Config extends Registration {
                 { encoding: 'utf8', mode: 0o644, flag: 'w' });
         } catch (err) {
             this.emit('error', err);
+
             return;
         }
         console.log('\tSaved configuration', configFile);
@@ -606,6 +616,7 @@ class Config extends Registration {
         check.update((err) => {
             if (err) {
                 self.emit('error', `Cannot re-save check config "${err}"`);
+
                 return;
             }
             console.log(`\tSaving registration ${regFile}`);
@@ -624,6 +635,7 @@ class Config extends Registration {
 
         if (!this._fileExists(templateFile)) {
             console.log('\tNo template for dashboard', templateFile);
+
             return;
         }
 
@@ -720,8 +732,8 @@ class Config extends Registration {
                             variableMetrics[item] = [];
                         }
                         variableMetrics[item].push({
-                            name: metric,
-                            datapointIndex: `${dpIdx}`
+                            name           : metric,
+                            datapointIndex : `${dpIdx}`
                         });
                     }
                 }

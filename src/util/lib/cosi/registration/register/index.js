@@ -1,6 +1,8 @@
-'use strict';
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-/* eslint-env node, es6 */
+'use strict';
 
 const Events = require('events');
 const path = require('path');
@@ -16,6 +18,10 @@ const Dashboards = require(path.resolve(path.join(cosi.lib_dir, 'registration', 
 
 class Register extends Events {
 
+    /**
+     * start the registration process
+     * @returns {Undefined} nothing
+     */
     register() {
         console.log(chalk.bold('\nRegistration - creating checks and visuals\n'));
 
@@ -104,6 +110,7 @@ class Register extends Events {
 
         self.emit('setup');
     }
+
 }
 
 module.exports = Register;

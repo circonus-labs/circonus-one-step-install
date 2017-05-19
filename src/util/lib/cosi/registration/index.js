@@ -1,7 +1,8 @@
-'use strict';
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-/* eslint-env node, es6 */
-/* eslint-disable no-magic-numbers, global-require */
+'use strict';
 
 const assert = require('assert');
 const Events = require('events').EventEmitter;
@@ -17,6 +18,10 @@ const Metrics = require(path.resolve(path.join(cosi.lib_dir, 'metrics')));
 
 class Registration extends Events {
 
+    /**
+     * registration base class
+     * @arg {Boolean} quiet information messages
+     */
     constructor(quiet) {
         super();
 
@@ -32,29 +37,29 @@ class Registration extends Events {
 
         this.regConfigFile = path.resolve(path.join(cosi.reg_dir, 'setup-config.json'));
         this.regConfig = {
-            broker: {
-                json: null,
-                trap: null
+            account : null,
+            broker  : {
+                json : null,
+                trap : null
             },
-            account: null,
-            metricsFile: path.join(cosi.reg_dir, 'setup-metrics.json'),
-            cosiTags: [
+            cosiNotes : `cosi:register,cosi_id:${cosi.cosi_id}`,
+            cosiTags  : [
                 'cosi:install',
                 `distro:${cosi.cosi_os_dist}-${cosi.cosi_os_vers}`,
                 `arch:${cosi.cosi_os_arch}`,
                 `os:${cosi.cosi_os_type}`
             ],
-            cosiNotes: `cosi:register,cosi_id:${cosi.cosi_id}`,
-            templateData: {
-                host_name: cosi.custom_options.host_name || os.hostname(),
-                host_target: null,
-                host_vars: cosi.custom_options.host_vars || {},
-                host_tags: cosi.custom_options.host_tags || [],
-                host_group_id: null
-            },
             group: {
-                enabled: false,
-                id: null
+                enabled : false,
+                id      : null
+            },
+            metricsFile  : path.join(cosi.reg_dir, 'setup-metrics.json'),
+            templateData : {
+                host_group_id : null,
+                host_name     : cosi.custom_options.host_name || os.hostname(),
+                host_tags     : cosi.custom_options.host_tags || [],
+                host_target   : null,
+                host_vars     : cosi.custom_options.host_vars || {}
             }
         };
 
@@ -67,10 +72,11 @@ class Registration extends Events {
         this.globalMeta = {};
         try {
             const globalMetaFile = path.resolve(path.join(cosi.reg_dir, 'meta-global.json'));
-            const meta = require(globalMetaFile);
+            const meta = require(globalMetaFile); // eslint-disable-line global-require
 
             this.globalMeta = JSON.parse(JSON.stringify(meta));
         } catch (err) {
+            // only raise parsing errors, global meta files are not used in all instances
             if (err.code !== 'MODULE_NOT_FOUND') {
                 throw err;
             }
@@ -86,20 +92,28 @@ class Registration extends Events {
         });
 
         dot.templateSettings.varname = 'cosi';
-
     }
 
 
+    /**
+     * load custom registration configuration
+     * @returns {Object} error or null
+     */
     loadRegConfig() {
         try {
-            this.regConfig = require(this.regConfigFile);
+            this.regConfig = require(this.regConfigFile); // eslint-disable-line global-require
         } catch (err) {
             return err;
         }
+
         return null;
     }
 
 
+    /**
+     * save registration configuration
+     * @returns {Boolean} saved or not
+     */
     saveRegConfig() {
         console.log(chalk.blue(this.marker));
         console.log('Save registration configuration');
@@ -107,18 +121,27 @@ class Registration extends Events {
         try {
             fs.writeFileSync(
                 this.regConfigFile,
-                JSON.stringify(this.regConfig, null, 4),
-                { encoding: 'utf8', mode: 0o644, flag: 'w' });
+                JSON.stringify(this.regConfig, null, 4), {
+                    encoding : 'utf8',
+                    flag     : 'w',
+                    mode     : 0o644
+                });
         } catch (err) {
             this.emit('error', err);
+
             return false;
         }
 
         console.log(chalk.green('Registration configuration saved', this.regConfigFile));
+
         return true;
     }
 
 
+    /**
+     * load available metrics from NAD
+     * @returns {Undefined} nothing
+     */
     loadMetrics() {
         console.log(chalk.blue(this.marker));
         console.log('Loading available metrics');
@@ -132,6 +155,7 @@ class Registration extends Events {
         metrics.load((err) => {
             if (err) {
                 self.emit('error', err);
+
                 return;
             }
             metrics.getMetricStats((metricStatsError, stats) => {
@@ -149,6 +173,7 @@ class Registration extends Events {
                 metrics.getMetrics((metricsError, agentMetrics) => {
                     if (metricsError) {
                         self.emit('error', metricsError);
+
                         return;
                     }
                     console.log(`\tTotal metrics: ${totalMetrics}`);
@@ -161,6 +186,11 @@ class Registration extends Events {
     }
 
 
+    /**
+     * helper function, check if file exists
+     * @arg {String} cfgFile to check for
+     * @returns {Boolean} exists and is file
+     */
     _fileExists(cfgFile) {
         assert.equal(typeof cfgFile, 'string', 'cfgFile is required');
 
@@ -178,13 +208,19 @@ class Registration extends Events {
     }
 
 
+    /**
+     * helper function, set tags on api object
+     * @arg {Object} cfg for api object being tagged
+     * @arg {String} id of api object being tagged to locate specific global/custom tags
+     * @returns {Undefined} nothing
+     */
     _setTags(cfg, id) {
         assert.equal(typeof cfg, 'object', 'cfg is required');
         assert.equal(typeof id, 'string', 'id is required');
 
         cfg.tags = cfg.tags || []; // eslint-disable-line no-param-reassign
 
-        function addTags(config, tags) {
+        const addTags = (config, tags) => {
             if (!config.tags) {
                 return;
             }
@@ -195,13 +231,10 @@ class Registration extends Events {
                 return;
             }
 
-            // for (const tag of tags) {
-            for (let i = 0; i < tags.length; i++) {
-                const tag = tags[i];
-
+            for (const tag of tags) {
                 config.tags.push(tag);
             }
-        }
+        };
 
         addTags(cfg, this.regConfig.cosiTags);
         addTags(cfg, this.regConfig.templateData.host_tags || []);
@@ -228,14 +261,19 @@ class Registration extends Events {
     }
 
 
+    /**
+     * helper function, merges data from template, configs, and system
+     * @arg {String} id of api object being tagged to locate specific global/custom tags
+     * @returns {Undefined} nothing
+     */
     _mergeData(id) {
         assert.equal(typeof id, 'string', 'id is required');
 
         const idParts = id.split('-', 3);
         const defaults = JSON.parse(JSON.stringify(this.regConfig.templateData));
         const data = {
-            host_name: defaults.host_name,
-            host_target: defaults.host_target
+            host_name   : defaults.host_name,
+            host_target : defaults.host_target
         };
 
         // add relevant check meta data if checkMeta set by subclass
@@ -252,15 +290,14 @@ class Registration extends Events {
             }
         }
 
-        function propAdd(target, source) {
+        const propAdd = (target, source) => {
             for (const prop in source) {
                 if ({}.hasOwnProperty.call(source, prop)) {
                     target[prop] = source[prop]; // eslint-disable-line no-param-reassign
                 }
             }
-        }
+        };
 
-        // data = Object.assign(data, defaults.host_vars);
         propAdd(data, defaults.host_vars || {});
 
         if (idParts.length >= 2) {
@@ -275,14 +312,11 @@ class Registration extends Events {
             if (cfgType && cosi.custom_options[cfgType]) {
                 const custom = cosi.custom_options[cfgType];
 
-                // data = Object.assign(data, custom.vars || {});
                 propAdd(data, custom.vars || {});
 
                 if (cfgId && {}.hasOwnProperty.call(custom, cfgId)) {
-                    // data = Object.assign(data, custom[cfgId].vars || {});
                     propAdd(data, custom[cfgId].vars || {});
                     if (cfgItemId && {}.hasOwnProperty.call(custom[cfgId], cfgItemId)) {
-                        // data = Object.assign(data, custom[cfgId][cfgItemId].vars || {});
                         propAdd(data, custom[cfgId][cfgItemId].vars || {});
                     }
                 }
@@ -293,7 +327,13 @@ class Registration extends Events {
     }
 
 
-    _expand(template, vars) {
+    /**
+     * helper function, interpolate specific template fields. (used to isolate use of 'dot' to single location)
+     * @arg {String} template to be interpolated
+     * @arg {Object} vars custom variables to be used
+     * @returns {String} the interpolated value
+     */
+    _expand(template, vars) { // eslint-disable-line class-methods-use-this
         assert.equal(typeof template, 'string', 'template is required');
         assert.equal(typeof vars, 'object', 'vars is required');
 

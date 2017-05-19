@@ -1,7 +1,8 @@
-'use strict';
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-/* eslint-env node, es6 */
-/* eslint-disable no-magic-numbers, global-require, camelcase */
+'use strict';
 
 const assert = require('assert');
 const fs = require('fs');
@@ -18,6 +19,10 @@ const Graph = require(path.resolve(path.join(cosi.lib_dir, 'graph')));
 
 class Graphs extends Registration {
 
+    /**
+     * create graph object
+     * @arg {Boolean} quiet squelch some info messages
+     */
     constructor(quiet) {
         super(quiet);
 
@@ -25,6 +30,7 @@ class Graphs extends Registration {
 
         if (err !== null) {
             this.emit('error', err);
+
             return;
         }
 
@@ -33,6 +39,11 @@ class Graphs extends Registration {
         this.checkMeta = null;
     }
 
+    /**
+     * start the graph creation process
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
     create(cb) {
         console.log(chalk.bold('\nRegistration - graphs'));
 
@@ -61,6 +72,7 @@ class Graphs extends Registration {
         this.once('templates.find.done', () => {
             if (self.templates.length < 1) {
                 self.emit('error', new Error('No graph templates identified'));
+
                 return;
             }
             self.emit('graphs.config');
@@ -83,8 +95,7 @@ class Graphs extends Registration {
 
         this.once('graphs.done', () => {
             if (typeof cb === 'function') {
-                cb();
-                return;
+                cb(); // eslint-disable-line callback-return
             }
         });
 
@@ -92,6 +103,10 @@ class Graphs extends Registration {
     }
 
 
+    /**
+     * find graph templates
+     * @returns {Undefined} nothing, emits event
+     */
     findTemplates() {
         console.log(chalk.blue(this.marker));
         console.log('Identifying graph templates');
@@ -101,6 +116,7 @@ class Graphs extends Registration {
         templateList(cosi.reg_dir, (listError, templates) => {
             if (listError) {
                 self.emit('error', listError);
+
                 return;
             }
 
@@ -128,6 +144,10 @@ class Graphs extends Registration {
     }
 
 
+    /**
+     * configure graphs
+     * @returns {Undefined} nothing, emits event
+     */
     configGraphs() {
         console.log(chalk.blue(this.marker));
 
@@ -152,6 +172,11 @@ class Graphs extends Registration {
     }
 
 
+    /**
+     * configure individual, specific graph
+     * @arg {String} graphId to configure
+     * @returns {Undefined} nothing, emits event
+     */
     configGraph(graphId) {
         assert.equal(typeof graphId, 'string', 'graphId is required');
 
@@ -173,6 +198,12 @@ class Graphs extends Registration {
     }
 
 
+    /**
+     * configure specific variable graph
+     * @arg {Object} template of graphs to configure
+     * @arg {Number} graphIdx of specific graph to configure
+     * @returns {Undefined} nothing, emits event
+     */
     configVariableGraph(template, graphIdx) {
         assert.equal(typeof template, 'object', 'template is required');
         assert.equal(typeof graphIdx, 'number', 'graphIdx is required');
@@ -195,7 +226,6 @@ class Graphs extends Registration {
 
             const graphId = `${template.type}-${template.id}-${item}`;
             const graph = JSON.parse(JSON.stringify(template.graphs[graphIdx]));
-            // const graph = Object.assign({}, template.graphs[graphIdx]);
 
             console.log(`\tCreating graph ${graphIdx} config for ${template.id}.${item}`);
 
@@ -213,9 +243,14 @@ class Graphs extends Registration {
             this._setCustomGraphOptions(graph, graphId);
 
             try {
-                fs.writeFileSync(cfgFile, JSON.stringify(graph, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+                fs.writeFileSync(cfgFile, JSON.stringify(graph, null, 4), {
+                    encoding : 'utf8',
+                    flag     : 'w',
+                    mode     : 0o644
+                });
             } catch (err) {
                 this.emit('error', err);
+
                 return;
             }
 
@@ -224,6 +259,12 @@ class Graphs extends Registration {
     }
 
 
+    /**
+     * configure specific static graph
+     * @arg {Object} template of graphs to configure
+     * @arg {Number} graphIdx of specific graph to configure
+     * @returns {Undefined} nothing, emits event
+     */
     configStaticGraph(template, graphIdx) {
         assert.equal(typeof template, 'object', 'template is required');
         assert.equal(typeof graphIdx, 'number', 'graphIdx is required');
@@ -232,10 +273,10 @@ class Graphs extends Registration {
 
         if (this._fileExists(cfgFile)) {
             console.log('\tGraph configuration already exists.', cfgFile);
+
             return;
         }
 
-        // const graph = Object.assign({}, template.graphs[graphIdx]);
         const graph = JSON.parse(JSON.stringify(template.graphs[graphIdx]));
 
         console.log(`\tCreating graph ${graphIdx} config for ${template.id}`);
@@ -254,16 +295,24 @@ class Graphs extends Registration {
         this._setCustomGraphOptions(graph, graphId);
 
         try {
-            fs.writeFileSync(cfgFile, JSON.stringify(graph, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+            fs.writeFileSync(cfgFile, JSON.stringify(graph, null, 4), {
+                encoding : 'utf8',
+                flag     : 'w',
+                mode     : 0o644
+            });
         } catch (err) {
             this.emit('error', err);
+
             return;
         }
 
         console.log(chalk.green('\tSaved config'), cfgFile);
-
     }
 
+    /**
+     * managing creating all graphs
+     * @returns {Undefined} nothing, emits event
+     */
     createGraphs() {
         const self = this;
         const graphConfigs = [];
@@ -300,6 +349,11 @@ class Graphs extends Registration {
     }
 
 
+    /**
+     * create specific graph
+     * @arg {String} cfgFile for graph
+     * @returns {Undefined} nothing, emits event
+     */
     createGraph(cfgFile) {
         assert.strictEqual(typeof cfgFile, 'string', 'cfgFile is required');
 
@@ -311,6 +365,7 @@ class Graphs extends Registration {
         if (this._fileExists(regFile)) {
             console.log(chalk.bold('\tRegistration exists'), `using ${regFile}`);
             this.emit('create.graph.next');
+
             return;
         }
 
@@ -322,6 +377,7 @@ class Graphs extends Registration {
         graph.create((err) => {
             if (err) {
                 self.emit('error', err);
+
                 return;
             }
 
@@ -341,7 +397,12 @@ class Graphs extends Registration {
     */
 
 
-    /* eslint-disable max-depth */
+    /**
+     * collect variable metrics for a graph
+     * @arg {Object} template defining graph(s)
+     * @arg {Number} graphIdx of specific graph
+     * @returns {Undefined} nothing, emits event
+     */
     _getVariableMetrics(template, graphIdx) {
         assert.equal(typeof template, 'object', 'template is required');
         assert.equal(typeof graphIdx, 'number', 'graphIdx is required');
@@ -365,19 +426,19 @@ class Graphs extends Registration {
                     let keepMetric = true;                                      // default, keep all metrics
 
                     if (template.filter) {                                      // apply filters, if configured in template
-                        if (template.filter.include && Array.isArray(template.filter.include)) {
+                        if (template.filter.include && Array.isArray(template.filter.include)) { // eslint-disable-line max-depth
                             keepMetric = false;
-                            for (const filter of template.filter.include) {
-                                if (item.match(filter) !== null) {
+                            for (const filter of template.filter.include) { // eslint-disable-line max-depth
+                                if (item.match(filter) !== null) { // eslint-disable-line max-depth
                                     keepMetric = true;
                                     break;
                                 }
                             }
                         }
 
-                        if (keepMetric && template.filter.exclude && Array.isArray(template.filter.exclude)) {
-                            for (const filter of template.filter.exclude) {
-                                if (item.match(filter) !== null) {
+                        if (keepMetric && template.filter.exclude && Array.isArray(template.filter.exclude)) { // eslint-disable-line max-depth, max-len
+                            for (const filter of template.filter.exclude) { // eslint-disable-line max-depth
+                                if (item.match(filter) !== null) { // eslint-disable-line max-depth
                                     keepMetric = false;
                                     break;
                                 }
@@ -386,12 +447,12 @@ class Graphs extends Registration {
                     }
 
                     if (keepMetric) {
-                        if (!variableMetrics[item]) {
+                        if (!variableMetrics[item]) { // eslint-disable-line max-depth
                             variableMetrics[item] = [];
                         }
                         variableMetrics[item].push({
-                            name: metric,
-                            datapointIndex: `${dpIdx}`
+                            datapointIndex : `${dpIdx}`,
+                            name           : metric
                         });
                     }
                 }
@@ -400,11 +461,15 @@ class Graphs extends Registration {
 
         return variableMetrics;
     }
-    /* eslint-enable max-depth */
 
 
-    /* eslint-disable xno-param-reassign */
-    _setCustomGraphOptions(cfg, id) {
+    /**
+     * set custom options for graph
+     * @arg {Object} cfg for graph
+     * @arg {String} id for graph (to find custom options)
+     * @returns {Undefined} nothing
+     */
+    _setCustomGraphOptions(cfg, id) { // eslint-disable-line complexity
         assert.equal(typeof cfg, 'object', 'cfg is required');
         assert.equal(typeof id, 'string', 'id is required');
 
@@ -424,10 +489,7 @@ class Graphs extends Registration {
             if ({}.hasOwnProperty.call(cosi.custom_options, cfgType)) {
                 const custom = cosi.custom_options[cfgType];
 
-                // for (const opt of options) {
-                for (let i = 0; i < options.length; i++) {
-                    const opt = options[i];
-
+                for (const opt of options) {
                     if ({}.hasOwnProperty.call(custom, opt)) {
                         console.log(`\tSetting ${opt} to ${custom[opt]}`);
                         cfg[opt] = custom[opt]; // eslint-disable-line no-param-reassign
@@ -438,16 +500,14 @@ class Graphs extends Registration {
                     for (let i = 0; i < options.length; i++) {
                         const opt = options[i];
 
-                        if ({}.hasOwnProperty.call(custom[cfgId], opt)) {
+                        if ({}.hasOwnProperty.call(custom[cfgId], opt)) { // eslint-disable-line max-depth
                             console.log(`\tSetting ${opt} to ${custom[cfgId][opt]}`);
                             cfg[opt] = custom[cfgId][opt]; // eslint-disable-line no-param-reassign
                         }
                     }
 
                     if ({}.hasOwnProperty.call(custom[cfgId], cfgItem)) {
-                        for (let i = 0; i < options.length; i++) {
-                            const opt = options[i];
-
+                        for (const opt of options) { // eslint-disable-line max-depth
                             if ({}.hasOwnProperty.call(custom[cfgId][cfgItem], opt)) { // eslint-disable-line max-depth
                                 console.log(`\tSetting ${opt} to ${custom[cfgId][cfgItem][opt]}`);
                                 cfg[opt] = custom[cfgId][cfgItem][opt]; // eslint-disable-line no-param-reassign
@@ -468,7 +528,6 @@ class Graphs extends Registration {
         }
 
         // expand templats in C:AQL statements
-        // for (const dp of cfg.datapoints) {
         for (let dpIdx = 0; dpIdx < cfg.datapoints.length; dpIdx++) {
             const dp = cfg.datapoints[dpIdx];
 
@@ -498,7 +557,6 @@ class Graphs extends Registration {
             }
         }
     }
-
 
 }
 

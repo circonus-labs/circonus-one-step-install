@@ -1,8 +1,8 @@
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 'use strict';
-
-/* eslint-env node, es6 */
-
-/* eslint-disable global-require */
 
 const assert = require('assert');
 const crypto = require('crypto');
@@ -19,6 +19,10 @@ const Check = require(path.resolve(cosi.lib_dir, 'check'));
 
 class Checks extends Registration {
 
+    /**
+     * create dashboard object
+     * @arg {Boolean} quiet squelch some info messages
+     */
     constructor(quiet) {
         super(quiet);
 
@@ -26,15 +30,21 @@ class Checks extends Registration {
 
         if (err !== null) {
             this.emit('error', err);
+
             return;
         }
 
         this.checks = {
-            system: null,
-            group: null
+            group  : null,
+            system : null
         };
     }
 
+    /**
+     * start the check creation process
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
     create(cb) {
         console.log(chalk.bold('\nRegistration - checks'));
 
@@ -74,15 +84,19 @@ class Checks extends Registration {
 
         this.once('checks.done', () => {
             if (typeof cb === 'function') {
-                cb();
-                return;
+                cb(); // eslint-disable-line callback-return
             }
         });
 
         this.emit('check.config');
     }
 
-    update(cb) {
+    /**
+     * update a check
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
+    update(cb) { // eslint-disable-line max-statements
         console.log(chalk.blue(this.marker));
         console.log('Updating system check');
 
@@ -90,6 +104,7 @@ class Checks extends Registration {
 
         if (!this._fileExists(regFile)) {
             this.emit('error', new Error(`System check registration file not found ${regFile}`));
+
             return;
         }
 
@@ -128,8 +143,8 @@ class Checks extends Registration {
             let metricTags = {};
 
             try {
-                metricTags = require(metricTagFile);
-            } catch (err) {
+                metricTags = require(metricTagFile); // eslint-disable-line global-require
+            } catch (ignoreErr) {
                 // ignore
             }
 
@@ -148,7 +163,7 @@ class Checks extends Registration {
                     for (let j = 0; j < metricTags[metricName].length; j++) {
                         const tag = metricTags[metricName][j];
 
-                        if (currTags.indexOf(tag) === -1) {
+                        if (currTags.indexOf(tag) === -1) { // eslint-disable-line max-depth
                             console.log('\t\tFound', `new tag for ${metricName}, adding ${tag}`);
                             check.metrics[i].tags.push(tag);
                             updateCheck = true;
@@ -162,6 +177,7 @@ class Checks extends Registration {
             console.log(chalk.green('\tSKIPPING'), 'check update, no new metrics or metric tags found');
             this.emit('check.update.done');
             cb();
+
             return;
         }
 
@@ -174,31 +190,37 @@ class Checks extends Registration {
         check.update((err, result) => {
             if (err !== null) {
                 self.emit('error', err);
+
                 return;
             }
             try {
-                fs.writeFileSync(regFile, JSON.stringify(result, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+                fs.writeFileSync(regFile, JSON.stringify(result, null, 4), {
+                    encoding : 'utf8',
+                    flag     : 'w',
+                    mode     : 0o644
+                });
             } catch (saveError) {
                 self.emit('error', saveError);
+
                 return;
             }
             console.log(chalk.green('\tSaved'), `updated registration to file ${regFile}`);
             cb();
-            return;
         });
     }
 
-    _extractMetricsFromVisuals() {
+    /**
+     * extract metrics from graphs/dashboards/etc. (for activation in check)
+     * @returns {Undefined} nothing
+     */
+    _extractMetricsFromVisuals() { // eslint-disable-line class-methods-use-this
         const activeMetrics = [];
 
         console.log(chalk.bold('Collecting required metrics from registered visuals'));
 
         const files = fs.readdirSync(cosi.reg_dir);
 
-        // for (const file of files) {
-        for (let fileIdx = 0; fileIdx < files.length; fileIdx++) {
-            const file = files[fileIdx];
-
+        for (const file of files) {
             if (file.match(/^registration-graph-.*\.json$/)) {
                 const configFile = path.resolve(path.join(cosi.reg_dir, file));
                 let graph = null;
@@ -206,16 +228,13 @@ class Checks extends Registration {
                 console.log(`\tLoading required metrics from ${configFile}`);
 
                 try {
-                    graph = require(configFile);
+                    graph = require(configFile); // eslint-disable-line global-require
                 } catch (err) {
                     console.log(chalk.yellow('\tWARN'), `Unable to load ${configFile} ${err}, skipping`);
                     continue;
                 }
 
-                // for (const dp of graph.datapoints) {
-                for (let dpIdx = 0; dpIdx < graph.datapoints.length; dpIdx++) {
-                    const dp = graph.datapoints[dpIdx];
-
+                for (const dp of graph.datapoints) {
                     // a caql statement, not creating a caql parser here...
                     // to enable metrics which are *only* used in a caql statement
                     // add the metric to the graph as a regular datapoint and
@@ -227,9 +246,9 @@ class Checks extends Registration {
 
                     console.log('\t\tAdding required metric:', dp.metric_name);
                     activeMetrics.push({
-                        name: dp.metric_name,
-                        type: dp.metric_type,
-                        status: 'active'
+                        name   : dp.metric_name,
+                        status : 'active',
+                        type   : dp.metric_type
                     });
                 }
             } else if (file.match(/^registration-dashboard-.*\.json$/)) {
@@ -239,28 +258,26 @@ class Checks extends Registration {
                 console.log(`\tLoading required metrics from ${configFile}`);
 
                 try {
-                    dashboard = require(configFile);
+                    dashboard = require(configFile); // eslint-disable-line global-require
                 } catch (err) {
                     console.log(chalk.yellow('\tWARN'), `Unable to load ${configFile} ${err}, skipping`);
                     continue;
                 }
 
-                for (let wIdx = 0; wIdx < dashboard.widgets.length; wIdx++) {
-                    const widget = dashboard.widgets[wIdx];
-
+                for (const widget of dashboard.widgets) {
                     if (widget.type !== 'gauge') {
                         continue;
                     }
 
                     console.log('\t\tAdding required metric:', widget.settings.metric_name);
                     activeMetrics.push({
-                        name: widget.settings.metric_name,
+                        name   : widget.settings.metric_name,
                         // no way to determine if the metric should
                         // be a histogram based on use in dashboard.
                         // may need to add metric_type to gauge widget
                         // settings as is in graph datapoints.
-                        type: widget.settings._type === 'text' ? 'text' : 'numeric',
-                        status: 'active'
+                        status : 'active',
+                        type   : widget.settings._type === 'text' ? 'text' : 'numeric'
                     });
                 }
             }
@@ -269,20 +286,26 @@ class Checks extends Registration {
         return activeMetrics;
     }
 
+    /**
+     * Load check meta data from existing registrations if they exists
+     * @returns {Object} a copy of the checks w/meta data
+     */
     getMeta() {
         if (this.checks.system === null) {
             const regFile = path.resolve(path.join(cosi.reg_dir, 'registration-check-system.json'));
 
             if (!this._fileExists(regFile)) {
                 this.emit('error', new Error('System check registration file not found'));
+
                 return null;
             }
             try {
-                const check = require(regFile);
+                const check = require(regFile); // eslint-disable-line global-require
 
                 this._setCheckMeta('system', check);
             } catch (err) {
                 this.emit('error', err);
+
                 return null;
             }
         }
@@ -292,14 +315,16 @@ class Checks extends Registration {
 
             if (!this._fileExists(regFile)) {
                 this.emit('error', new Error('Group check registration file not found'));
+
                 return null;
             }
             try {
-                const check = require(regFile);
+                const check = require(regFile); // eslint-disable-line global-require
 
-                this._setCheckMeta('system', check);
+                this._setCheckMeta('group', check);
             } catch (err) {
                 this.emit('error', err);
+
                 return null;
             }
         }
@@ -314,7 +339,10 @@ class Checks extends Registration {
 
     */
 
-
+    /**
+     * configure system check
+     * @returns {Undefined} nothing, emits event
+     */
     configSystemCheck() {
         console.log(chalk.blue(this.marker));
         console.log(`Configuring system check`);
@@ -326,6 +354,7 @@ class Checks extends Registration {
         if (this._fileExists(configFile)) {
             console.log('\tCheck configuration already exists.', configFile);
             this.emit('check.config.done');
+
             return;
         }
 
@@ -338,15 +367,18 @@ class Checks extends Registration {
 
         if (this.agentMode === 'push') {
             check.brokers = [
-                this.regConfig.broker.trap._cid // .replace('/broker/', '')
+                this.regConfig.broker.trap._cid
             ];
             check.config = {
-                asynch_metrics: 'true',
-                secret: crypto.randomBytes(2048).toString('hex').substr(0, 16)
+                asynch_metrics : 'true',
+                secret         : crypto.
+                    randomBytes(2048).
+                    toString('hex').
+                    substr(0, 16)
             };
         } else {
             check.brokers = [
-                this.regConfig.broker.json._cid // .replace('/broker/', '')
+                this.regConfig.broker.json._cid
             ];
             check.config.url = cosi.agent_url;
         }
@@ -355,9 +387,9 @@ class Checks extends Registration {
         // add the activated metrics
         check.metrics = [
             {
-                name: 'cosi_placeholder',
-                type: 'numeric',
-                status: 'active'
+                name   : 'cosi_placeholder',
+                status : 'active',
+                type   : 'numeric'
             }
         ];
 
@@ -371,10 +403,14 @@ class Checks extends Registration {
         try {
             fs.writeFileSync(
                 configFile,
-                JSON.stringify(check, null, 4),
-                { encoding: 'utf8', mode: 0o644, flag: 'w' });
+                JSON.stringify(check, null, 4), {
+                    encoding : 'utf8',
+                    flag     : 'w',
+                    mode     : 0o644
+                });
         } catch (err) {
             this.emit('error', err);
+
             return;
         }
 
@@ -383,6 +419,10 @@ class Checks extends Registration {
     }
 
 
+    /**
+     * create system check
+     * @returns {Undefined} nothing, emits event
+     */
     createSystemCheck() {
         console.log(chalk.blue(this.marker));
         console.log('Creating system check');
@@ -394,11 +434,13 @@ class Checks extends Registration {
         if (this._fileExists(regFile)) {
             console.log(chalk.bold('\tRegistration exists'), `using ${regFile}`);
             this.emit('check.create.done', new Check(regFile));
+
             return;
         }
 
         if (!this._fileExists(cfgFile)) {
             this.emit('error', new Error(`Missing system check configuration file '${cfgFile}'`));
+
             return;
         }
 
@@ -413,6 +455,7 @@ class Checks extends Registration {
         check.create((err) => {
             if (err) {
                 self.emit('error', err);
+
                 return;
             }
 
@@ -422,10 +465,13 @@ class Checks extends Registration {
             console.log(chalk.green('\tCheck created:'), `${self.regConfig.account.ui_url}${check._checks[0].replace('check', 'checks')}`);
             self.emit('check.create.done', check);
         });
-
     }
 
 
+    /**
+     * finalize system check
+     * @returns {Undefined} nothing, emits event
+     */
     finalizeSystemCheck() {
         console.log(chalk.blue(this.marker));
         console.log(`Finalizing system check`);
@@ -433,6 +479,7 @@ class Checks extends Registration {
         if (this.agentMode === 'pull') {
             console.log(chalk.green('OK'), 'no additional configuration needed for pull mode agent');
             this.emit('check.finalize.done');
+
             return;
         }
 
@@ -441,6 +488,7 @@ class Checks extends Registration {
 
         if (bundle_id === null || submit_url === null) {
             this.emit('error', new Error('Check meta data not initialized for system check'));
+
             return;
         }
 
@@ -452,13 +500,12 @@ class Checks extends Registration {
             msgItem = 'NAD Push'; // console.log(`\tCreating NAD Push configuration ${npCfgFile}`);
             cfgFile = path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'circonus-nadpush.json'));
             cfg = JSON.stringify({
-                user: 'nobody',
-                group: cosi.cosi_os_dist.toLowerCase() === 'ubuntu' ? 'nogroup' : 'nobody',
-                agent_url: cosi.agent_url,
-                check_url: submit_url,
-                broker_servername: this._getTrapBrokerCn(submit_url)
+                agent_url         : cosi.agent_url,
+                broker_servername : this._getTrapBrokerCn(submit_url),
+                check_url         : submit_url,
+                group             : cosi.cosi_os_dist.toLowerCase() === 'ubuntu' ? 'nogroup' : 'nobody',
+                user              : 'nobody'
             }, null, 4);
-
         } else if (this.agentMode === 'reverse') {
             msgItem = 'NAD Reverse'; // console.log(`\tSaving NAD Reverse configuration ${nadCfgFile}`);
             cfgFile = path.resolve(path.join(cosi.etc_dir, 'circonus-nadreversesh'));
@@ -470,20 +517,25 @@ class Checks extends Registration {
 
         if (cfgFile === null || cfg === null || msgItem === null) {
             this.emit('error', new Error('Finalize misconfigured, one or more required settings are invalid'));
+
             return;
         }
 
         console.log(`\tCreating ${msgItem} configuration`);
         try {
-            fs.writeFileSync(cfgFile, cfg, { encoding: 'utf8', mode: 0o644, flag: 'w' });
+            fs.writeFileSync(cfgFile, cfg, {
+                encoding : 'utf8',
+                flag     : 'w',
+                mode     : 0o644
+            });
             console.log(chalk.green('\tSaved'), `${msgItem} configuration ${cfgFile}`);
         } catch (err) {
             this.emit('error', err);
+
             return;
         }
 
         this.emit('check.finalize.done');
-
     }
 
 
@@ -494,6 +546,10 @@ class Checks extends Registration {
     */
 
 
+    /**
+     * configure group check
+     * @returns {Undefined} nothing, emits event
+     */
     configGroupCheck() {
         console.log(chalk.blue(this.marker));
         console.log(`Configuring Group check`);
@@ -501,6 +557,7 @@ class Checks extends Registration {
         if (!this.regConfig.group.enabled) {
             console.log('\tGroup check disabled, skipping.');
             this.emit('group.config.done');
+
             return;
         }
 
@@ -511,6 +568,7 @@ class Checks extends Registration {
         if (this._fileExists(configFile)) {
             console.log('\tCheck configuration already exists.', configFile);
             this.emit('group.config.done');
+
             return;
         }
 
@@ -544,8 +602,10 @@ class Checks extends Registration {
         hash.update(check.target);
 
         check.config = {
-            asynch_metrics: 'false', // NOTE must be false for per metric _fl settings to function correctly
-            secret: hash.digest('hex').substr(0, 16)
+            asynch_metrics : 'false', // NOTE must be false for per metric _fl settings to function correctly
+            secret         : hash.
+                digest('hex').
+                substr(0, 16)
         };
 
         check.tags.push(`@group:${this.regConfig.group.id}`);
@@ -554,19 +614,26 @@ class Checks extends Registration {
         try {
             fs.writeFileSync(
                 configFile,
-                JSON.stringify(check, null, 4),
-                { encoding: 'utf8', mode: 0o644, flag: 'w' });
+                JSON.stringify(check, null, 4), {
+                    encoding : 'utf8',
+                    flag     : 'w',
+                    mode     : 0o644
+                });
         } catch (err) {
             this.emit('error', err);
+
             return;
         }
 
         console.log(chalk.green('\tSaved configuration'), configFile);
         this.emit('group.config.done');
-
     }
 
 
+    /**
+     * create group check
+     * @returns {Undefined} nothing, emits event
+     */
     createGroupCheck() {
         console.log(chalk.blue(this.marker));
         console.log('Creating trap check for Group');
@@ -574,6 +641,7 @@ class Checks extends Registration {
         if (!this.regConfig.group.enabled) {
             console.log('\tGroup check disabled, skipping.');
             this.emit('group.create.done');
+
             return;
         }
 
@@ -584,11 +652,13 @@ class Checks extends Registration {
         if (this._fileExists(regFile)) {
             console.log(chalk.bold('\tRegistration exists'), `using ${regFile}`);
             this.emit('group.create.done', new Check(regFile));
+
             return;
         }
 
         if (!this._fileExists(cfgFile)) {
             this.emit('error', new Error(`Missing group check configuration file '${cfgFile}'`));
+
             return;
         }
 
@@ -603,6 +673,7 @@ class Checks extends Registration {
         check.create((err) => {
             if (err) {
                 self.emit('error', err);
+
                 return;
             }
 
@@ -614,6 +685,10 @@ class Checks extends Registration {
     }
 
 
+    /**
+     * finalize group check
+     * @returns {Undefined} nothing, emits event
+     */
     finalizeGroupCheck() {
         console.log(chalk.blue(this.marker));
         console.log(`Finalizing group check`);
@@ -629,6 +704,12 @@ class Checks extends Registration {
     */
 
 
+    /**
+     * save meta data to check object
+     * @arg {String} id check identifier
+     * @arg {Object} check definition
+     * @returns {Undefined} nothing, emits event
+     */
     _setCheckMeta(id, check) {
         assert.strictEqual(typeof id, 'string', 'id is required');
         assert.equal(typeof check, 'object', 'check is required');
@@ -638,10 +719,10 @@ class Checks extends Registration {
         }
 
         const meta = {
-            id: null,
-            uuid: null,
-            bundle_id: null,
-            submit_url: null
+            bundle_id  : null,
+            id         : null,
+            submit_url : null,
+            uuid       : null
         };
 
         meta.id = check._checks[0].replace('/check/', '');
@@ -659,6 +740,12 @@ class Checks extends Registration {
     }
 
 
+    /**
+     * set custom options in check configuration
+     * @arg {Object} cfg check configuration
+     * @arg {String} id check identifier
+     * @returns {Undefined} nothing, emits event
+     */
     _setCustomCheckOptions(cfg, id) {
         assert.equal(typeof cfg, 'object', 'cfg is required');
         assert.equal(typeof id, 'string', 'id is required');
@@ -692,7 +779,7 @@ class Checks extends Registration {
                     for (let i = 0; i < options.length; i++) {
                         const opt = options[i];
 
-                        if ({}.hasOwnProperty.call(custom[cfgId], opt)) {
+                        if ({}.hasOwnProperty.call(custom[cfgId], opt)) { // eslint-disable-line max-depth
                             console.log(`\tSetting ${opt} to ${custom[cfgId][opt]}`);
                             cfg[opt] = custom[cfgId][opt]; // eslint-disable-line no-param-reassign
                         }
@@ -719,10 +806,14 @@ class Checks extends Registration {
                 cfg.tags[i] = this._expand(cfg.tags[i], data); // eslint-disable-line no-param-reassign
             }
         }
-
     }
 
 
+    /**
+     * determine broker CN for HTTPTRAP broker
+     * @arg {String} trapUrl url for the trap broker
+     * @returns {String} broker CN or null
+     */
     _getTrapBrokerCn(trapUrl) {
         const urlInfo = url.parse(trapUrl);
         const urlHost = urlInfo.hostname;
@@ -748,6 +839,7 @@ class Checks extends Registration {
 
         return null;
     }
+
 }
 
 module.exports = Checks;
