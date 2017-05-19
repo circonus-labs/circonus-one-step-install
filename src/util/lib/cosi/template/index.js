@@ -1,7 +1,8 @@
-'use strict';
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-/* eslint-env node, es6 */
-/* eslint-disable no-magic-numbers, no-process-exit */
+'use strict';
 
 const assert = require('assert');
 const path = require('path');
@@ -11,7 +12,13 @@ const chalk = require('chalk');
 
 const cosi = require(path.resolve(path.join(__dirname, '..')));
 
-function templatePropertyFilter(key, value) {
+/**
+ * filter object types when saving a template
+ * @arg {String} key of template
+ * @arg {Undefined} value of template
+ * @returns {Undefined} value
+ */
+function templatePropertyFilter(key, value) { // eslint-disable-line no-unused-vars
     if (typeof value === 'function') {
         return undefined;   // eslint-disable-line no-undefined
     }
@@ -23,10 +30,16 @@ function templatePropertyFilter(key, value) {
         return undefined;   // eslint-disable-line no-undefined
     }
     */
+
     return value;
 }
 
 module.exports = class Template {
+
+    /**
+     * create new template instance
+     * @arg {String} src json or name of file
+     */
     constructor(src) {
         // convienence constructor (pass json string or file spec)
         if (src) {
@@ -39,10 +52,19 @@ module.exports = class Template {
         }
     }
 
+    /**
+     * is template empty
+     * @returns {Boolean} true if no keys
+     */
     empty() {
         return (Object.keys(this)).length === 0;
     }
 
+    /**
+     * load a template file
+     * @arg {String} fileName to load
+     * @returns {Undefined} nothing
+     */
     load(fileName) {
         assert.strictEqual(typeof fileName, 'string', 'fileName is required');
 
@@ -85,6 +107,11 @@ module.exports = class Template {
         }
     }
 
+    /**
+     * parse a string of json
+     * @arg {String} str of json
+     * @returns {Undefined} nothing
+     */
     parse(str) {
         assert.strictEqual(typeof str, 'string', 'str is required');
 
@@ -100,21 +127,26 @@ module.exports = class Template {
         this.type = 'n/a';
 
         const obj = JSON.parse(str);
-        const keys = Object.keys(obj);
 
-        for (let i = 0; i < keys.length; i++) {
-            this[keys[i]] = obj[keys[i]];
+        for (const key of Object.keys(obj)) {
+            this[key] = obj[key];
         }
     }
 
+    /**
+     * save current object to file
+     * @arg {String} fileName to save
+     * @arg {Boolean} force overwrite
+     * @returns {Boolean} true if saved, throws error if not
+     */
     save(fileName, force) {
         fileName = fileName || path.resolve(path.join(cosi.reg_dir, `template-${this.type}-${this.id}.json`)); // eslint-disable-line no-param-reassign
         force = force || false;  // eslint-disable-line no-param-reassign
 
         const options = {
-            encoding: 'utf8',
-            mode: 0o644,
-            flag: force ? 'w' : 'wx'
+            encoding : 'utf8',
+            flag     : force ? 'w' : 'wx',
+            mode     : 0o644
         };
 
         try {
@@ -129,4 +161,5 @@ module.exports = class Template {
 
         return true;
     }
+
 };
