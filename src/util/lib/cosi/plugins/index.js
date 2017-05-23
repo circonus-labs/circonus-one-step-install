@@ -50,6 +50,9 @@ class Plugin extends Events {
      *                            registration step on each one. (e.g. cosi installer can auto-discover
      *                            supported services and pre-install/enable the plugins before doing the overall
      *                            system registration.)
+     *               force - overwrite config file (default: false)
+     *               iface - for protocol_observer to observe target application traffic (default: null)
+     *                       set or override in subclass constructor
      */
     constructor(options) {
         super();
@@ -210,10 +213,10 @@ class Plugin extends Events {
 
         console.log(`Finding metrics & files for plugin ${this.name}`);
 
-        for (let i = 0; i < files.length; i++) {
-            const file = path.resolve(cosi.reg_dir, files[i]);
+        for (const file_name of files) {
+            const file = path.resolve(cosi.reg_dir, file_name);
 
-            if (files[i].indexOf(`registration-dashboard-${dashboardPrefix}`) !== -1) {
+            if (file_name.indexOf(`registration-dashboard-${dashboardPrefix}`) !== -1) {
                 console.log(`\tFile: ${file}`);
                 removeFiles.push({
                     file,
@@ -222,17 +225,15 @@ class Plugin extends Events {
 
                 const dash = require(file); // eslint-disable-line global-require
 
-                for (let j = 0; j < dash.widgets.length; j++) {
-                    const widget = dash.widgets[j];
-
+                for (const widget of dash.widgets) {
                     if (widget.type === 'gauge') {
                         console.log(`\tMetric: ${widget.settings.metric_name}`);
                         removeMetrics.push(widget.settings.metric_name);
                     }
                 }
-            } else if (files[i].indexOf(`registration-graph-`) !== -1) {
+            } else if (file_name.indexOf(`registration-graph-`) !== -1) {
                 for (let pfxIdx = 0; pfxIdx < graphPrefix.length; pfxIdx++) {
-                    if (files[i].indexOf(`registration-graph-${graphPrefix[pfxIdx]}`) !== -1) {
+                    if (file_name.indexOf(`registration-graph-${graphPrefix[pfxIdx]}`) !== -1) {
                         console.log(`\tFile: ${file}`);
                         removeFiles.push({
                             file,
@@ -241,9 +242,7 @@ class Plugin extends Events {
 
                         const graph = require(file); // eslint-disable-line global-require
 
-                        for (let j = 0; j < graph.datapoints.length; j++) { // eslint-disable-line max-depth
-                            const dp = graph.datapoints[j];
-
+                        for (const dp of graph.datapoints) { // eslint-disable-line max-depth
                             if (dp.metric_name !== null) { // eslint-disable-line max-depth
                                 console.log(`\tMetric: ${dp.metric_name}`);
                                 removeMetrics.push(dp.metric_name);
@@ -252,7 +251,7 @@ class Plugin extends Events {
                         break;
                     }
                 }
-            } else if (files[i].indexOf(`meta-dashboard-${this.name}`) !== -1) {
+            } else if (file_name.indexOf(`meta-dashboard-${this.name}`) !== -1) {
                 console.log(`\tFile: ${file}`);
                 removeFiles.push({
                     file,
