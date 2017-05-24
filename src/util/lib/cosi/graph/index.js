@@ -1,8 +1,8 @@
-'use strict';
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-/* eslint-env node, es6 */
-/* eslint-disable no-magic-numbers */
-/* eslint camelcase: [2, {properties: "never"}]*/
+'use strict';
 
 const assert = require('assert');
 const fs = require('fs');
@@ -15,18 +15,18 @@ const api = require(path.resolve(cosi.lib_dir, 'api'));
 
 module.exports = class Graph {
 
-    //
-    // load a graph (config/registration)
-    // note: this is *not* for templates, templates contain 1-n graphs
-    //
+    /**
+     * create new graph object
+     * load a graph (config/registration)
+     * note: this is *not* for templates, templates contain 1-n graphs
+     * @arg {String} configFile to load, must match (config|registration)-graph-.*\.json
+     */
     constructor(configFile) {
-        // configFile must be either a "config-" or "registration-"
-
         if (!configFile) {
             throw new Error('Missing Argument: configFile');
         }
 
-        if (!configFile.match(/\/(config|registration)-graph-/)) {
+        if (!configFile.match(/\/(config|registration)-graph-.*\.json/)) {
             throw new Error(`Invalid graph configuration/registration file '${configFile}'`);
         }
 
@@ -47,6 +47,12 @@ module.exports = class Graph {
     }
 
 
+    /**
+     * save current config to file
+     * @arg {String} configFile to save
+     * @arg {Boolean} force overwrite if it exists
+     * @returns {String} name of file saved, or throws an error on failure
+     */
     save(configFile, force) {
         assert.strictEqual(typeof configFile, 'string', 'configFile is required');
 
@@ -55,24 +61,28 @@ module.exports = class Graph {
         try {
             fs.writeFileSync(
                 cfgFile,
-                JSON.stringify(this, null, 4),
-                { encoding: 'utf8', mode: 0o644, flag: force ? 'w' : 'wx' });
+                JSON.stringify(this, null, 4), {
+                    encoding : 'utf8',
+                    flag     : force ? 'w' : 'wx',
+                    mode     : 0o644
+                });
         } catch (err) {
-            // fs write errors are passed up (not handled, e.g. ENOENT, EEXIST, etc.)
-            throw err;
+            throw err; // fs write errors are passed up (not handled, e.g. ENOENT, EEXIST, etc.)
         }
 
         return cfgFile;
     }
 
 
-    //
-    // verifies all of the attributes are present for create but *does not*
-    // validate the values of each attribute!!! (yet)
-    //
-    verifyConfig(existing) {
-        // default existing to false, most restrictive verify
-        // (ensures attributes which could alter an *existing* graph are not present)
+    /**
+     * verifies all of the attributes are present for create but *does not*
+     * validate the values of each attribute!!! (yet)
+     * @arg {Boolean} existing false = more restrictive, ensures attributes which
+     *                         could alter an *existing* graph are not present.
+     *                         Default: false
+     * @returns {Boolean} whether the config is valid or not
+     */
+    verifyConfig(existing) { // eslint-disable-line complexity
         existing = typeof existing === 'undefined' ? false : existing; // eslint-disable-line no-param-reassign
 
         const requiredAttributes = [
@@ -139,11 +149,8 @@ module.exports = class Graph {
             'aggregate_function'    // string (none|min|max|sum|mean|geometric_mean|null)
         ];
 
-        // 1. a configuration to be created
-        // must *not* contain *any* of these
-        //
-        // 2. a configuration that has already
-        // been created doesn't need verifying...
+        // 1. a configuration to be created must *not* contain *any* of these
+        // 2. a configuration that has already been created doesn't need verifying...
         const requiredExistingAttributes = [
             '_cid'
         ];
@@ -216,14 +223,19 @@ module.exports = class Graph {
         }
 
         return errors === 0;
-
     }
 
+    /**
+     * call api to create a graph from current config
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
     create(cb) {
         assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
         if (!this.verifyConfig(false)) {
             cb(new Error('Invalid configuration'));
+
             return;
         }
 
@@ -238,6 +250,7 @@ module.exports = class Graph {
                 apiError.message = errAPI;
                 apiError.details = result;
                 cb(apiError);
+
                 return;
             }
 
@@ -248,23 +261,28 @@ module.exports = class Graph {
                 errResp.message = 'UNEXPECTED_API_RETURN';
                 errResp.details = result;
                 cb(errResp);
-                return;
 
+                return;
             }
 
             self._init(result);
 
             cb(null, result);
-            return;
         });
     }
 
 
+    /**
+     * call api to update a graph from current config
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
     update(cb) {
         assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
         if (!this.verifyConfig(true)) {
             cb(new Error('Invalid configuration'));
+
             return;
         }
 
@@ -274,6 +292,7 @@ module.exports = class Graph {
         api.put(this._cid, this, (code, errAPI, result) => {
             if (errAPI) {
                 cb(errAPI, result);
+
                 return;
             }
 
@@ -284,33 +303,46 @@ module.exports = class Graph {
                 errResp.message = 'UNEXPECTED_API_RETURN';
                 errResp.details = result;
                 cb(errResp);
-                return;
 
+                return;
             }
 
             self._init(result);
 
             cb(null, result);
-            return;
         });
     }
 
+    /**
+     * call api to delete a graph from current config
+     * note the current config must contain a `_cid` attribute
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
     remove(cb) {
         assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
         const self = this;
+
+        if (!{}.hasOwnProperty.call(this, '_cid')) {
+            cb(new Error('Invalid graph config, no _cid attribute'));
+
+            return;
+        }
 
         api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
         api.get(self._cid, null, (getCode, getError, getResult) => { // eslint-disable-line consistent-return
             if (getCode === 404 && (getResult.code && getResult.code === 'ObjectError.InstanceNotFound')) {
                 console.log(`\t${self._cid}`, chalk.bold('not found'));
                 cb(null);
+
                 return;
             }
 
             if (getCode < 200 || getCode > 299) { // eslint-disable-line no-magic-numbers
                 console.error(chalk.red('API RESULT CODE'), `API ${getCode}`, getError, getResult);
                 cb(getError);
+
                 return;
             }
 
@@ -319,21 +351,27 @@ module.exports = class Graph {
             api.delete(self._cid, (code, errAPI, result) => {
                 if (errAPI) {
                     cb(errAPI, result);
+
                     return;
                 }
 
                 if (code < 200 || code > 299) { // eslint-disable-line no-magic-numbers
                     console.error(chalk.red('API RESULT CODE'), `API ${code}`, errAPI, result);
                     cb(`unexpected code: ${code}`, result);
+
                     return;
                 }
                 cb(null, result);
-                return;
             });
         });
     }
 
 
+    /**
+     * initializes the current object with values from a loaded configuration
+     * @arg {Object} config loaded from file
+     * @returns {undefined} nothing
+     */
     _init(config) {
         for (const key in config) {
             if ({}.hasOwnProperty.call(config, key)) {
