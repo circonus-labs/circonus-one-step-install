@@ -72,36 +72,34 @@ class Packages {
                 for (const vers in packageList[dist]) {
                     if ({}.hasOwnProperty.call(packageList[dist], vers)) {
                         for (const pkg of packageList[dist][vers]) {
-                            if ({}.hasOwnProperty.call(packageList[dist][vers], pkg)) {
-                                const arch = pkg.arch;
-                                const pkgInfo = pkg.package_info;
-                                const pkgKey = this._key(dist, vers, arch);
+                            const arch = pkg.arch;
+                            const pkgInfo = pkg.package_info;
+                            const pkgKey = this._key(dist, vers, arch);
 
-                                if (!this.packages.has(dist)) {
-                                    this.packages.set(dist, new Map());
-                                }
-                                if (!this.packages.
+                            if (!this.packages.has(dist)) {
+                                this.packages.set(dist, new Map());
+                            }
+                            if (!this.packages.
+                                get(dist).
+                                has(vers)) {
+                                this.packages.
                                     get(dist).
-                                    has(vers)) {
-                                    this.packages.
-                                        get(dist).
-                                        set(vers, new Map());
-                                }
-                                if (!this.packages.
+                                    set(vers, new Map());
+                            }
+                            if (!this.packages.
+                                get(dist).
+                                get(vers).
+                                has(arch)) {
+                                this.packages.
                                     get(dist).
                                     get(vers).
-                                    has(arch)) {
-                                    this.packages.
-                                        get(dist).
-                                        get(vers).
-                                        set(arch, pkgInfo);
-                                }
-
-                                log.info(`Adding package ${pkgKey} ${pkgInfo}`);
-                                this.packages.
-                                    get('supported').
-                                    set(pkgKey, pkgInfo);
+                                    set(arch, pkgInfo);
                             }
+
+                            log.info({ info: pkgInfo }, `Adding package ${pkgKey}`);
+                            this.packages.
+                                get('supported').
+                                set(pkgKey, pkgInfo);
                         }
                     }
                 }
