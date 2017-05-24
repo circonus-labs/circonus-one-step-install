@@ -1,7 +1,8 @@
-'use strict';
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-/* eslint-env node, es6 */
-/* eslint-disable no-magic-numbers, consistent-return, no-process-exit */
+'use strict';
 
 const assert = require('assert');
 const path = require('path');
@@ -19,33 +20,30 @@ let defaultBrokerConfig = null;
 
 class Broker {
 
+    /**
+     * create new broker object
+     * @arg {Boolean} quiet messages
+     */
     constructor(quiet) {
         this.verbose = !quiet;
         this.defaultBrokers = {};
     }
 
-    _verifyCustomBroker(id, checkType) {
-        if (id !== null) {
-            const broker = this.getBrokerById(id);
-
-            if (this._isValidBroker(broker, checkType)) {
-                return id;
-            }
-
-            console.log(chalk.yellow('WARN'), 'Invalid broker', broker._name, 'is not valid for', checkType, '-- checking next option.');
-
-        }
-        return null;
-    }
-
-    // get the default broker to use for a specific check type
+    /**
+     * get the default broker to use for a specific check type
+     * @arg {String} checkType type of check broker needs to support
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
     getDefaultBroker(checkType, cb) {
         assert.strictEqual(typeof checkType, 'string', 'checkType must be a string');
         assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
         // already verified
         if ({}.hasOwnProperty.call(this.defaultBrokers, checkType)) {
-            return cb(null, this.defaultBrokers[checkType]);
+            cb(null, this.defaultBrokers[checkType]);
+
+            return;
         }
 
         const self = this;
@@ -85,17 +83,22 @@ class Broker {
                     process.exit(1);
                 }
 
-                return cb(null, broker);
+                cb(null, broker);
             });
         });
     }
 
-    // Get list of brokers available to api token
+    /**
+     * Get list of brokers available to api token
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
     getBrokerList(cb) {
         assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
         if (brokerList !== null) {
             cb(null, brokerList);
+
             return;
         }
 
@@ -105,16 +108,16 @@ class Broker {
 
         api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
         api.get('/broker', null, (code, err, brokers, body) => {
-
             if (err !== null) {
                 const apiError = new Error('Circonus API error');
 
                 apiError.details = {
-                    error: err,
                     body,
-                    brokers
+                    brokers,
+                    error: err
                 };
                 cb(apiError);
+
                 return;
             }
 
@@ -123,11 +126,12 @@ class Broker {
 
                 apiError.code = code;
                 apiError.details = {
-                    error: err,
                     body,
-                    brokers
+                    brokers,
+                    error: err
                 };
                 cb(apiError);
+
                 return;
             }
 
@@ -138,11 +142,12 @@ class Broker {
 
                 apiError.code = code;
                 apiError.details = {
-                    error: err,
                     body,
-                    brokers
+                    brokers,
+                    error: err
                 };
                 cb(apiError);
+
                 return;
             }
 
@@ -150,14 +155,10 @@ class Broker {
 
             // filter broker groups which do not have a minimum of
             // one member in an active state.
-            for (let i = 0; i < brokers.length; i++) {
-                const broker = brokers[i];
-
+            for (const broker of brokers) {
                 let active = 0;
 
-                for (let j = 0; j < broker._details.length; j++) {
-                    const detail = broker._details[j];
-
+                for (const detail of broker._details) {
                     if (detail.status === 'active') {
                         active += 1;
                     }
@@ -169,16 +170,21 @@ class Broker {
             }
 
             cb(null, brokerList);
-            return;
         });
     }
 
-    // return the default brokers from custom configuration or cosi
+    /**
+     * return the default brokers from custom configuration or cosi
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
     getDefaultBrokerList(cb) {
         assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
         if (defaultBrokerConfig !== null) {
-            return cb(null, defaultBrokerConfig);
+            cb(null, defaultBrokerConfig);
+
+            return;
         }
 
         if (this.verbose) {
@@ -212,7 +218,10 @@ class Broker {
 
                 // we want a *copy* of it, not a reference to the original...
                 defaultBrokerConfig = JSON.parse(JSON.stringify(cosi.custom_options.broker.default));
-                return cb(null, defaultBrokerConfig);
+
+                cb(null, defaultBrokerConfig);
+
+                return;
             }
         }
 
@@ -245,10 +254,13 @@ class Broker {
 
                     apiError.code = res.statusCode;
                     apiError.details = {
-                        msg: res.statusMessage,
-                        data
+                        data,
+                        msg: res.statusMessage
                     };
-                    return cb(apiError);
+
+                    cb(apiError);
+
+                    return;
                 }
 
                 let brokers = null;
@@ -257,12 +269,14 @@ class Broker {
                     brokers = JSON.parse(data);
                 } catch (err) {
                     console.error(chalk.red('COSI API error'), 'parsing response', data, err);
-                    return cb(err);
+                    cb(err);
+
+                    return;
                 }
 
                 defaultBrokerConfig = brokers;
-                return cb(null, defaultBrokerConfig);
 
+                cb(null, defaultBrokerConfig);
             });
         }).on('error', (err) => {
             if (err.code === 'ECONNREFUSED') {
@@ -272,8 +286,12 @@ class Broker {
         });
     }
 
-    // get broker object for a specific broker id
-    getBrokerById(id) {
+    /**
+     * get broker object for a specific broker id
+     * @arg {String} id of broker
+     * @returns {Object} broker
+     */
+    getBrokerById(id) { // eslint-disable-line class-methods-use-this
         const brokerId = id.toString();
 
         if (!brokerId.match(/^[0-9]+$/)) {
@@ -282,18 +300,22 @@ class Broker {
 
         const brokerCid = `/broker/${brokerId}`;
 
-        for (let i = 0; i < brokerList.length; i++) {
-            if (brokerList[i]._cid === brokerCid) {
-                return JSON.parse(JSON.stringify(brokerList[i]));
+        for (const broker of brokerList) {
+            if (broker._cid === brokerCid) {
+                return JSON.parse(JSON.stringify(broker));
             }
         }
         console.error(chalk.red('ERROR:'), `No broker found with id ${brokerId}`);
         process.exit(1);
+
+        return null;
     }
 
-    // default broker, custom options
+    /**
+     * default broker, custom options
+     * @returns {String} broker id or null
+     */
     _getCustomBroker() {
-
         if (this.verbose) {
             console.log('Checking for custom broker settings');
         }
@@ -308,6 +330,7 @@ class Broker {
                 console.error(chalk.red('Invalid broker specified on command line', cosi.cosi_broker_id, 'should be a number.'));
                 process.exit(1);
             }
+
             return cosi.cosi_broker_id;
         }
 
@@ -319,16 +342,17 @@ class Broker {
 
         const customBroker = cosi.custom_options.broker;
 
-        // does it have a specific id to use
+        // does the custom configuration have a specific id to use
 
         if (customBroker.id) {
             if (this.verbose) {
                 console.log(`Customer broker ID found ${customBroker.id}`);
             }
+
             return customBroker.id;
         }
 
-        // does it have a list of brokers from which to pick (a specific or random one)
+        // does the custom configuration have a list of brokers from which to pick (a specific or random one)
 
         if (customBroker.list && customBroker.default) {
             const list = customBroker.list;
@@ -347,6 +371,7 @@ class Broker {
                     if (this.verbose) {
                         console.log(`Custom broker ID from supplied list ${brokerId}`);
                     }
+
                     return brokerId;
                 }
             } else {
@@ -357,7 +382,11 @@ class Broker {
         return null;
     }
 
-    // default broker, enterprise
+    /**
+     * default broker, enterprise
+     * @arg {String} checkType type of check the broker must support
+     * @returns {String} enterprise broker id or null
+     */
     _getEnterpriseBroker(checkType) {
         assert.strictEqual(typeof checkType, 'string', 'checkType must be a string');
 
@@ -376,9 +405,7 @@ class Broker {
         const enterpriseBrokers = [];
         let numValidBrokers = 0;
 
-        for (let i = 0; i < brokerList.length; i++) {
-            const broker = brokerList[i];
-
+        for (const broker of brokerList) {
             if (broker._type !== 'enterprise') {
                 continue;
             }
@@ -388,15 +415,13 @@ class Broker {
 
             numValidBrokers += 1;
 
-            for (let j = 0; j < broker._details.length; j++) {
-                const detail = broker._details[j];
-
+            for (const detail of broker._details) {
                 if (detail.status !== 'active') {
                     continue;
                 }
 
                 if (this._brokerConnectionTest(detail, 500)) {
-                    enterpriseBrokers.push(JSON.parse(JSON.stringify(broker)));
+                    enterpriseBrokers.push(JSON.parse(JSON.stringify(broker))); // copies not references
                     break;
                 }
             }
@@ -411,6 +436,7 @@ class Broker {
                 }
                 process.exit(1);
             }
+
             return null;
         }
 
@@ -424,7 +450,11 @@ class Broker {
         return brokerId;
     }
 
-    // default broker from cosi (circonus brokers)
+    /**
+     * default broker from cosi (circonus brokers)
+     * @arg {String} checkType type of check broker must support
+     * @returns {String} broker id or null
+     */
     _getCosiBroker(checkType) {
         let brokerId = null;
 
@@ -440,22 +470,33 @@ class Broker {
     }
 
 
-    _brokerSupportsCheckType(detail, checkType) {
+    /**
+     * check if broker supports a specific check type
+     * @arg {Array} detail for broker
+     * @arg {String} checkType type of check
+     * @returns {Boolean} whether the check type is supported
+     */
+    _brokerSupportsCheckType(detail, checkType) { // eslint-disable-line class-methods-use-this
         for (let i = 0; i < detail.modules.length; i++) {
             if (detail.modules[i] === checkType) {
                 return true;
             }
         }
+
         return false;
     }
 
 
+    /**
+     * test connectivity to a broker (not valid if no connection can be made or the response time is too long)
+     * @arg {Object} detail for broker
+     * @arg {Number} maxResponseTime in milliseconds
+     * @returns {Boolean} success or failure
+     */
     _brokerConnectionTest(detail, maxResponseTime) {
         const maxTime = maxResponseTime || 500;
         const port = detail.external_port || 43191;
-        // preference external_host, if not defined use broker's IP
-        const host = detail.external_host || detail.ipaddress;
-
+        const host = detail.external_host || detail.ipaddress; // preference external_host, if not defined use broker's IP
         const status = ct.test(host, port, maxTime);
 
         if (this.verbose) {
@@ -470,17 +511,20 @@ class Broker {
     }
 
 
+    /**
+     * is a given broker a valid broker
+     * @arg {Object} broker object
+     * @arg {String} checkType needed
+     * @returns {Boolean} valid or not
+     */
     _isValidBroker(broker, checkType) {
-
         if (broker._name === 'composite' && checkType !== 'composite') {
             return false;
         }
 
         let valid = false;
 
-        for (let i = 0; i < broker._details.length; i++) {
-            const detail = broker._details[i];
-
+        for (const detail of broker._details) {
             if (detail.status !== 'active') {
                 continue; // ignore broker group members in any state other than "active"
             }
@@ -492,6 +536,26 @@ class Broker {
         }
 
         return valid;
+    }
+
+    /**
+     * verify a user-supplied, custom broker
+     * @arg {String} id of broker
+     * @arg {String} checkType needed
+     * @returns {String} broker id or null
+     */
+    _verifyCustomBroker(id, checkType) {
+        if (id !== null) {
+            const broker = this.getBrokerById(id);
+
+            if (this._isValidBroker(broker, checkType)) {
+                return id;
+            }
+
+            console.log(chalk.yellow('WARN'), 'Invalid broker', broker._name, 'is not valid for', checkType, '-- checking next option.');
+        }
+
+        return null;
     }
 
 }

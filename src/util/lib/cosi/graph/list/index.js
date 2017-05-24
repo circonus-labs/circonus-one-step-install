@@ -28,10 +28,7 @@ function buildGraphList() {
         process.exit(1);
     }
 
-    // for (const file of files) {
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-
+    for (const file of files) {
         if (file.match(/^registration-graph-.*\.json$/)) {
             const id = file.replace('registration-', '').replace('.json', '');
 
