@@ -251,7 +251,7 @@ class Settings {
             const brokerType = requiredBrokerTypes[i];
             const brokerTypeDefault = `${brokerType}_default`;
 
-            if (!{}.hasOwnProperty.caqll(this.default_broker_list, brokerType)) {
+            if (!{}.hasOwnProperty.call(this.default_broker_list, brokerType)) {
                 this.default_broker_list[brokerType] = DEFAULT_BROKER_LIST[brokerType];
             }
             if (!{}.hasOwnProperty.call(this.default_broker_list, brokerTypeDefault)) {
