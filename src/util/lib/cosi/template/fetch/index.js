@@ -163,24 +163,22 @@ class Fetch extends Events {
             }
 
             if (self.extraTemplates) {
-                for (let i = 0; i < self.extraTemplates.length; i++) {
-                    wantTemplates.push(self.extraTemplates[i]);
+                for (const templateId of self.extraTemplates) {
+                    wantTemplates.push(templateId);
                 }
             }
 
-            for (let i = 0; i < groups.length; i++) {
-                wantTemplates.push(`graph-${groups[i]}`);
+            for (const group of groups) {
+                wantTemplates.push(`graph-${group}`);
             }
 
             // check the templates, to see if they already exist
-            const fetchTemplates = [];
+            let fetchTemplates = [];
 
             if (self.force) {
-                fetchTemplates.push(...wantTemplates);
+                fetchTemplates = wantTemplates;
             } else {
-                for (let i = 0; i < wantTemplates.length; i++) {
-                    const templateId = wantTemplates[i];
-
+                for (const templateId of wantTemplates) {
                     if (self.exists(templateId)) {
                         log(`Skipping ${templateId}, template exists, use --force to overwrite.`);
                     } else {
