@@ -63,24 +63,30 @@ class Checks extends Registration {
 
         this.once('check.finalize', this.finalizeSystemCheck);
         this.once('check.finalize.done', () => {
-            self.emit('group.config');
+            if (self.regConfig.group.enabled) {
+                self.emit('group.config');
+            } else {
+                self.emit('checks.done');
+            }
         });
 
-        this.once('group.config', this.configGroupCheck);
-        this.once('group.config.done', () => {
-            self.emit('group.create');
-        });
+        if (this.regConfig.group.enabled) {
+            this.once('group.config', this.configGroupCheck);
+            this.once('group.config.done', () => {
+                self.emit('group.create');
+            });
 
-        this.once('group.create', this.createGroupCheck);
-        this.once('group.create.done', (check) => {
-            self._setCheckMeta('group', check);
-            self.emit('group.finalize');
-        });
+            this.once('group.create', this.createGroupCheck);
+            this.once('group.create.done', (check) => {
+                self._setCheckMeta('group', check);
+                self.emit('group.finalize');
+            });
 
-        this.once('group.finalize', this.finalizeGroupCheck);
-        this.once('group.finalize.done', () => {
-            self.emit('checks.done');
-        });
+            this.once('group.finalize', this.finalizeGroupCheck);
+            this.once('group.finalize.done', () => {
+                self.emit('checks.done');
+            });
+        }
 
         this.once('checks.done', () => {
             if (typeof cb === 'function') {
