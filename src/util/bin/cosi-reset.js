@@ -222,7 +222,7 @@ function findItems(dir, itemType, itemId) {
 function removeConfigs(cb) {
     console.log('Removing COSI configuration files');
     console.log(`\tre-installing default NAD config`);
-    child.exec(path.resolve(path.join(cosi.cosi_dir, 'bin', 'uninstall_nadreverse.sh')), (err, stdout, stderr) => {
+    child.exec(path.resolve(path.join(cosi.cosi_dir, 'bin', 'nadreverse_uninstall.sh')), (err, stdout, stderr) => {
         if (err === null) {
             if (stdout) {
                 const lines = stdout.split('\n');

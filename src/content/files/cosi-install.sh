@@ -926,7 +926,7 @@ cosi_register() {
     local cosi_register_cmd="register"
     local cosi_register_opt=""
     local install_nadpush="${cosi_dir}/bin/install_nadpush.sh"
-    local install_nadreverse="${cosi_dir}/bin/install_nadreverse.sh"
+    local install_nadreverse="${cosi_dir}/bin/nadreverse_install.sh"
 
     echo
     __fetch_cosi_utils

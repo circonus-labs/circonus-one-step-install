@@ -27,8 +27,7 @@ else
 	$(BABEL) lib -d build/lib
 endif
 	install -m 0700 bin/install_nadpush.sh build/bin/.
-	install -m 0700 bin/install_nadreverse.sh build/bin/.
-	install -m 0700 bin/uninstall_nadreverse.sh build/bin/.
+	install -m 0700 bin/nadreverse*.sh build/bin/.
 	echo '#!/usr/bin/env sh' > build/bin/circonus-nadpush && \
 	echo '":" //; exec %%NODE_BIN%% --expose-gc --max-old-space-size=32 --max-executable-size=64 "$$0" "$$@"' >> build/bin/circonus-nadpush && \
 	tail -n +3 build/bin/circonus-nadpush.js >> build/bin/circonus-nadpush && \
