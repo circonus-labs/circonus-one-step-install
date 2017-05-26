@@ -113,16 +113,27 @@ class Setup extends Registration {
 
         const self = this;
 
+        const credentialTroubleshooting = `Check credentials in ${cosi.etc_dir}/cosi.json. Verify they are correct and work with the Circonus API.`;
+
         api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
         api.get('/account/current', null, (code, err, account) => {
             if (err) {
+                if (code === 403) {
+                    err.troubleshooting = credentialTroubleshooting; // eslint-disable-line no-param-reassign
+                }
                 self.emit('error', err);
 
                 return;
             }
 
             if (code !== 200) {
-                self.emit('error', new Error(`verifyAPI - API return code: ${code} ${err} ${account}`));
+                const apiError = new Error(`verifyAPI - API return code: ${code} ${err} ${account}`);
+
+                if (code === 403) {
+                    apiError.troubleshooting = credentialTroubleshooting;
+                }
+
+                self.emit('error', apiError);
             }
 
             console.log(chalk.green('API key verified'), 'for account', account.name, account.description === null ? '' : `- ${account.description}`);
