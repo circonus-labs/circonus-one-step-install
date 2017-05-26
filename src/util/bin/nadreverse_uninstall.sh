@@ -6,30 +6,17 @@
 
 ## install nad in reverse mode
 
-RED=$(tput setaf 1)
-GREEN=$(tput setaf 2)
-NORMAL=$(tput sgr0)
-BOLD=$(tput bold)
-
-log()  { printf "%b\n" "$*"; }
-fail() { printf "${RED}" >&2; log "\nERROR: $*\n" >&2; printf "${NORMAL}" >&2; exit 1; }
-pass() { printf "${GREEN}"; log "$*"; printf "${NORMAL}"; }
-
-: ${cosi_dir:=}
 : ${cosi_bin_dir:=}
-: ${nad_dir:=}
 
 if [[ -z "${cosi_bin_dir:-}" ]]; then
     cosi_bin_dir="$(dirname `readlink -e ${BASH_SOURCE[0]}`)"
 fi
 
-if [[ -z "${cosi_dir:-}" ]]; then
-    cosi_dir="$(readlink -e $cosi_bin_dir/..)"
-fi
+nadreverse_funcs="${cosi_bin_dir}/nadreverse_func.sh"
+[[ -s $nadreverse_funcs ]] || { echo "Unable to find nadreverse functions ($nadreverse_funcs)"; exit 2; }
+source $nadreverse_funcs
 
-if [[ -z "${nad_dir:-}" ]]; then
-    nad_dir="$(readlink -e $cosi_dir/..)"
-fi
+
 
 nad_conf="${nad_dir}/etc/nad.conf"
 
