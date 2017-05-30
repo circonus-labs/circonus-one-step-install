@@ -20,7 +20,6 @@ nad_conf=""
 nad_conf_new=""
 install_conf=0
 
-
 function install_linux_nadv0() {
     local nadrev_opts=""
 
@@ -130,7 +129,11 @@ function install_linux() {
     mv -f $nad_conf_new $nad_conf
     [[ $? -eq 0 ]] || fail "Unable to update ${nad_conf} with ${nad_conf_new}"
 
+    pass "Installed reverse config, restarting NAD"
     restart_nad
+
+    log "Waiting for NAD to restart"
+    sleep 2
 }
 
 function install() {
