@@ -56,9 +56,8 @@ if [[ $nadrev_enable -ne 1 ]]; then
     exit 0
 fi
 
+# used by nadreverse_install
 function restart_nad() {
-    pass "Installed reverse config, restarting NAD"
-
     if [[ -f /lib/systemd/system/nad.service ]]; then
         systemctl restart nad
         [[ $? -eq 0 ]] || {
@@ -87,7 +86,88 @@ function restart_nad() {
     else
         fail "Unknown system type '$(uname -s)', unable to determine how to restart NAD"
     fi
+}
 
-    log "Waiting for NAD to restart"
-    sleep 2
+# used by nadreverse_uninstall
+function stop_nad() {
+    if [[ -f /lib/systemd/system/nad.service ]]; then
+        systemctl stop nad
+        [[ $? -eq 0 ]] || {
+            fail "Error stopping NAD, see log"
+        }
+    elif [[ -f /etc/init/nad.conf ]]; then
+        initctl stop nad
+        [[ $? -eq 0 ]] || {
+            fail "Error stopping NAD, see log"
+        }
+    elif [[ -f /etc/init.d/nad ]]; then
+        service nad stop
+        [[ $? -eq 0 ]] || {
+            fail "Error stopping NAD, see log"
+        }
+    elif [[ -f /etc/rc.d/nad ]]; then
+        service stop nad
+        [[ $? -eq 0 ]] || {
+            fail "Error stopping NAD, see log"
+        }
+    elif [[ -f /var/svc/manifest/network/circonus/nad.xml ]]; then
+        # omnios svcadm doesn't have start/stop only enable/disable
+        svcadm disable nad
+        [[ $? -eq 0 ]] || {
+            fail "Error stopping NAD, see log"
+        }
+    else
+        fail "Unknown system type '$(uname -s)', unable to determine how to restart NAD"
+    fi
+}
+
+function disable_nad() {
+    if [[ -f /lib/systemd/system/nad.service ]]; then
+        systemctl stop nad
+        [[ $? -eq 0 ]] || {
+            fail "Error stopping NAD, see log"
+        }
+        systemctl disable nad
+        [[ $? -eq 0 ]] || {
+            fail "Error disabling NAD, see log"
+        }
+    elif [[ -f /etc/init/nad.conf ]]; then
+        initctl stop nad
+        [[ $? -eq 0 ]] || {
+            fail "Error stopping NAD, see log"
+        }
+        rm /etc/init/nad.conf
+        [[ $? -eq 0 ]] || {
+            fail "Error disabling NAD, see log"
+        }
+    elif [[ -f /etc/init.d/nad ]]; then
+        service nad stop
+        [[ $? -eq 0 ]] || {
+            fail "Error restarting NAD, see log"
+        }
+        chkconfig --del nad
+        [[ $? -eq 0 ]] || {
+            fail "Error disabling NAD, see log"
+        }
+        rm /etc/init.d/nad
+        [[ $? -eq 0 ]] || {
+            fail "Error disabling NAD, see log"
+        }
+    elif [[ -f /etc/rc.d/nad ]]; then
+        service stop nad
+        [[ $? -eq 0 ]] || {
+            fail "Error stopping NAD, see log"
+        }
+        rm /etc/rc.d/nad
+        [[ $? -eq 0 ]] || {
+            fail "Error disabling NAD, see log"
+        }
+    elif [[ -f /var/svc/manifest/network/circonus/nad.xml ]]; then
+        svcadm disable nad
+        [[ $? -eq 0 ]] || {
+            fail "Error restarting NAD, see log"
+        }
+    else
+        fail "Unknown system type '$(uname -s)', unable to determine how to restart NAD"
+    fi
 }
