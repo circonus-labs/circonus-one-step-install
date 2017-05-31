@@ -16,56 +16,60 @@ nadreverse_funcs="${cosi_bin_dir}/nadreverse_func.sh"
 [[ -s $nadreverse_funcs ]] || { echo "Unable to find nadreverse functions ($nadreverse_funcs)"; exit 2; }
 source $nadreverse_funcs
 
+orig_conf_backup=""
 
+function uninstall_linux {
+    orig_conf_backup="${cosi_dir}/cache/nad.conf.orig"
 
-nad_conf="${nad_dir}/etc/nad.conf"
+    if [[ $nad_ver -eq 0 ]]; then
+        nad_conf="/etc/default/nad"
+        if [[ ! -s $nad_conf ]]; then
+            nad_conf="/etc/sysconfig/nad"
+            if [[ ! -s $nad_conf ]]; then
+                fail "Unable to find NAD config /etc/{default,sysconfig}/nad"
+            fi
+        fi
+    elif [[ $nad_ver -eq 1 ]]; then
+        nad_conf="${nad_dir}/etc/nad.conf"
+    else
+        fail "Unknown NAD version ($nad_ver)"
+    fi
 
-reverse_conf="$cosi_dir/etc/circonus-nadreversesh"
-log "Checking for NAD reverse config"
-if [[ ! -f $reverse_conf ]]; then
-    pass "NAD reverse configuration not found! Skipping..."
-    exit 0
-fi
-pass "Found $reverse_conf"
+    if [[ ! -f $nad_conf ]]; then
+        fail "Unable to find running nad config ($nad_conf)"
+    fi
+}
 
-orig_conf_backup="${cosi_dir}/cache/nad.conf.orig"
-if [[ ! -f  $orig_conf_backup ]]; then
-    fail "No original NAD 'config' backup found $orig_conf_backup"
-fi
+function uninstall_omnios {
+    orig_conf_backup="${cosi_dir}/cache/nad.method.orig"
+    nad_conf="/var/svc/method/circonus-nad"
+    if [[ ! -s $nad_conf ]]; then
+        fail "Unable to find NAD 'method' script in default location $nad_conf"
+    fi
+}
 
-pass "Found $orig_conf_backup"
-echo "Stopping NAD service"
-if [[ -f /lib/systemd/system/nad.service ]]; then
-    systemctl stop nad
-    [[ $? -eq 0 ]] || {
-        fail "Error stopping NAD, see log"
-    }
-elif [[ -f /etc/init/nad.conf ]]; then
-    initctl stop nad
-    [[ $? -eq 0 ]] || {
-        fail "Error stopping NAD, see log"
-    }
-elif [[ -f /etc/init.d/nad ]]; then
-    service nad stop
-    [[ $? -eq 0 ]] || {
-        fail "Error stopping NAD, see log"
-    }
-elif [[ -f /etc/rc.d/nad ]]; then
-    service stop nad
-    [[ $? -eq 0 ]] || {
-        fail "Error stopping NAD, see log"
-    }
-elif [[ -f /var/svc/manifest/network/circonus/nad.xml ]]; then
-    svcadm disable nad
-    [[ $? -eq 0 ]] || {
-        fail "Error stopping NAD, see log"
-    }
-else
-    fail "Unknown system type '$(uname -s)', unable to determine how to restart NAD"
-fi
+function uninstall {
+    if [[ -d /var/svc/manifest && -x /usr/sbin/svcadm ]]; then
+        uninstall_omnios
+    else
+        uninstall_linux
+    fi
 
-echo "Installing NAD config from saved copy"
-cp $orig_conf_backup $nad_conf
+    echo "Restoring NAD config from saved copy"
+
+    if [[ ! -f $orig_conf_backup ]]; then
+        fail "No original NAD 'config' backup found $orig_conf_backup"
+    fi
+
+    cp $orig_conf_backup $nad_conf
+    if [[ $? -ne 0 ]]; then
+        fail "Error copying original NAD config"
+    fi
+}
+
+stop_nad
+
+uninstall
 
 pass "NAD reverse uninstalled"
 exit 0

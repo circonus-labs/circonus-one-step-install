@@ -56,8 +56,15 @@ if [[ $nadrev_enable -ne 1 ]]; then
     exit 0
 fi
 
+# nad config - will be different based on
+# os and nad version.
+nad_conf=""
+
+# backup of original nad config
+orig_conf_backup="${cosi_dir}/cache/nad.conf.orig"
+
 # used by nadreverse_install
-function restart_nad() {
+function restart_nad {
     if [[ -f /lib/systemd/system/nad.service ]]; then
         systemctl restart nad
         [[ $? -eq 0 ]] || {
@@ -89,7 +96,7 @@ function restart_nad() {
 }
 
 # used by nadreverse_uninstall
-function stop_nad() {
+function stop_nad {
     if [[ -f /lib/systemd/system/nad.service ]]; then
         systemctl stop nad
         [[ $? -eq 0 ]] || {
@@ -121,7 +128,7 @@ function stop_nad() {
     fi
 }
 
-function disable_nad() {
+function disable_nad {
     if [[ -f /lib/systemd/system/nad.service ]]; then
         systemctl stop nad
         [[ $? -eq 0 ]] || {

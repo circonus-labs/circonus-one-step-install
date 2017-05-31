@@ -16,11 +16,10 @@ nadreverse_funcs="${cosi_bin_dir}/nadreverse_func.sh"
 [[ -s $nadreverse_funcs ]] || { echo "Unable to find nadreverse functions ($nadreverse_funcs)"; exit 2; }
 source $nadreverse_funcs
 
-nad_conf=""
 nad_conf_new=""
 install_conf=0
 
-function install_linux_nadv0() {
+function install_linux_nadv0 {
     local nadrev_opts=""
 
     : ${nadrev_plugin_dir:=/opt/circonus/etc/node-agent.d}
@@ -56,7 +55,7 @@ function install_linux_nadv0() {
     install_conf=1
 }
 
-function install_linux_nadv1() {
+function install_linux_nadv1 {
     nad_conf="${nad_dir}/etc/nad.conf"
     log "Checking for NAD config"
     if [[ ! -f $nad_conf ]]; then
@@ -65,17 +64,20 @@ function install_linux_nadv1() {
 
     nad_conf_new="${nad_conf}.new"
 
+    # ensure any instance of old NAD_OPTS setting is disabled
     if [[ $(grep -c "^NAD_OPTS" $nad_conf) -ne 0 ]]; then
-    	sed -e 's#^NAD_OPTS#OLD_NAD_OPTS#' $nad_conf > $nad_conf_new
+    	sed -e 's/^NAD_OPTS/#NAD_OPTS/' $nad_conf > $nad_conf_new
         install_conf=1
     fi
 
+    # add listen address setting, if not set
     if [[ $(grep -c "^NAD_LISTEN" $nad_conf) -eq 0 ]]; then
     	[[ -f $nad_conf_new ]] || { cp $nad_conf $nad_conf_new; echo -e "\n\n# ADDED BY COSI\n" >> $nad_conf_new; }
     	echo 'NAD_LISTEN="127.0.0.1:2609"' >> $nad_conf_new
         install_conf=1
     fi
 
+    # add reverse flag setting, if not set
     if [[ $(grep -c "^NAD_REVERSE" $nad_conf) -eq 0 ]]; then
         [[ -f $nad_conf_new ]] || { cp $nad_conf $nad_conf_new; echo -e "\n\n# ADDED BY COSI\n" >> $nad_conf_new; }
     	echo 'NAD_REVERSE="yes"' >> $nad_conf_new
@@ -83,7 +85,7 @@ function install_linux_nadv1() {
     fi
 }
 
-function install_omnios() {
+function install_omnios {
     local nad_method_script="/var/svc/method/circonus-nad"
 
     [[ -f $nad_method_script ]] || fail "Unable to find NAD 'method' script in default location $nad_method_script"
@@ -100,7 +102,7 @@ function install_omnios() {
     sleep 2
 }
 
-function install_linux() {
+function install_linux {
     if [[ $nad_ver -eq 0 ]]; then
         install_linux_nadv0()
     elif [[ $nad_ver -eq 1 ]]; then
@@ -116,7 +118,6 @@ function install_linux() {
 
     log "Updating NAD conf ${nad_conf}"
 
-    orig_conf_backup="${cosi_dir}/cache/nad.conf.orig"
     [[ ! -f  $orig_conf_backup ]] && {
         cp $nad_conf $orig_conf_backup
         pass "saved copy of default NAD conf as ${orig_conf_backup}"
@@ -136,15 +137,15 @@ function install_linux() {
     sleep 2
 }
 
-function install() {
+function install {
     if [[ -d /var/svc/manifest && -x /usr/sbin/svcadm ]]; then
-        install_omnios()
+        install_omnios
     else
-        install_linux()
+        install_linux
     fi
 }
 
-install()
+install
 
 pass "NAD reverse configuration complete"
 exit 0
