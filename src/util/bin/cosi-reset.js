@@ -298,15 +298,15 @@ api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
 const items = [];
 
 if (app.all || app.worksheet) {
-    items.push(...findItems(cosi.reg_dir, 'worksheet', app.worksheet));
+    items.push.apply(items, findItems(cosi.reg_dir, 'worksheet', app.worksheet));
 }
 
 if (app.all || app.graph) {
-    items.push(...findItems(cosi.reg_dir, 'graph', app.graph));
+    items.push.apply(items, findItems(cosi.reg_dir, 'graph', app.graph));
 }
 
 if (app.all || app.dashboard) {
-    items.push(...findItems(cosi.reg_dir, 'dashboard', app.dashboard));
+    items.push.apply(items, findItems(cosi.reg_dir, 'dashboard', app.dashboard));
 }
 
 
@@ -343,7 +343,7 @@ if (app.all || app.ruleset) {
 
 // always do checks last, remove everything dependent on the check(s) first
 if (app.all || app.check) {
-    items.push(...findItems(cosi.reg_dir, 'check', app.check));
+    items.push.apply(items, findItems(cosi.reg_dir, 'check', app.check));
 }
 
 if (items.length > 0) {

@@ -19,7 +19,10 @@ module.exports = {
             }
         ],
         'no-plusplus': 'off',
-        'no-underscore-dangle': 'off',
-        'prefer-destructuring': 'off'
+        'no-underscore-dangle': 'off',  // api objects use _ prefix
+        // destructuring not supported on all omnios nodejs builds yet
+        'prefer-destructuring': 'off',
+        // spread not supported on all omnios nodejs builds yet
+        'prefer-spread': 'off'
     }
 };

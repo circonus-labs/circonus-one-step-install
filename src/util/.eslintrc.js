@@ -32,6 +32,8 @@ module.exports = {
         ],
         // destructuring not supported on all omnios nodejs builds yet
         'prefer-destructuring': 'off',
+        // spread not supported on all omnios nodejs builds yet
+        'prefer-spread': 'off',
         // most api objects use an underscore prefix to
         // annotate attributes which may not be modified.
         'no-underscore-dangle': 'off',
