@@ -513,11 +513,16 @@ class Checks extends Registration {
                 user              : 'nobody'
             }, null, 4);
         } else if (this.agentMode === 'reverse') {
+            const plugin_dir = path.resolve(path.join(cosi.nad_etc_dir, 'node-agent.d'));
+
             msgItem = 'NAD Reverse'; // console.log(`\tSaving NAD Reverse configuration ${nadCfgFile}`);
             cfgFile = path.resolve(path.join(cosi.etc_dir, 'circonus-nadreversesh'));
             cfg = [
                 'nadrev_listen_address="127.0.0.1:2609"',
-                'nadrev_enable=1'
+                'nadrev_enable=1',
+                `nadrev_plugin_dir=${plugin_dir}`,
+                `nadrev_check_id="${bundle_id}"`,
+                `nadrev_key="${cosi.api_key}"`
             ].join('\n');
         }
 

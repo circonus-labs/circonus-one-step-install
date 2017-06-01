@@ -42,7 +42,27 @@ class COSI {
         instance.log_dir = path.resolve(path.join(instance.cosi_dir, 'log'));
         instance.reg_dir = path.resolve(path.join(instance.cosi_dir, 'registration'));
         instance.ruleset_dir = path.resolve(path.join(instance.cosi_dir, 'rulesets'));
-        instance.nad_etc_dir = path.resolve(path.join(instance.cosi_dir, '..', 'etc'));
+
+        // derive nad etc directory (different based on what version of nad)
+        instance.nad_etc_dir = path.resolve(path.join(instance.cosi_dir, '..', 'nad', 'etc'));
+        instance.nad_version = 2;
+        try {
+            fs.accessSync(instance.nad_etc_dir, fs.F_OK);
+        } catch (nadv1Err) {
+            if (nadv1Err.code === 'ENOENT') {
+                try {
+                    fs.accessSync(path.resolve(path.join(instance.cosi_dir, '..', 'sbin', 'nad')), fs.F_OK);
+                    instance.nad_etc_dir = path.resolve(path.join(instance.cosi_dir, '..', 'etc'));
+                    instance.nad_version = 1;
+                } catch (nadv0Err) {
+                    console.error(chalk.red(`ERROR`), nadv0Err);
+                    process.exit(1);
+                }
+            } else {
+                console.error(chalk.red(`ERROR`), nadv1Err);
+                process.exit(1);
+            }
+        }
 
         const configFile = path.resolve(path.join(instance.etc_dir, 'cosi.json'));
         let cfg = {};
