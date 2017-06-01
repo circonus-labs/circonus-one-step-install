@@ -10,7 +10,7 @@ const path = require('path');
 
 const app = require('commander');
 const chalk = require('chalk');
-const { sprintf } = require('sprintf-js');
+const sprintf = require('sprintf-js').sprintf;
 
 const cosi = require(path.resolve(path.join(__dirname, '..', 'lib', 'cosi')));
 const graphList = require(path.join(cosi.lib_dir, 'graph', 'list'));

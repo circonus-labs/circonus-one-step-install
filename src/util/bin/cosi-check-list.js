@@ -12,7 +12,7 @@ const path = require('path');
 const app = require('commander');
 const chalk = require('chalk');
 const ora = require('ora');
-const { sprintf } = require('sprintf-js');
+const sprintf = require('sprintf-js').sprintf;
 
 const cosi = require(path.resolve(path.join(__dirname, '..', 'lib', 'cosi')));
 const checkList = require(path.join(cosi.lib_dir, 'check', 'list'));

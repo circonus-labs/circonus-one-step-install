@@ -11,7 +11,7 @@ const fs = require('fs');
 
 const app = require('commander');
 const chalk = require('chalk');
-const { sprintf } = require('sprintf-js');
+const sprintf = require('sprintf-js').sprintf;
 
 const cosi = require(path.resolve(path.join(__dirname, '..', 'lib', 'cosi')));
 const Ruleset = require(path.join(cosi.lib_dir, 'ruleset'));
