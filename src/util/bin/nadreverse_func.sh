@@ -18,18 +18,18 @@ pass() { printf "${GREEN}"; log "$*"; printf "${NORMAL}"; }
 : ${nad_dir:=}
 
 if [[ -z "${cosi_dir:-}" ]]; then
-    cosi_dir="$(readlink -e $cosi_bin_dir/..)"
+    cosi_dir="$(readlink -f $cosi_bin_dir/..)"
 fi
 
 if [[ -z "${circonus_dir:-}" ]]; then
-    circonus_dir="$(readlink -e $cosi_dir/..)"
+    circonus_dir="$(readlink -f $cosi_dir/..)"
 fi
 
 if [[ -d "${circonus_dir}/nad" ]]; then
-    nad_ver=1
-    nad_dir="$(readlink -e $circonus_dir/nad)"
+    nad_ver=2
+    nad_dir="$(readlink -f $circonus_dir/nad)"
 elif [[ -s "${circonus_dir}/sbin/nad" ]]; then
-    nad_ver=0
+    nad_ver=1
     nad_dir=$circonus_dir
 fi
 

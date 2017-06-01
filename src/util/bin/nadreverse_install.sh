@@ -9,7 +9,7 @@
 : ${cosi_bin_dir:=}
 
 if [[ -z "${cosi_bin_dir:-}" ]]; then
-    cosi_bin_dir="$(dirname `readlink -e ${BASH_SOURCE[0]}`)"
+    cosi_bin_dir="$(dirname `readlink -f ${BASH_SOURCE[0]}`)"
 fi
 
 nadreverse_funcs="${cosi_bin_dir}/nadreverse_func.sh"
@@ -19,7 +19,7 @@ source $nadreverse_funcs
 nad_conf_new=""
 install_conf=0
 
-function install_linux_nadv0 {
+function install_linux_nadv1 {
     local nadrev_opts=""
 
     : ${nadrev_plugin_dir:=/opt/circonus/etc/node-agent.d}
@@ -55,7 +55,7 @@ function install_linux_nadv0 {
     install_conf=1
 }
 
-function install_linux_nadv1 {
+function install_linux_nadv2 {
     nad_conf="${nad_dir}/etc/nad.conf"
     log "Checking for NAD config"
     if [[ ! -f $nad_conf ]]; then
@@ -103,10 +103,10 @@ function install_omnios {
 }
 
 function install_linux {
-    if [[ $nad_ver -eq 0 ]]; then
-        install_linux_nadv0()
-    elif [[ $nad_ver -eq 1 ]]; then
-        install_linux_nadv1()
+    if [[ $nad_ver -eq 1 ]]; then
+        install_linux_nadv1
+    elif [[ $nad_ver -eq 2 ]]; then
+        install_linux_nadv2
     else
         fail "Unknown NAD version ($nad_ver)"
     fi

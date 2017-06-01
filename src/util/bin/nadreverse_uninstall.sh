@@ -9,7 +9,7 @@
 : ${cosi_bin_dir:=}
 
 if [[ -z "${cosi_bin_dir:-}" ]]; then
-    cosi_bin_dir="$(dirname `readlink -e ${BASH_SOURCE[0]}`)"
+    cosi_bin_dir="$(dirname `readlink -f ${BASH_SOURCE[0]}`)"
 fi
 
 nadreverse_funcs="${cosi_bin_dir}/nadreverse_func.sh"
@@ -21,7 +21,7 @@ orig_conf_backup=""
 function uninstall_linux {
     orig_conf_backup="${cosi_dir}/cache/nad.conf.orig"
 
-    if [[ $nad_ver -eq 0 ]]; then
+    if [[ $nad_ver -eq 1 ]]; then
         nad_conf="/etc/default/nad"
         if [[ ! -s $nad_conf ]]; then
             nad_conf="/etc/sysconfig/nad"
@@ -29,7 +29,7 @@ function uninstall_linux {
                 fail "Unable to find NAD config /etc/{default,sysconfig}/nad"
             fi
         fi
-    elif [[ $nad_ver -eq 1 ]]; then
+    elif [[ $nad_ver -eq 2 ]]; then
         nad_conf="${nad_dir}/etc/nad.conf"
     else
         fail "Unknown NAD version ($nad_ver)"
