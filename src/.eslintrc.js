@@ -1,8 +1,8 @@
 module.exports = {
     root: true,
     extends: [
-        '@maier/base',
-        '@maier/node'
+        '@maier/eslint-config-base',
+        '@maier/eslint-config-node'
     ],
     rules: {
         'max-len': [
