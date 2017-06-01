@@ -5,9 +5,9 @@
 module.exports = {
     root: true,
     extends: [
-        '@maier/base',
-        '@maier/node',
-        '@maier/node-cmd'
+        '@maier/eslint-config-base',
+        '@maier/eslint-config-node',
+        '@maier/eslint-config-node-cmd'
     ],
     rules: {
         // ...additional project specific rules
