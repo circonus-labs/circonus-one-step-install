@@ -459,8 +459,8 @@ __install_agent() {
         [[ ! -f "$package_file" ]] && fail "Unable to find package '$package_file'"
         if [[ -z "${pkg_cmd:-}" ]]; then
             if [[ $package_file =~ \.rpm$ ]]; then
-                pkg_cmd="rpm"
-                pkg_cmd_args="-v --install ${package_file}"
+                pkg_cmd="yum"
+                pkg_cmd_args="localinstall -y ${package_file}"
             elif [[ $package_file =~ \.deb$ ]]; then
                 pkg_cmd="dpkg"
                 pkg_cmd_args="--install --force-confold ${package_file}"
