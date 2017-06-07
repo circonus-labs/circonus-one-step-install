@@ -1,7 +1,8 @@
-'use strict';
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-/* eslint-env node, es6 */
-/* eslint-disable no-magic-numbers, consistent-return */
+'use strict';
 
 const fs = require('fs');
 const path = require('path');
@@ -18,6 +19,11 @@ let metrics = {};
 let groups = [];
 
 class Metrics {
+
+    /**
+     * create new metrics object
+     * @arg {String} agentUrl URL for NAD/agent
+     */
     constructor(agentUrl) {
         if (instance !== null) {
             return instance;
@@ -36,15 +42,21 @@ class Metrics {
         instance = this; // eslint-disable-line consistent-this
 
         return instance;
-
     }
 
+    /**
+     * load metrics from the agent
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
     load(cb) {
         assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
         const self = this;
 
         if (groups.length > 0) {
-            return cb(null, true);
+            cb(null, true);
+
+            return;
         }
 
         instance.client.get(instance.url, (res) => {
@@ -56,15 +68,21 @@ class Metrics {
 
             res.on('end', () => {
                 if (res.statusCode !== 200) {
-                    return cb(new Error(`${res.statusCode} ${res.statusMessage} ${data}`));
+                    cb(new Error(`${res.statusCode} ${res.statusMessage} ${data}`));
+
+                    return;
                 }
 
                 try {
                     // try to save a copy of the RAW output from NAD for debugging (if needed)
                     const rawMetricsFile = path.resolve(path.join(cosi.reg_dir, `raw-metrics-${Date.now()}.json`));
 
-                    fs.writeFileSync(rawMetricsFile, data, { encoding: 'utf8', mode: 0o644, flag: 'w' });
-                } catch (err) {
+                    fs.writeFileSync(rawMetricsFile, data, {
+                        encoding : 'utf8',
+                        flag     : 'w',
+                        mode     : 0o644
+                    });
+                } catch (ignoreError) {
                     // ignore
                 }
 
@@ -72,24 +90,118 @@ class Metrics {
                     metrics = self._parseMetrics(JSON.parse(data));
                     groups = Object.keys(metrics);
                 } catch (err) {
-                    return cb(err);
+                    cb(err);
+
+                    return;
                 }
 
-                return cb(null, true);
+                cb(null, true);
             });
         }).on('error', (err) => {
             if (err.code === 'ECONNREFUSED') {
                 console.error(chalk.red('Fetch metrics - unable to connect to NAD'), url.format(this.url), err.toString());
                 process.exit(1); // eslint-disable-line no-process-exit
             }
-            return cb(err);
+
+            cb(err);
         });
     }
 
-    //
-    // _parseMetrics and _getMetrics are used to flatten out all metrics (e.g. json blobs emitted from plugins)
-    //
+    /**
+     * return metric groups
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
+    getGroups(cb) { // eslint-disable-line class-methods-use-this
+        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
+        instance.load((err) => {
+            if (err) {
+                cb(err);
+
+                return;
+            }
+
+            cb(null, groups);
+        });
+    }
+
+    /**
+     * return metrics
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
+    getMetrics(cb) { // eslint-disable-line class-methods-use-this
+        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
+
+        instance.load((err) => {
+            if (err) {
+                cb(err);
+
+                return;
+            }
+
+            cb(null, metrics);
+        });
+    }
+
+    /**
+     * return metrics for specific group
+     * @arg {String} group metric group
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
+    getGroupMetrics(group, cb) { // eslint-disable-line class-methods-use-this
+        assert.strictEqual(typeof group, 'string', 'group is required');
+        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
+
+        instance.load((err) => {
+            if (err) {
+                cb(err);
+
+                return;
+            }
+
+            if (!{}.hasOwnProperty.call(metrics, group)) {
+                cb(new Error(`Unknown metric group '${group}'`));
+
+                return;
+            }
+
+            cb(null, metrics[group]);
+        });
+    }
+
+    /**
+     * return count of metrics for each metric group
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
+    getMetricStats(cb) { // eslint-disable-line class-methods-use-this
+        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
+
+        instance.load((err) => {
+            if (err) {
+                cb(err);
+
+                return;
+            }
+
+            const stats = {};
+
+            for (let i = 0; i < groups.length; i++) {
+                stats[groups[i]] = Object.keys(metrics[groups[i]]).length;
+            }
+
+            cb(null, stats);
+        });
+    }
+
+    /**
+     * _parseMetrics and _getMetrics are used to flatten out all metrics (e.g. json blobs emitted from plugins)
+     * @arg {Object} rawMetrics from agent
+     * @returns {Object} flattened metric list
+     */
     _parseMetrics(rawMetrics) {
         const metricList = {};
 
@@ -100,6 +212,12 @@ class Metrics {
         return metricList;
     }
 
+    /**
+     * _parseMetrics and _getMetrics are used to flatten out all metrics (e.g. json blobs emitted from plugins)
+     * @arg {String} prefix from parent metric
+     * @arg {Object} rawMetrics from agent
+     * @returns {Object} flattened metric list
+     */
     _getMetrics(prefix, rawMetrics) {
         let metricList = {};
 
@@ -122,67 +240,10 @@ class Metrics {
                 metricList = Object.assign(metricList, this._getMetrics(metricName, rawMetrics[metric]));
             }
         }
+
         return metricList;
     }
 
-
-    getGroups(cb) {
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
-
-        instance.load((err) => {
-            if (err) {
-                return cb(err);
-            }
-            return cb(null, groups);
-        });
-    }
-
-    getMetrics(cb) {
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
-
-        instance.load((err) => {
-            if (err) {
-                return cb(err);
-            }
-            return cb(null, metrics);
-        });
-    }
-
-    getGroupMetrics(group, cb) {
-        assert.strictEqual(typeof group, 'string', 'group is required');
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
-
-        instance.load((err) => {
-            if (err) {
-                return cb(err);
-            }
-
-            if (!{}.hasOwnProperty.call(metrics, group)) {
-                return cb(new Error(`Unknown metric group '${group}'`));
-            }
-
-            return cb(null, metrics[group]);
-        });
-    }
-
-    getMetricStats(cb) {
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
-
-        instance.load((err) => {
-            if (err) {
-                return cb(err);
-            }
-
-            const stats = {};
-
-            for (let i = 0; i < groups.length; i++) {
-                stats[groups[i]] = Object.keys(metrics[groups[i]]).length;
-            }
-
-            return cb(null, stats);
-
-        });
-    }
 }
 
 module.exports = Metrics;

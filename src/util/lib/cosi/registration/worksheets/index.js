@@ -1,8 +1,8 @@
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 'use strict';
-
-/* eslint-env node, es6 */
-
-/* eslint-disable global-require */
 
 const assert = require('assert');
 const fs = require('fs');
@@ -18,6 +18,10 @@ const api = require(path.resolve(cosi.lib_dir, 'api'));
 
 class Worksheets extends Registration {
 
+    /**
+     * create worksheet object
+     * @arg {Boolean} quiet squelch some info messages
+     */
     constructor(quiet) {
         super(quiet);
 
@@ -25,10 +29,14 @@ class Worksheets extends Registration {
 
         if (err !== null) {
             this.emit('error', err);
-            return;
         }
     }
 
+    /**
+     * create a new worksheet
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
     create(cb) {
         console.log(chalk.bold('\nRegistration - worksheets'));
 
@@ -51,14 +59,17 @@ class Worksheets extends Registration {
 
         this.once('worksheets.done', () => {
             if (typeof cb === 'function') {
-                cb();
-                return;
+                cb(); // eslint-disable-line callback-return
             }
         });
 
         this.emit('worksheets.config');
     }
 
+    /**
+     * configure worksheet
+     * @returns {Undefined} nothing
+     */
     configWorksheets() {
         console.log(chalk.blue(this.marker));
         console.log(`Configuring Worksheets`);
@@ -70,6 +81,7 @@ class Worksheets extends Registration {
         if (this._fileExists(configFile)) {
             console.log(chalk.bold('\tConfiguration exists'), configFile);
             this.emit('worksheets.config.done');
+
             return;
         }
 
@@ -78,9 +90,9 @@ class Worksheets extends Registration {
 
         config.smart_queries = [
             {
-                name: 'Circonus One Step Install',
-                order: [],
-                query: `(notes:"${this.regConfig.cosiNotes}*")`
+                name  : 'Circonus One Step Install',
+                order : [],
+                query : `(notes:"${this.regConfig.cosiNotes}*")`
             }
         ];
 
@@ -89,18 +101,26 @@ class Worksheets extends Registration {
         this._setCustomWorksheetOptions(config, id);
 
         try {
-            fs.writeFileSync(configFile, JSON.stringify(config, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+            fs.writeFileSync(configFile, JSON.stringify(config, null, 4), {
+                encoding : 'utf8',
+                flag     : 'w',
+                mode     : 0o644
+            });
         } catch (err) {
             this.emit('error', err);
+
             return;
         }
 
         console.log('\tSaved configuration', configFile);
         this.emit('worksheets.config.done');
-
     }
 
 
+    /**
+     * create worksheet
+     * @returns {Undefined} nothing
+     */
     createWorksheets() {
         console.log(chalk.blue(this.marker));
         console.log('Creating Worksheets');
@@ -112,11 +132,13 @@ class Worksheets extends Registration {
         if (this._fileExists(regFile)) {
             console.log(chalk.bold('\tRegistration exists'), regFile);
             this.emit('worksheets.create.done');
+
             return;
         }
 
         if (!this._fileExists(cfgFile)) {
             this.emit('error', new Error(`Missing worksheet configuration file '${cfgFile}'`));
+
             return;
         }
 
@@ -129,15 +151,21 @@ class Worksheets extends Registration {
         this._findWorksheet(worksheet.title, (findErr, regConfig) => {
             if (findErr !== null) {
                 self.emit('error', findErr);
+
                 return;
             }
 
             if (regConfig !== null) {
                 console.log(`\tSaving registration ${regFile}`);
                 try {
-                    fs.writeFileSync(regFile, JSON.stringify(regConfig, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+                    fs.writeFileSync(regFile, JSON.stringify(regConfig, null, 4), {
+                        encoding : 'utf8',
+                        flag     : 'w',
+                        mode     : 0o644
+                    });
                 } catch (saveErr) {
                     self.emit('error', saveErr);
+
                     return;
                 }
 
@@ -145,6 +173,7 @@ class Worksheets extends Registration {
                     chalk.green('\tWorksheet:'),
                     `${self.regConfig.account.ui_url}/trending/worksheets/${regConfig._cid.replace('/worksheet/', '')}`);
                 self.emit('worksheets.create.done');
+
                 return;
             }
 
@@ -153,6 +182,7 @@ class Worksheets extends Registration {
             worksheet.create((err) => {
                 if (err) {
                     self.emit('error', err);
+
                     return;
                 }
 
@@ -167,9 +197,16 @@ class Worksheets extends Registration {
         });
     }
 
-    _findWorksheet(title, cb) {
+    /**
+     * find a specific worksheet
+     * @arg {String} title of worksheet
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
+    _findWorksheet(title, cb) { // eslint-disable-line class-methods-use-this
         if (title === null) {
             cb(new Error('Invalid worksheet title'));
+
             return;
         }
 
@@ -184,6 +221,7 @@ class Worksheets extends Registration {
                 apiError.message = errAPI;
                 apiError.details = result;
                 cb(apiError);
+
                 return;
             }
 
@@ -194,12 +232,14 @@ class Worksheets extends Registration {
                 errResp.message = 'UNEXPECTED_API_RETURN';
                 errResp.details = result;
                 cb(errResp);
+
                 return;
             }
 
             if (Array.isArray(result) && result.length > 0) {
                 console.log(chalk.green('\tFound'), `${result.length} existing worksheet(s) with title '${title}'`);
                 cb(null, result[0]);
+
                 return;
             }
 
@@ -214,6 +254,12 @@ class Worksheets extends Registration {
 
     */
 
+    /**
+     * configure custom worksheet options
+     * @arg {Object} cfg the worksheet configuration
+     * @arg {String} id the worksheet id (used to identify custom options)
+     * @returns {Undefined} nothing
+     */
     _setCustomWorksheetOptions(cfg, id) {
         assert.equal(typeof cfg, 'object', 'cfg is required');
         assert.equal(typeof id, 'string', 'id is required');
@@ -233,9 +279,7 @@ class Worksheets extends Registration {
             if ({}.hasOwnProperty.call(cosi.custom_options, cfgType)) {
                 const custom = cosi.custom_options[cfgType];
 
-                for (let i = 0; i < options.length; i++) {
-                    const opt = options[i];
-
+                for (const opt of options) {
                     if ({}.hasOwnProperty.call(custom, opt)) {
                         console.log(`\tSetting ${opt} to ${custom[opt]}`);
                         cfg[opt] = custom[opt]; // eslint-disable-line no-param-reassign
@@ -243,10 +287,8 @@ class Worksheets extends Registration {
                 }
 
                 if ({}.hasOwnProperty.call(custom, cfgId)) {
-                    for (let i = 0; i < options.length; i++) {
-                        const opt = options[i];
-
-                        if ({}.hasOwnProperty.call(custom[cfgId], opt)) {
+                    for (const opt of options) {
+                        if ({}.hasOwnProperty.call(custom[cfgId], opt)) { // eslint-disable-line max-depth
                             console.log(`\tSetting ${opt} to ${custom[cfgId][opt]}`);
                             cfg[opt] = custom[cfgId][opt]; // eslint-disable-line no-param-reassign
                         }
@@ -257,9 +299,7 @@ class Worksheets extends Registration {
 
         const data = this._mergeData(id);
 
-        for (let i = 0; i < options.length; i++) {
-            const opt = options[i];
-
+        for (const opt of options) {
             console.log(`\tInterpolating ${opt} ${cfg[opt]}`);
             cfg[opt] = this._expand(cfg[opt], data); // eslint-disable-line no-param-reassign
         }
@@ -271,10 +311,13 @@ class Worksheets extends Registration {
                 cfg.tags[i] = this._expand(cfg.tags[i], data); // eslint-disable-line no-param-reassign
             }
         }
-
     }
 
-    finalizeWorksheets() {
+    /**
+     * placeholder, noop
+     * @returns {Undefined} nothing
+     */
+    finalizeWorksheets() { // eslint-disable-line class-methods-use-this, no-empty-function
 
     }
 

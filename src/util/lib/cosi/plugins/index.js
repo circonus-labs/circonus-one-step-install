@@ -1,8 +1,8 @@
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 'use strict';
-
-/* eslint-env node, es6 */
-
-/* eslint-disable global-require, max-depth */
 
 const assert = require('assert');
 const Events = require('events').EventEmitter;
@@ -42,12 +42,18 @@ one parameter 'err' which is an Error() or null if no error occurred.
 
 class Plugin extends Events {
 
-    // options:
-    // noregister - determines whether registration step should be done (true|false) default: false
-    //              useful for running multiple plugin enablers sequentially. don't perform
-    //              registration step on each one. (e.g. cosi installer can auto-discover
-    //              supported services and pre-install/enable the plugins before doing the overall
-    //              system registration.)
+    /**
+     * create plugin object
+     * @arg {Object} options for initialization
+     *               noregister - determines whether registration step should be done (true|false) default: false
+     *                            useful for running multiple plugin enablers sequentially. don't perform
+     *                            registration step on each one. (e.g. cosi installer can auto-discover
+     *                            supported services and pre-install/enable the plugins before doing the overall
+     *                            system registration.)
+     *               force - overwrite config file (default: false)
+     *               iface - for protocol_observer to observe target application traffic (default: null)
+     *                       set or override in subclass constructor
+     */
     constructor(options) {
         super();
 
@@ -75,28 +81,43 @@ class Plugin extends Events {
         });
     }
 
-    // make plugin "work" e.g. symlinks for nad, daemon, configuration files
-    // for plugin scripts, etc.
-    // parmeter: callback, expected to be called with cb(err) where err is any error or null
-    enablePlugin() {
+    /**
+     * TO BE OVERRIDDEN
+     * make plugin "work" e.g. symlinks for nad, daemon, configuration files for plugin scripts, etc.
+     * parmeter: callback, expected to be called with cb(err) where err is any error or null
+     * @returns {Undefined} nothing, uses a callback
+     */
+    enablePlugin() { // eslint-disable-line class-methods-use-this
         throw new Error('not overridden by plugin subclass');
     }
 
-    // install and configure any templates for visuals in /opt/circonus/cosi/registration
-    // e.g. template-dashboard-plugin_name-plugin_instance.json
-    //      template-dashboard-postgres-mydbname.json
-    // parmeter: callback, expected to be called with cb(err) where err is any error or null
-    configurePlugin() {
+    /**
+     * TO BE OVERRIDDEN
+     * install and configure any templates for visuals in /opt/circonus/cosi/registration
+     * e.g. template-dashboard-plugin_name-plugin_instance.json
+     *      template-dashboard-postgres-mydbname.json
+     * parmeter: callback, expected to be called with cb(err) where err is any error or null
+     * @returns {Undefined} nothing, uses a callback
+     */
+    configurePlugin() { // eslint-disable-line class-methods-use-this
         throw new Error('not overridden by plugin subclass');
     }
 
-    // stop plugin from working and remove any non-template created files
-    // e.g. remove symlinks for nad scripts, remove any configuration files, etc.
-    // parmeter: callback, expected to be called with cb(err) where err is any error or null
-    disablePlugin() {
+    /**
+     * TO BE OVERRIDDEN
+     * stop plugin from working and remove any non-template created files
+     * e.g. remove symlinks for nad scripts, remove any configuration files, etc.
+     * parmeter: callback, expected to be called with cb(err) where err is any error or null
+     * @returns {Undefined} nothing, uses a callback
+     */
+    disablePlugin() { // eslint-disable-line class-methods-use-this
         throw new Error('not overridden by plugin subclass');
     }
 
+    /**
+     * enable plugin
+     * @returns {Undefined} nothing, emits event
+     */
     enable() {
         const self = this;
 
@@ -106,6 +127,7 @@ class Plugin extends Events {
         this.enablePlugin((err) => {
             if (err !== null) {
                 self.emit('error', err);
+
                 return;
             }
             self.emit('enable.done');
@@ -113,12 +135,17 @@ class Plugin extends Events {
     }
 
 
+    /**
+     * configure plugin
+     * @returns {Undefined} nothing, emits event
+     */
     configure() {
         const self = this;
 
         this.configurePlugin((err) => {
             if (err !== null) {
                 self.emit('error', err);
+
                 return;
             }
             // update global meta data if any has been defined in plugin
@@ -128,6 +155,10 @@ class Plugin extends Events {
     }
 
 
+    /**
+     * disable plugin
+     * @returns {Undefined} nothing, emits event
+     */
     disable() {
         const self = this;
 
@@ -136,6 +167,7 @@ class Plugin extends Events {
         this.disablePlugin((err) => {
             if (err !== null) {
                 self.emit('error', err);
+
                 return;
             }
             self.emit('disable.done');
@@ -143,16 +175,19 @@ class Plugin extends Events {
     }
 
 
+    /**
+     * clean up a plugin's artifacts (e.g. reset)
+     * 1. find visuals
+     * 2. remove visual (using API)
+     * 3. remove registration files:
+     *      e.g. template-dashboard-postgres-mydbname.json
+     *           config-dashboard-postgres-mydbname.json
+     *           registration-dashboard-postgres-mydbname.json
+     *           meta-dashboard-postgres.json
+     * 4. update system check to remove plugin metrics
+     * @returns {Undefined} nothing, emits event
+     */
     clean() {
-        // find visuals
-        // remove visual (using API)
-        // remove registration files:
-        //        e.g. template-dashboard-postgres-mydbname.json
-        //             config-dashboard-postgres-mydbname.json
-        //             registration-dashboard-postgres-mydbname.json
-        //             meta-dashboard-postgres.json
-        // update system check to remove plugin metrics
-
         const self = this;
 
         /* find all related graphs and dashboards for this plugin */
@@ -172,40 +207,43 @@ class Plugin extends Events {
             files = fs.readdirSync(cosi.reg_dir);
         } catch (err) {
             this.emit(err);
+
             return;
         }
 
         console.log(`Finding metrics & files for plugin ${this.name}`);
 
-        for (let i = 0; i < files.length; i++) {
-            const file = path.resolve(cosi.reg_dir, files[i]);
+        for (const file_name of files) {
+            const file = path.resolve(cosi.reg_dir, file_name);
 
-            if (files[i].indexOf(`registration-dashboard-${dashboardPrefix}`) !== -1) {
+            if (file_name.indexOf(`registration-dashboard-${dashboardPrefix}`) !== -1) {
                 console.log(`\tFile: ${file}`);
-                removeFiles.push({ type : 'dash', file });
+                removeFiles.push({
+                    file,
+                    type: 'dash'
+                });
 
-                const dash = require(file);
+                const dash = require(file); // eslint-disable-line global-require
 
-                for (let j = 0; j < dash.widgets.length; j++) {
-                    const widget = dash.widgets[j];
-
+                for (const widget of dash.widgets) {
                     if (widget.type === 'gauge') {
                         console.log(`\tMetric: ${widget.settings.metric_name}`);
                         removeMetrics.push(widget.settings.metric_name);
                     }
                 }
-            } else if (files[i].indexOf(`registration-graph-`) !== -1) {
+            } else if (file_name.indexOf(`registration-graph-`) !== -1) {
                 for (let pfxIdx = 0; pfxIdx < graphPrefix.length; pfxIdx++) {
-                    if (files[i].indexOf(`registration-graph-${graphPrefix[pfxIdx]}`) !== -1) {
+                    if (file_name.indexOf(`registration-graph-${graphPrefix[pfxIdx]}`) !== -1) {
                         console.log(`\tFile: ${file}`);
-                        removeFiles.push({ type : 'graph', file });
+                        removeFiles.push({
+                            file,
+                            type: 'graph'
+                        });
 
-                        const graph = require(file);
+                        const graph = require(file); // eslint-disable-line global-require
 
-                        for (let j = 0; j < graph.datapoints.length; j++) {
-                            const dp = graph.datapoints[j];
-
-                            if (dp.metric_name !== null) {
+                        for (const dp of graph.datapoints) { // eslint-disable-line max-depth
+                            if (dp.metric_name !== null) { // eslint-disable-line max-depth
                                 console.log(`\tMetric: ${dp.metric_name}`);
                                 removeMetrics.push(dp.metric_name);
                             }
@@ -213,21 +251,26 @@ class Plugin extends Events {
                         break;
                     }
                 }
-            } else if (files[i].indexOf(`meta-dashboard-${this.name}`) !== -1) {
+            } else if (file_name.indexOf(`meta-dashboard-${this.name}`) !== -1) {
                 console.log(`\tFile: ${file}`);
-                removeFiles.push({ type : 'meta', file });
+                removeFiles.push({
+                    file,
+                    type: 'meta'
+                });
             }
         }
 
         this._disableUpdateCheck(removeMetrics, (err) => {
             if (err !== null) {
                 self.emti('error', err);
+
                 return;
             }
 
             self._disableRemoveVisuals(removeFiles, (removeErr) => {
                 if (removeErr !== null) {
                     self.emit('error', removeErr);
+
                     return;
                 }
 
@@ -236,6 +279,11 @@ class Plugin extends Events {
         });
     }
 
+    /**
+     * update global meta data with information specific to plugin
+     * @arg {Object} newMetadata definition
+     * @returns {Undefined} nothing
+     */
     _updateGlobalMeta(newMetadata) {
         if (newMetadata === null || typeof newMetadata !== 'object' || Object.keys(newMetadata).length === 0) {
             return;
@@ -247,10 +295,11 @@ class Plugin extends Events {
         let meta = {};
 
         try {
-            meta = require(globalMetaFile);
+            meta = require(globalMetaFile); // eslint-disable-line global-require
         } catch (err) {
             if (err.code !== 'MODULE_NOT_FOUND') {
                 this.emit('error', err);
+
                 return;
             }
         }
@@ -262,20 +311,29 @@ class Plugin extends Events {
         }
 
         try {
-            fs.writeFileSync(globalMetaFile, JSON.stringify(meta, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+            fs.writeFileSync(globalMetaFile, JSON.stringify(meta, null, 4), {
+                encoding : 'utf8',
+                flag     : 'w',
+                mode     : 0o644
+            });
             console.log(chalk.green('\tSaved'), 'global meta data', globalMetaFile);
         } catch (err) {
             this.emit('error', err);
-            return;
         }
-
     }
 
 
-    _disableUpdateCheck(removeMetrics, cb) {
+    /**
+     * update system check, removing metrics for disabled plugin
+     * @arg {Array} removeMetrics list of metrics to be removed
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses a callback
+     */
+    _disableUpdateCheck(removeMetrics, cb) { // eslint-disable-line class-methods-use-this
         if (removeMetrics.length === 0) {
             console.log('No metrics found to remove, skipping check update');
             cb(null);
+
             return;
         }
 
@@ -303,29 +361,41 @@ class Plugin extends Events {
         check.update((err, result) => {
             if (err) {
                 cb(err);
+
                 return;
             }
 
             try {
-                fs.writeFileSync(checkRegFile, JSON.stringify(result, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+                fs.writeFileSync(checkRegFile, JSON.stringify(result, null, 4), {
+                    encoding : 'utf8',
+                    flag     : 'w',
+                    mode     : 0o644
+                });
                 console.log(chalk.green('\tUpdated'), `system check, saved`, checkRegFile);
             } catch (writeErr) {
                 cb(writeErr);
+
                 return;
             }
 
             cb(null);
-            return;
         });
     }
 
 
+    /**
+     * removing visuals specific to plugin when disabling plugin
+     * @arg {Array} removeFiles list of visuals to be removed
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses a callback
+     */
     _disableRemoveVisuals(removeFiles, cb) {
         const self = this;
 
         if (removeFiles.length === 0) {
             console.log('No visuals/files found to remove, skipping');
             cb(null);
+
             return;
         }
 
@@ -336,12 +406,14 @@ class Plugin extends Events {
 
             if (typeof item === 'undefined') {
                 cb(null);
+
                 return;
             }
 
             self._removeItem(item, (err) => {
                 if (err !== null) {
                     cb(err);
+
                     return;
                 }
                 self.emit('next.item');
@@ -351,6 +423,12 @@ class Plugin extends Events {
         this.emit('next.item');
     }
 
+    /**
+     * remove a specific plugin item/asset
+     * @arg {Object} item what to remove
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses a callback
+     */
     _removeItem(item, cb) {
         const self = this;
 
@@ -361,8 +439,7 @@ class Plugin extends Events {
             } catch (unlinkErr) {
                 console.log(chalk.yellow('\tWARN'), 'ignoring...', unlinkErr.toString());
             }
-            cb(null);
-            return;
+            cb(null); // eslint-disable-line callback-return
         } else if (item.type === 'dash') {
             const dash = new Dashboard(item.file);
 
@@ -370,6 +447,7 @@ class Plugin extends Events {
             dash.remove((err) => {
                 if (err) {
                     cb(err);
+
                     return;
                 }
                 self._removeRegistrationFiles(item.file);
@@ -382,6 +460,7 @@ class Plugin extends Events {
             graph.remove((err) => {
                 if (err) {
                     cb(err);
+
                     return;
                 }
                 self._removeRegistrationFiles(item.file);
@@ -390,8 +469,12 @@ class Plugin extends Events {
         }
     }
 
-
-    _removeRegistrationFiles(regFile) {
+    /**
+     * remove registration file for plugin assets
+     * @arg {String} regFile to remove
+     * @returns {Undefined} nothing, uses a callback
+     */
+    _removeRegistrationFiles(regFile) { // eslint-disable-line class-methods-use-this
         if (regFile.indexOf('registration-') === -1) {
             throw new Error(`Invalid registration file ${regFile}`);
         }
@@ -407,14 +490,14 @@ class Plugin extends Events {
             }
         }
 
-        function remove(file) {
+        const remove = (file) => {
             try {
                 fs.unlinkSync(file);
                 console.log(`\t\tRemoved file: ${file}`);
             } catch (err) {
                 console.log(chalk.yellow('\t\tWARN'), 'ignoring...', err.toString());
             }
-        }
+        };
 
         remove(regFile);
         remove(cfgFile);
@@ -422,9 +505,14 @@ class Plugin extends Events {
     }
 
 
+    /**
+     * run registration after all assets have been configured.
+     * @returns {Undefined} nothing, emits event
+     */
     register() {
         if (this.options.noregister) {
             this.emit('register.done');
+
             return;
         }
         console.log(chalk.blue(this.marker));
@@ -450,7 +538,10 @@ class Plugin extends Events {
 
     // utility methods
 
-    // override in subclass if there are multiple templates to fetch
+    /**
+     * fetch templates specific to plugin - override in subclass if there are multiple templates to fetch
+     * @returns {Undefined} nothing, emits event
+     */
     fetchTemplates() {
         const self = this;
         const templateID = `dashboard-${this.name}`;
@@ -461,6 +552,7 @@ class Plugin extends Events {
         fetcher.template(templateID, (err, template) => {
             if (err !== null) {
                 self.emit('error', err);
+
                 return;
             }
 
@@ -473,6 +565,11 @@ class Plugin extends Events {
     }
 
 
+    /**
+     * check if file exists
+     * @arg {String} cfgFile to check for
+     * @returns {Boolean} file exists
+     */
     _fileExists(cfgFile) {
         assert.equal(typeof cfgFile, 'string', 'cfgFile is required');
 
@@ -490,18 +587,29 @@ class Plugin extends Events {
     }
 
 
+    /**
+     * run a shell command (to enable/disable plugin)
+     * @arg {String} cmd to run
+     * @arg {String} doneEvent to fire when completed
+     * @returns {Undefined} nothing, emits event
+     */
     _execShell(cmd, doneEvent) {
         const self = this;
 
         child.exec(cmd, (error, stdout, stderr) => {
             if (error) {
                 self.emit('error', new Error(`${error} ${stderr}`));
+
                 return;
             }
             self.emit(doneEvent, stdout);
         });
     }
 
+    /**
+     * create protocol observer configuration (if needed)
+     * @returns {Undefined} nothing
+     */
     _createProtocolObserverConf() {
         // if there is no protocol observer configuration file defined, plugin is assumed to not use/need one
         if (!this.protocolObserverConf || this.protocolObserverConf === '') {
@@ -519,7 +627,11 @@ class Plugin extends Events {
         }
 
         try {
-            fs.writeFileSync(this.protocolObserverConf, contents.join('\n'), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+            fs.writeFileSync(this.protocolObserverConf, contents.join('\n'), {
+                encoding : 'utf8',
+                flag     : 'w',
+                mode     : 0o644
+            });
         } catch (err) {
             return err;
         }

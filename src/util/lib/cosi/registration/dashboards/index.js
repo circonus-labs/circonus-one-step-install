@@ -1,8 +1,8 @@
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 'use strict';
-
-/* eslint-env node, es6 */
-
-/* eslint-disable global-require */
 
 const fs = require('fs');
 const path = require('path');
@@ -20,6 +20,10 @@ const api = require(path.resolve(cosi.lib_dir, 'api'));
 
 class Dashboards extends Registration {
 
+    /**
+     * create dashboard object
+     * @arg {Boolean} quiet squelch some info messages
+     */
     constructor(quiet) {
         super(quiet);
 
@@ -27,6 +31,7 @@ class Dashboards extends Registration {
 
         if (err !== null) {
             this.emit('error', err);
+
             return;
         }
 
@@ -36,6 +41,11 @@ class Dashboards extends Registration {
         this.metrics = null;
     }
 
+    /**
+     * start the dashboard creation process
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
     create(cb) {
         console.log(chalk.bold('\nRegistration - dashboards'));
 
@@ -50,6 +60,7 @@ class Dashboards extends Registration {
             self.checkMeta = checks.getMeta();
             if (self.checkMeta === null) {
                 self.emit('error', new Error('Unable to load check meta data'));
+
                 return;
             }
             console.log(chalk.green('Loaded'), 'check meta data');
@@ -62,6 +73,7 @@ class Dashboards extends Registration {
                 console.log(chalk.yellow('WARN'), 'No dashboard templates found');
                 console.log(chalk.green('\nSKIPPING'), 'dasbhoards, none found to register');
                 self.emit('dashboards.done');
+
                 return;
             }
             self.emit('metrics.load');
@@ -94,14 +106,17 @@ class Dashboards extends Registration {
 
         this.once('dashboards.done', () => {
             if (typeof cb === 'function') {
-                cb();
-                return;
+                cb(); // eslint-disable-line callback-return
             }
         });
 
         this.emit('checks.load');
     }
 
+    /**
+     * find dashboard templates
+     * @returns {Undefined} nothing, emits event
+     */
     findTemplates() {
         console.log(chalk.blue(this.marker));
         console.log('Identifying dashboard templates');
@@ -111,14 +126,13 @@ class Dashboards extends Registration {
         templateList(cosi.reg_dir, (listError, templates) => {
             if (listError) {
                 self.emit('error', listError);
+
                 return;
             }
 
             self.templates = [];
 
-            // for (const template of templates) {
-            for (let i = 0; i < templates.length; i++) {
-                const template = templates[i];
+            for (const template of templates) {
                 const templateType = template.config.type;
                 const templateId = template.config.id;
 
@@ -136,6 +150,10 @@ class Dashboards extends Registration {
     }
 
 
+    /**
+     * load existing graphs
+     * @returns {Undefined} nothing, emits event
+     */
     loadGraphs() {
         console.log(chalk.blue(this.marker));
         console.log('Loading graphs');
@@ -144,24 +162,23 @@ class Dashboards extends Registration {
 
         const fileList = fs.readdirSync(cosi.reg_dir);
 
-        for (let i = 0; i < fileList.length; i++) {
-            const file = fileList[i];
-
+        for (const file of fileList) {
             if (file.match(/^registration-graph-/)) {
                 console.log(`\tExtracting meta data from ${file}`);
                 const graphCfgFile = path.resolve(path.join(cosi.reg_dir, file));
                 const graph = new Graph(graphCfgFile);
 
                 this.graphs.push({
-                    instance_name: path.basename(file, '.json').replace(/^registration-graph-/, ''),
-                    tags: graph.tags.join(','),
-                    id: graph._cid.replace('/graph/', '')
+                    id            : graph._cid.replace('/graph/', ''),
+                    instance_name : path.basename(file, '.json').replace(/^registration-graph-/, ''),
+                    tags          : graph.tags.join(',')
                 });
             }
         }
 
         if (this.graphs === null || this.graphs.length === 0) {
             this.emit('error', new Error('Unable to load meta data for graphs'));
+
             return;
         }
 
@@ -170,6 +187,10 @@ class Dashboards extends Registration {
     }
 
 
+    /**
+     * configure dasbhoards
+     * @returns {Undefined} nothing, emits event
+     */
     configDashboards() {
         const self = this;
         const dashboards = this.templates;
@@ -181,6 +202,7 @@ class Dashboards extends Registration {
 
             if (typeof template === 'undefined') {
                 self.emit('dashboards.config.done');
+
                 return;
             }
 
@@ -192,7 +214,12 @@ class Dashboards extends Registration {
     }
 
 
-    configDashboard(template) { // eslint-disable-line complexity
+    /**
+     * configure individual dashboard
+     * @arg {Object} template to base configuration on
+     * @returns {Undefined} nothing, emits event
+     */
+    configDashboard(template) { // eslint-disable-line complexity, max-statements
         console.log(chalk.blue(this.marker));
         console.log(`Configuring dasbhoard`);
 
@@ -200,6 +227,7 @@ class Dashboards extends Registration {
 
         if (templateMatch === null) {
             this.emit('error', new Error(`Invalid template, no instance found. ${template.file}`));
+
             return;
         }
 
@@ -213,6 +241,7 @@ class Dashboards extends Registration {
         if (this._fileExists(configFile)) {
             console.log(chalk.bold('\tConfiguration exists'), `- using ${configFile}`);
             this.emit('config.dashboard.next');
+
             return;
         }
 
@@ -223,13 +252,14 @@ class Dashboards extends Registration {
 
         if (this._fileExists(metaFile)) {
             try {
-                metaData = require(metaFile);
+                metaData = require(metaFile); // eslint-disable-line global-require
                 if (!{}.hasOwnProperty.call(metaData, 'sys_graphs')) {
                     metaData.sys_graphs = [];
                 }
             } catch (err) {
                 if (err.code !== 'MODULE_NOT_FOUND') {
                     this.emit('error', err);
+
                     return;
                 }
             }
@@ -365,7 +395,6 @@ class Dashboards extends Registration {
             widget.settings.resource_usage = this._expand(widget.settings.resource_usage, forecastData);
             delete widget.settings.metrics;
             console.log(`\t\tConfigured forecast widget '${widget.settings.title}'`);
-
         }
 
 
@@ -392,13 +421,19 @@ class Dashboards extends Registration {
         if (config.widgets.length === 0) {
             console.log(chalk.red('ERROR'), 'No applicable widgets were configured with available metrics/graphs...');
             this.emit('error', new Error('No widgets configured on dashboard'));
+
             return;
         }
 
         try {
-            fs.writeFileSync(configFile, JSON.stringify(config, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+            fs.writeFileSync(configFile, JSON.stringify(config, null, 4), {
+                encoding : 'utf8',
+                flag     : 'w',
+                mode     : 0o644
+            });
         } catch (err) {
             this.emit('error', err);
+
             return;
         }
 
@@ -406,6 +441,10 @@ class Dashboards extends Registration {
     }
 
 
+    /**
+     * managing creating all dashboards
+     * @returns {Undefined} nothing, emits event
+     */
     createDashboards() {
         const self = this;
         const dashboardConfigs = [];
@@ -431,6 +470,7 @@ class Dashboards extends Registration {
 
             if (typeof configFile === 'undefined') {
                 self.emit('dashboards.create.done');
+
                 return;
             }
 
@@ -440,6 +480,11 @@ class Dashboards extends Registration {
         this.emit('create.dashboard.next');
     }
 
+    /**
+     * create specific dashboard
+     * @arg {String} cfgFile for dashboard
+     * @returns {Undefined} nothing, emits event
+     */
     createDashboard(cfgFile) {
         console.log(chalk.blue(this.marker));
         console.log('Creating dashboard', cfgFile);
@@ -449,11 +494,13 @@ class Dashboards extends Registration {
         if (this._fileExists(regFile)) {
             console.log(chalk.bold('\tRegistration exists'), `- using ${regFile}`);
             this.emit('create.dashboard.next');
+
             return;
         }
 
         if (!this._fileExists(cfgFile)) {
             this.emit('error', new Error(`Missing dashboard configuration file '${cfgFile}'`));
+
             return;
         }
 
@@ -470,20 +517,27 @@ class Dashboards extends Registration {
         this._findDashboard(dashboard.title, (findErr, regConfig) => {
             if (findErr !== null) {
                 self.emit('error', findErr);
+
                 return;
             }
 
             if (regConfig !== null) {
                 console.log(`\tSaving registration ${regFile}`);
                 try {
-                    fs.writeFileSync(regFile, JSON.stringify(regConfig, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+                    fs.writeFileSync(regFile, JSON.stringify(regConfig, null, 4), {
+                        encoding : 'utf8',
+                        flag     : 'w',
+                        mode     : 0o644
+                    });
                 } catch (saveErr) {
                     self.emit('error', saveErr);
+
                     return;
                 }
 
                 console.log(chalk.green('\tDashboard:'), `${self.regConfig.account.ui_url}/dashboards/view/${dashboard._dashboard_uuid}`);
                 self.emit('create.dashboard.next');
+
                 return;
             }
 
@@ -492,6 +546,7 @@ class Dashboards extends Registration {
             dashboard.create((err) => {
                 if (err) {
                     self.emit('error', err);
+
                     return;
                 }
 
@@ -505,6 +560,10 @@ class Dashboards extends Registration {
     }
 
 
+    /**
+     * noop placeholder
+     * @returns {Undefined} nothing
+     */
     finalizeDashboards() {
         // noop at this point
         this.emit('dashboards.finalize.done');
@@ -517,9 +576,16 @@ class Dashboards extends Registration {
 
     */
 
-    _findDashboard(title, cb) {
+    /**
+     * find a specific dashboard
+     * @arg {String} title to search for
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
+    _findDashboard(title, cb) { // eslint-disable-line class-methods-use-this
         if (title === null) {
             cb(new Error('Invalid dashboard title'));
+
             return;
         }
 
@@ -534,6 +600,7 @@ class Dashboards extends Registration {
                 apiError.message = errAPI;
                 apiError.details = result;
                 cb(apiError);
+
                 return;
             }
 
@@ -544,12 +611,14 @@ class Dashboards extends Registration {
                 errResp.message = 'UNEXPECTED_API_RETURN';
                 errResp.details = result;
                 cb(errResp);
+
                 return;
             }
 
             if (Array.isArray(result) && result.length > 0) {
                 console.log(chalk.green('\tFound'), `${result.length} existing dashboard(s) with title '${title}'`);
                 cb(null, result[0]);
+
                 return;
             }
 
@@ -558,6 +627,12 @@ class Dashboards extends Registration {
     }
 
 
+    /**
+     * find graph for a widget
+     * @arg {Object} widget with graph
+     * @arg {Object} metaData about system
+     * @returns {Number} the graph index
+     */
     _findWidgetGraph(widget, metaData) {
         for (let graphIdx = 0; graphIdx < this.graphs.length; graphIdx++) {
             for (let j = 0; j < widget.tags.length; j++) {
@@ -565,14 +640,16 @@ class Dashboards extends Registration {
                     return graphIdx;
                 }
                 for (let sgIdx = 0; sgIdx < metaData.sys_graphs.length; sgIdx++) {
-                    if (metaData.sys_graphs[sgIdx].dashboard_tag === widget.tags[j]) {
-                        if (this.graphs[graphIdx].instance_name === metaData.sys_graphs[sgIdx].instance_name) {
-                            return graphIdx;
-                        }
+                    if (metaData.sys_graphs[sgIdx].dashboard_tag !== widget.tags[j]) {
+                        continue;
+                    }
+                    if (this.graphs[graphIdx].instance_name === metaData.sys_graphs[sgIdx].instance_name) {
+                        return graphIdx;
                     }
                 }
             }
         }
+
         return -1;
     }
 

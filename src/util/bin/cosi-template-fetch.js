@@ -1,25 +1,26 @@
 #!/usr/bin/env node
 
-/*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers, no-process-exit */
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-"use strict";
+'use strict';
 
-const path = require("path");
-const fs = require("fs");
+const path = require('path');
+const fs = require('fs');
 
-const app = require("commander");
-const chalk = require("chalk");
+const app = require('commander');
+const chalk = require('chalk');
 
-const cosi = require(path.resolve(path.join(__dirname, "..", "lib", "cosi")));
-const Fetch = require(path.join(cosi.lib_dir, "template", "fetch"));
+const cosi = require(path.resolve(path.join(__dirname, '..', 'lib', 'cosi')));
+const Fetch = require(path.join(cosi.lib_dir, 'template', 'fetch'));
 
 app.
     version(cosi.app_version).
-    option("--id <type-id>", "template id, format type-id (e.g. check-system, graph-cpu, graph-vm, etc.)").
-    option("--all", "fetch all templates specific to this host configuration").
-    option("--force", "overwrite, if template already exists", false).
-    option("-q, --quiet", "no header lines").
+    option('--id <type-id>', 'template id, format type-id (e.g. check-system, graph-cpu, graph-vm, etc.)').
+    option('--all', 'fetch all templates specific to this host configuration').
+    option('--force', 'overwrite, if template already exists', false).
+    option('-q, --quiet', 'no header lines').
     parse(process.argv);
 
 if (!app.quiet) {
@@ -27,24 +28,24 @@ if (!app.quiet) {
 }
 
 if (!app.id && !app.all) {
-    console.error(chalk.red("One of, --id or --all is required."));
+    console.error(chalk.red('One of, --id or --all is required.'));
     app.outputHelp();
-    process.exit(1); //eslint-disable-line no-process-exit
+    process.exit(1);
 }
 
 if (app.id && app.all) {
-    console.error(chalk.red("Mutually exclusive, one of --id or --all, not both."));
+    console.error(chalk.red('Mutually exclusive, one of --id or --all, not both.'));
     app.outputHelp();
-    process.exit(1); //eslint-disable-line no-process-exit
+    process.exit(1);
 }
 
-if (app.id && !app.id.match(/^(check|graph)\-.+$/)) {
+if (app.id && !app.id.match(/^(check|graph)-.+$/)) {
     console.error(chalk.red(`Unrecognized template type in ID '${app.id}'`));
-    process.exit(1); //eslint-disable-line no-process-exit
+    process.exit(1);
 }
 
 if (app.config) {
-    if (app.config.substr(0, 1) !== "/") {
+    if (app.config.substr(0, 1) !== '/') {
         app.config = path.resolve(app.config);
     }
 }
@@ -69,24 +70,23 @@ if (app.id) {
         const stat = fs.statSync(templateFile);
 
         if (stat.isFile() && !app.force) {
-            console.log(chalk.yellow("Template exits"), `- use --force to overwrite. '${templateFile}'`);
-            process.exit(0); //eslint-disable-line no-process-exit
+            console.log(chalk.yellow('Template exits'), `- use --force to overwrite. '${templateFile}'`);
+            process.exit(0);
         }
-    }
-    catch (err) {
-        if (err.code !== "ENOENT") {
+    } catch (err) {
+        if (err.code !== 'ENOENT') {
             throw err;
         }
     }
 
-    fetch.template(app.id,
+    fetch.template(
+        app.id,
         (fetchError, template) => {
             if (fetchError) {
                 if (fetchError.code === 404) {
-                    console.error(chalk.red("Unknown Template ID"), app.id, "not found.");
+                    console.error(chalk.red('Unknown Template ID'), app.id, 'not found.');
                     process.exit(1);
-                }
-                else {
+                } else {
                     console.error(fetchError);
                     throw fetchError;
                 }
@@ -94,7 +94,7 @@ if (app.id) {
 
             if (template.save(templateFile, app.force)) {
                 if (!app.quiet) {
-                    console.log("Saved template:", templateFile);
+                    console.log('Saved template:', templateFile);
                 }
             }
         }

@@ -1,7 +1,8 @@
-'use strict';
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-/* eslint-env node, es6 */
-/* eslint-disable no-magic-numbers */
+'use strict';
 
 const assert = require('assert');
 const path = require('path');
@@ -14,16 +15,17 @@ const api = require(path.resolve(cosi.lib_dir, 'api'));
 
 module.exports = class Check {
 
-    //
-    // load a check (template/config/registration)
-    //
+    /**
+     * create dashboard object from config file
+     * @arg {String} configFile to load (config|registration|template)-check-.*\.json)
+     */
     constructor(configFile) {
-        assert.strictEqual(typeof configFile, 'string', 'configFile is required');
-
-        // configFile can be either a "config-", "template-", or "registration-"
-
         if (!configFile) {
             throw new Error('Missing Argument: configFile');
+        }
+
+        if (!configFile.match(/\/(config|registration|template)-check-.*\.json/)) {
+            throw new Error(`Invalid check configuration file '${configFile}'`);
         }
 
         const cfgFile = path.resolve(configFile);
@@ -31,32 +33,57 @@ module.exports = class Check {
         try {
             const cfg = require(cfgFile); // eslint-disable-line global-require
 
-            if (cfg.hasOwnProperty('check')) {
+            if ({}.hasOwnProperty.call(cfg, 'check')) {
                 this._init(cfg.check);  // template (templates contain extra metadata)
-            }
-            else {
+            } else {
                 this._init(cfg);        // config or registration
             }
-        }
-        catch (err) {
+        } catch (err) {
             if (err.code === 'MODULE_NOT_FOUND') {
                 console.error(chalk.red('ERROR - check configuration file not found:'), cfgFile);
-                process.exit(1); // eslint-disable-line no-process-exit
-            }
-            else {
+                process.exit(1);
+            } else {
                 throw err;
             }
         }
     }
 
-    //
-    // verifies all of the attributes are present for a "new" or "existing" check
-    // valid actions for new are create/POST
-    // valid actions for existing are retrieve/GET, update/PUT, delete/DELETE
-    //
+    /**
+     * save current config to file
+     * @arg {String} fileName to save
+     * @arg {Boolean} force overwrite if it exists
+     * @returns {String} name of file saved, or throws an error on failure
+     */
+    save(fileName, force) {
+        assert.strictEqual(typeof fileName, 'string', 'fileName is required');
+
+        try {
+            fs.writeFileSync(fileName, JSON.stringify(this, null, 4), {
+                encoding : 'utf8',
+                flag     : force ? 'w' : 'wx',
+                mode     : 0o640
+            });
+        } catch (err) {
+            if (err.code === 'EEXIST') {
+                console.error(chalk.red(`Check already exists, use --force to overwrite. '${fileName}'`));
+                process.exit(1);
+            }
+            throw err;
+        }
+
+        return true;
+    }
+
+
+    /**
+     * verifies all of the attributes are present for create but *does not*
+     * validate the values of each attribute!!! (yet)
+     * @arg {Boolean} existing false = more restrictive, ensures attributes which
+     *                         could alter an *existing* check are not present.
+     *                         Default: false
+     * @returns {Boolean} whether the config is valid or not
+     */
     verifyConfig(existing) {
-        // default existing to false, most restrictive verify
-        // (ensures attributes which could alter an *existing* check are not present)
         existing = typeof existing === 'undefined' ? false : existing; // eslint-disable-line no-param-reassign
 
         const requiredCheckAttributes = [
@@ -98,50 +125,35 @@ module.exports = class Check {
 
         let errors = 0;
 
-        // for (const attr of requiredExistingCheckAttributes) {
-        for (let i = 0; i < requiredExistingCheckAttributes.length; i++) {
-            const attr = requiredExistingCheckAttributes[i];
-
+        for (const attr of requiredExistingCheckAttributes) {
             // an existing check (get/put/delete) *must* have these attributes
-            if (existing && !this.hasOwnProperty(attr)) {
+            if (existing && !{}.hasOwnProperty.call(this, attr)) {
                 console.error(chalk.red('Missing attribute'), attr, 'required for', chalk.bold('existing'), 'check');
                 errors += 1;
             }
             // a check to be created (post) must *not* have these attributes
-            if (!existing && this.hasOwnProperty(attr)) {
+            if (!existing && {}.hasOwnProperty.call(this, attr)) {
                 console.error(chalk.red('Invalid attribute'), attr, 'for', chalk.bold('new'), 'check');
                 errors += 1;
             }
         }
 
-        // for (const attr of requiredCheckAttributes) {
-        for (let i = 0; i < requiredCheckAttributes.length; i++) {
-            const attr = requiredCheckAttributes[i];
-
-            if (!this.hasOwnProperty(attr)) {
+        for (const attr of requiredCheckAttributes) {
+            if (!{}.hasOwnProperty.call(this, attr)) {
                 console.error(chalk.red('Missing attribute'), attr);
                 errors += 1;
             }
         }
 
-        // for (const attr of optionalCheckAttributes) {
-        for (let i = 0; i < optionalCheckAttributes.length; i++) {
-            const attr = optionalCheckAttributes[i];
-
-            if (!this.hasOwnProperty(attr)) {
+        for (const attr of optionalCheckAttributes) {
+            if (!{}.hasOwnProperty.call(this, attr)) {
                 console.error(`Missing ${chalk.yellow('OPTIONAL')} attribute ${attr}, ignoring.`);
             }
         }
 
-        // for (const metric of this.metrics) {
-        for (let metricIdx = 0; metricIdx < this.metrics.length; metricIdx++) {
-            const metric = this.metrics[metricIdx];
-
-            // for (const attr of requiredMetricAttributes) {
-            for (let i = 0; i < requiredMetricAttributes.length; i++) {
-                const attr = requiredMetricAttributes[i];
-
-                if (!metric.hasOwnProperty(attr)) {
+        for (const metric of this.metrics) {
+            for (const attr of requiredMetricAttributes) {
+                if (!{}.hasOwnProperty.call(metric, attr)) {
                     console.error(chalk.red('Missing attribute'), `metric '${metric}' requires '${attr}'`);
                     errors += 1;
                 }
@@ -149,14 +161,20 @@ module.exports = class Check {
         }
 
         return errors === 0;
-
     }
 
-    create(cb) { // eslint-disable-line consistent-return
+    /**
+     * call api to create a check from current config
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
+    create(cb) {
         assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
         if (!this.verifyConfig(false)) {
-            return cb(new Error('Invalid configuration'));
+            cb(new Error('Invalid configuration'));
+
+            return;
         }
 
         api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
@@ -180,31 +198,36 @@ module.exports = class Check {
                     if (retry && attempts < maxRetry) {
                         console.warn(chalk.yellow('Retrying failed API call:'), errAPI, `- Broker's Group ID: ${self.brokers[0].replace('/broker/', '')}`, `attempt ${attempts}.`);
                         setTimeout(apiRequest, 1000 * attempts);
-                    }
-                    else {
-                        const apiError = new Error();
 
-                        apiError.code = 'CIRCONUS_API_ERROR';
-                        apiError.message = errAPI;
-                        apiError.details = result;
-                        return cb(apiError);
+                        return;
                     }
+
+                    const apiError = new Error();
+
+                    apiError.code = 'CIRCONUS_API_ERROR';
+                    apiError.message = errAPI;
+                    apiError.details = result;
+
+                    cb(apiError);
+
+                    return;
                 }
-                else {
-                    if (code !== 200) {
-                        const errResp = new Error();
 
-                        errResp.code = code;
-                        errResp.message = 'UNEXPECTED_API_RETURN';
-                        errResp.details = result;
-                        return cb(errResp);
+                if (code !== 200) {
+                    const errResp = new Error();
 
-                    }
+                    errResp.code = code;
+                    errResp.message = 'UNEXPECTED_API_RETURN';
+                    errResp.details = result;
 
-                    self._init(result);
+                    cb(errResp);
 
-                    return cb(null, result);
+                    return;
                 }
+
+                self._init(result);
+
+                cb(null, result);
             });
         };
 
@@ -212,11 +235,18 @@ module.exports = class Check {
     }
 
 
-    update(cb) { // eslint-disable-line consistent-return
+    /**
+     * call api to update a dashboard from current config
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
+    update(cb) {
         assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
         if (!this.verifyConfig(true)) {
-            return cb(new Error('Invalid configuration'));
+            cb(new Error('Invalid configuration'));
+
+            return;
         }
 
         const self = this;
@@ -224,7 +254,9 @@ module.exports = class Check {
         api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
         api.put(this._cid, this, (code, errAPI, result) => {
             if (errAPI) {
-                return cb(errAPI, result);
+                cb(errAPI, result);
+
+                return;
             }
 
             if (result === null) {
@@ -238,49 +270,31 @@ module.exports = class Check {
                 errResp.code = code;
                 errResp.message = 'UNEXPECTED_API_RETURN';
                 errResp.details = result;
-                return cb(errResp);
 
+                cb(errResp);
+
+                return;
             }
 
             self._init(result);
 
-            return cb(null, result);
+            cb(null, result);
         });
     }
 
 
-    save(fileName, force) {
-        assert.strictEqual(typeof fileName, 'string', 'fileName is required');
-        force = force || false;  // eslint-disable-line no-param-reassign
-
-        const options = {
-            encoding: 'utf8',
-            mode: 0o640,
-            flag: force ? 'w' : 'wx'
-        };
-
-        try {
-            fs.writeFileSync(fileName, JSON.stringify(this, null, 4), options);
-        }
-        catch (err) {
-            if (err.code === 'EEXIST') {
-                console.error(chalk.red(`Check already exists, use --force to overwrite. '${fileName}'`));
-                process.exit(1); // eslint-disable-line no-process-exit
-            }
-            throw err;
-        }
-
-        return true;
-    }
-
-
+    /**
+     * initializes the current object with values from a loaded configuration
+     * @arg {Object} config loaded from file
+     * @returns {undefined} nothing
+     */
     _init(config) {
         const keys = Object.keys(config);
 
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
 
-            if (config.hasOwnProperty(key)) {
+            if ({}.hasOwnProperty.call(config, key)) {
                 this[key] = config[key];
             }
         }

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // --expose-gc --max-old-space-size=32 --max-executable-size=64 --optimize-for-size
 
-/*eslint-env node, es6 */
-/*eslint-disable no-warning-comments, no-magic-numbers, no-process-exit */
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
 /**
  * NAD Pusher - push NAD metrics to an HTTPTRAP check
@@ -20,21 +21,27 @@
  *
  */
 
-"use strict";
+'use strict';
 
 // core modules
-const http = require("http");
-const https = require("https");
-const path = require("path");
+const http = require('http');
+const https = require('https');
+const path = require('path');
 
 // app modules
-const settings = require(path.resolve(path.join(__dirname, "..", "lib", "nadpush", "settings")));
-const log = require(path.resolve(path.join(__dirname, "..", "lib", "nadpush", "log")));
-const cert = require(path.resolve(path.join(__dirname, "..", "lib", "nadpush", "cert")));
+const settings = require(path.resolve(path.join(__dirname, '..', 'lib', 'nadpush', 'settings')));
+const log = require(path.resolve(path.join(__dirname, '..', 'lib', 'nadpush', 'log')));
+const cert = require(path.resolve(path.join(__dirname, '..', 'lib', 'nadpush', 'cert')));
 
+/**
+ * send metrics to circonus
+ * @arg {String} metricJson metrics in json format
+ * @returns {Undefined} nothing
+ */
 function sendMetrics(metricJson) {
     if (metricJson === null) {
-        log.warn("No metrics to send");
+        log.warn('No metrics to send');
+
         return;
     }
 
@@ -43,7 +50,8 @@ function sendMetrics(metricJson) {
     }
 
     if (!Array.isArray(settings.send_req_opts.ca) || settings.send_req_opts.ca.length === 0) {
-        log.warn("No Broker CA cert loaded yet, not sending metrics.");
+        log.warn('No Broker CA cert loaded yet, not sending metrics.');
+
         return;
     }
 
@@ -51,47 +59,46 @@ function sendMetrics(metricJson) {
 
     try {
         metrics = JSON.parse(metricJson);
-    }
-    catch (err) {
+    } catch (err) {
         log.warn(`Error parsing JSON from NAD ${err}`);
+
         return;
     }
 
-    const client = settings.send_req_opts.protocol === "https:" ? https : http;
+    const client = settings.send_req_opts.protocol === 'https:' ? https : http;
 
     const req = client.request(settings.send_req_opts);
 
-    req.on("response", (res) => {
-        let data = "";
+    req.on('response', (res) => {
+        let data = '';
 
-        res.on("data", (chunk) => {
+        res.on('data', (chunk) => {
             data += chunk;
         });
 
-        res.once("end", () => {
+        res.once('end', () => {
             if (res.statusCode !== 200) {
                 log.warn(`Error sending metrics: ${data}`);
+
                 return;
             }
 
             try {
                 const result = JSON.parse(data);
-                
+
                 if (!settings.silent) {
                     log.info(`${result.stats} metrics sent to broker.`);
                 }
-            }
-            catch (err) {
+            } catch (err) {
                 log.warn(`Error parsing metric send result ${err} ${data}`);
             }
 
             metrics = null;
-            metricJson = null; //eslint-disable-line no-param-reassign
-
+            metricJson = null; // eslint-disable-line no-param-reassign
         });
     });
 
-    req.once("error", (err) => {
+    req.once('error', (err) => {
         log.error(`Error sending metrics to broker ${err}`);
     });
 
@@ -101,6 +108,10 @@ function sendMetrics(metricJson) {
 }
 
 
+/**
+ * fetch metrics from local nad instance
+ * @returns {Undefined} nothing
+ */
 function fetchMetrics() {
     if (settings.verbose) {
         log.info(`Fetching metrics from NAD ${settings.nad_url.href}`);
@@ -112,28 +123,27 @@ function fetchMetrics() {
         global.gc();
     }
 
-    const client = settings.nad_url.protocol === "https:" ? https : http;
+    const client = settings.nad_url.protocol === 'https:' ? https : http;
 
     client.get(settings.nad_url, (res) => {
-        let data = "";
+        let data = '';
 
-        res.on("data", (chunk) => {
+        res.on('data', (chunk) => {
             data += chunk;
         });
 
-        res.once("end", () => {
+        res.once('end', () => {
             if (res.statusCode !== 200) {
                 log.warn(`Error fetching metrics: ${data}`);
+
                 return;
             }
 
             sendMetrics(data);
-
         });
-    }).once("error", (err) => {
+    }).once('error', (err) => {
         log.error(`Error fetching metrics from NAD ${settings.nad_url.href} ${err}`);
     });
-
 }
 
 

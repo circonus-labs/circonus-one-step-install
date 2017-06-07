@@ -1,3 +1,14 @@
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//
+// NOTE: this module needs to be brought up to date (see nad's)
+//       no changes until switching over to promises
+//
+
+/* eslint-disable */
+
 /**
  * Tiny library for interacting with Circonus' API v2
  *
@@ -12,11 +23,6 @@
  *    error:  Error message from API, null on 200 responses
  *    body:   Response body, i.e. the thing you probably want
  */
-
-/* eslint-env node, es6 */
-/* eslint-disable no-magic-numbers, camelcase, no-process-exit, global-require, no-param-reassign */
-
-/* eslint-disable no-invalid-this, no-process-env, valid-jsdoc, func-style, func-names */
 
 'use strict';
 
@@ -123,7 +129,6 @@ Api.prototype.do_request = function(options, callback) {
         });
 
         res.on('end', () => {
-
             // rate limit or server-side error, try again...
             if (res.statusCode === 429 || res.statusCode === 500) {
                 if (options.circapi.retry < options.circapi.retry_backoff.length) {
@@ -133,6 +138,7 @@ Api.prototype.do_request = function(options, callback) {
                     options.circapi.retry += 1;
                 } else {
                     callback(res.statusCode, new Error(`Giving up after ${options.circapi.retry} attempts`), null, null);
+
                     return;
                 }
             }
@@ -140,6 +146,7 @@ Api.prototype.do_request = function(options, callback) {
             // success, no content
             if (res.statusCode === 204) {
                 callback(res.statusCode, null, null, null);
+
                 return;
             }
 
@@ -172,6 +179,7 @@ Api.prototype.do_request = function(options, callback) {
 
             if (err_msg !== null) {
                 callback(res.statusCode, err_msg, null, body);
+
                 return;
             }
 
@@ -189,6 +197,7 @@ Api.prototype.do_request = function(options, callback) {
                 }
                 err_msg.code = res.statusCode;
                 callback(res.statusCode, err_msg, null, body);
+
                 return;
             }
 
@@ -240,15 +249,14 @@ Api.prototype.get_request_options = function(method, endpoint, data) {
 
     const options = cosi.getProxySettings(url.format(
         {
-            protocol: this.protocol,
-            host: this.apihost,
-            port: this.apiport,
-            path: this.apipath
+            protocol : this.protocol,
+            host     : this.apihost,
+            port     : this.apiport,
+            path     : this.apipath
         }
     ));
 
     if ((/^v[46]/).test(process.version)) {
-
         // currently 2016-10-27T16:01:42Z, these settings seem to be
         // necessary to prevent http/https requests from intermittently
         // emitting an end event prior to all content being received
@@ -268,15 +276,15 @@ Api.prototype.get_request_options = function(method, endpoint, data) {
 
     options.method = method.toUpperCase();
     options.headers = {
-        'X-Circonus-Auth-Token': this.authtoken,
-        'X-Circonus-App-Name': this.appname,
-        'Accept': 'application/json',
-        'Accept-Encoding': 'gzip,deflate'
+        'X-Circonus-Auth-Token' : this.authtoken,
+        'X-Circonus-App-Name'   : this.appname,
+        'Accept'                : 'application/json',
+        'Accept-Encoding'       : 'gzip,deflate'
     };
 
     options.circapi = {
-        retry: 0,
-        retry_backoff: [
+        retry         : 0,
+        retry_backoff : [
             null,       // 0 first attempt
             1 * 1000,   // 1, wait 1 second and try again
             2 * 1000,   // 2, wait 2 seconds and try again

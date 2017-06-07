@@ -1,6 +1,8 @@
-'use strict';
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-/* eslint-env node, es6 */
+'use strict';
 
 const child = require('child_process');
 const fs = require('fs');
@@ -15,44 +17,13 @@ const Plugin = require(path.resolve(path.join(cosi.lib_dir, 'plugins')));
 const TemplateFetcher = require(path.resolve(path.join(cosi.lib_dir, 'template', 'fetch')));
 const Metrics = require(path.join(cosi.lib_dir, 'metrics'));
 
-/* Note:
-
-The cassandra plugin is capable of using protocol_observer to track wire latency metrics
-pertaining to cassandra. protocol_obserer is not included/installed as part of NAD or COSI.
-It must be supplied locally. Example install for CentOS:
-
-```
-# install go (if needed)
-curl "https://storage.googleapis.com/golang/go1.7.1.linux-amd64.tar.gz" -O
-tar -C /usr/local -xzf go1.7.1.linux-amd64.tar.gz
-export PATH="$PATH:/usr/local/go/bin"
-
-# setup go environment (if needed)
-mkdir godev && cd godev && mkdir bin pkg src
-export GOPATH=$(pwd)
-
-# install required headers and libs for wirelatency
-yum install -y libpcap-devel
-
-# get the wirelatency source (and dependencies)
-go get github.com/circonus-labs/wirelatency
-
-# build
-cd $GOPATH/src/github.com/circonus-labs/wirelatency/protocol_observer
-go build
-
-# copy resulting protocol_observer binary somewhere in $PATH so the plugin can find it
-# or to the default location of /opt/circonus/bin/protocol_observer
-cp protocol_observer /opt/circonus/bin
-
-Note that if you run NAD with dropped permissions, you will need to ensure that the user
-you drop NAD to has sudo access to protocol_observer.  This is required because protocol_observer
-uses libpcap to capture packets and observe the protocol.
-```
-
-*/
 class Cassandra extends Plugin {
 
+    /**
+     * create new cassandra plugin object
+     * @arg {Object} options for plugin
+     *               iface - protocol_observer interface to observe for cassandra traffic
+    */
     constructor(options) {
         super(options);
 
@@ -66,14 +37,19 @@ class Cassandra extends Plugin {
         this.protocolObserverConf = path.resolve(path.join(cosi.nad_etc_dir, `${this.name}_po_conf.sh`));
         this.iface = options.iface || 'auto';
         this.execEnv = {
-            NAD_SCRIPTS_DIR: path.resolve(path.join(cosi.nad_etc_dir, 'node-agent.d')),
-            PLUGIN_SCRIPTS_DIR: path.resolve(path.join(cosi.nad_etc_dir, 'node-agent.d', this.name)),
-            COSI_PLUGIN_CONFIG_FILE: this.cfgFile,
-            LOG_FILE: this.logFile
+            COSI_PLUGIN_CONFIG_FILE : this.cfgFile,
+            LOG_FILE                : this.logFile,
+            NAD_SCRIPTS_DIR         : path.resolve(path.join(cosi.nad_etc_dir, 'node-agent.d')),
+            PLUGIN_SCRIPTS_DIR      : path.resolve(path.join(cosi.nad_etc_dir, 'node-agent.d', this.name))
         };
     }
 
 
+    /**
+     * Overridden base class method to enable the plugin
+     * @arg {Function} cb callback called with null or error
+     * @returns {Undefined} nothing, uses callback
+     */
     enablePlugin(cb) {
         console.log(chalk.blue(this.marker));
         console.log('Enabling agent plugin for Cassandra database');
@@ -83,11 +59,13 @@ class Cassandra extends Plugin {
 
             if (err !== null) {
                 cb(err);
+
                 return;
             }
 
             console.log(chalk.yellow('\tPlugin scripts already enabled'), 'use --force to overwrite NAD plugin script config(s).');
             cb(null);
+
             return;
         }
 
@@ -100,6 +78,7 @@ class Cassandra extends Plugin {
         }
         if (err !== null) {
             cb(err);
+
             return;
         }
         console.log(chalk.green('\tCreated'), 'protocol_observer config');
@@ -108,6 +87,11 @@ class Cassandra extends Plugin {
     }
 
 
+    /**
+     * Overridden base class method to configure the plugin
+     * @arg {Function} cb callback called with null or error
+     * @returns {Undefined} nothing, uses callback
+     */
     configurePlugin(cb) {
         console.log(chalk.blue(this.marker));
         console.log('Configuring plugin for registration');
@@ -119,6 +103,7 @@ class Cassandra extends Plugin {
         this.once('preconfig.done', (err) => {
             if (err !== null) {
                 cb(err);
+
                 return;
             }
             cb(null);
@@ -127,6 +112,7 @@ class Cassandra extends Plugin {
         this.addCustomMetrics((err) => {
             if (err !== null) {
                 cb(err);
+
                 return;
             }
             self.emit('newmetrics.done');
@@ -134,6 +120,11 @@ class Cassandra extends Plugin {
     }
 
 
+    /**
+     * Overridden base class method to disable the plugin
+     * @arg {Function} cb callback called with null or error
+     * @returns {Undefined} nothing, uses callback
+     */
     disablePlugin(cb) {
         console.log(chalk.blue(this.marker));
         console.log(`Disabling agent plugin for Cassandra`);
@@ -142,9 +133,10 @@ class Cassandra extends Plugin {
         const options = { env: this.execEnv };
         const self = this;
 
-        child.exec(script, options, (error, stdout, stderr) => {
+        child.exec(script, options, (error, stdout, stderr) => { // eslint-disable-line no-unused-vars
             if (error !== null) {
                 cb(new Error(`${stderr} (exit code ${error.code})`));
+
                 return;
             }
 
@@ -158,7 +150,6 @@ class Cassandra extends Plugin {
             console.log(chalk.green('\tDisabled'), 'agent plugin for Cassandra');
 
             cb(null);
-            return;
         });
     }
 
@@ -166,6 +157,10 @@ class Cassandra extends Plugin {
     // support methods
 
 
+    /**
+     * Overridden base class method to fetch plugin template(s), the cassandra plugin supports more than one template.
+     * @returns {Undefined} nothing, emits event
+     */
     fetchTemplates() {
         const self = this;
         const templateID = 'dashboard-cassandranode';
@@ -176,6 +171,7 @@ class Cassandra extends Plugin {
         fetcher.template(templateID, (err, template) => {
             if (err !== null) {
                 self.emit('error', err);
+
                 return;
             }
 
@@ -186,6 +182,7 @@ class Cassandra extends Plugin {
 
             if (!self.enableClusters) {
                 self.emit('fetch.done');
+
                 return;
             }
 
@@ -195,6 +192,7 @@ class Cassandra extends Plugin {
             fetcher.template(clusterTemplateID, (clusterErr, clusterTemplate) => {
                 if (clusterErr !== null) {
                     self.emit('error', clusterErr);
+
                     return;
                 }
 
@@ -208,6 +206,11 @@ class Cassandra extends Plugin {
     }
 
 
+    /**
+     * called by enable plugin to activate the individual plugin scripts
+     * @arg {Function} cb callback called with null or error
+     * @returns {Undefined} nothing, uses callback
+     */
     activatePluginScripts(cb) {
         console.log(`\tActivating Cassandra plugin scripts - this may take a few minutes... (log: ${this.logFile})`);
 
@@ -217,9 +220,10 @@ class Cassandra extends Plugin {
         const script = path.resolve(path.join(__dirname, 'nad-enable.sh'));
         const options = { env: this.execEnv };
 
-        child.exec(script, options, (error, stdout, stderr) => {
+        child.exec(script, options, (error, stdout, stderr) => { // eslint-disable-line no-unused-vars
             if (error !== null) {
                 cb(new Error(`${stderr} (exit code ${error.code})`));
+
                 return;
             }
 
@@ -227,6 +231,7 @@ class Cassandra extends Plugin {
 
             if (err !== null) {
                 cb(err);
+
                 return;
             }
 
@@ -237,10 +242,15 @@ class Cassandra extends Plugin {
     }
 
 
+    /**
+     * called by enable plugin to activate metrics used in plugin visuals
+     * @arg {Function} cb callback called with null or error
+     * @returns {Undefined} nothing, uses callback
+     */
     addCustomMetrics(cb) {
-
         if (!this.state.protocol_observer) {
             cb(null);
+
             return;
         }
 
@@ -293,11 +303,11 @@ class Cassandra extends Plugin {
             res.on('end', () => {
                 if (res.statusCode !== 200) {
                     cb(new Error(`NAD non-200 response ${res.statusCode} ${res.statusMessage} body: ${body}`));
+
                     return;
                 }
                 console.log(chalk.green('\tAdded'), 'new metrics for protocol_observer.');
                 cb(null);
-                return;
             });
         });
 
@@ -306,12 +316,18 @@ class Cassandra extends Plugin {
     }
 
 
-    _loadMetrics(cb) {
+    /**
+     * load other nad metrics
+     * @arg {Function} cb callback called with null or error
+     * @returns {Undefined} nothing, uses callback
+     */
+    _loadMetrics(cb) { // eslint-disable-line class-methods-use-this
         const metricsLoader = new Metrics(cosi.agent_url);
 
         metricsLoader.getMetrics((err, metrics) => {
             if (err) {
                 cb(err);
+
                 return;
             }
             cb(null, metrics);
@@ -319,9 +335,16 @@ class Cassandra extends Plugin {
     }
 
 
+    /**
+     * create tags for specific plugin metrics (for finding visuals during registartion)
+     * @arg {Object} metrics to tag
+     * @arg {Function} cb callback called with null or error
+     * @returns {Undefined} nothing, uses callback
+     */
     _createMetricTags(metrics, cb) {
         if (!{}.hasOwnProperty.call(this.globalMetadata, 'cluster_tag')) {
             cb(null);
+
             return;
         }
 
@@ -336,6 +359,7 @@ class Cassandra extends Plugin {
         } catch (err) {
             if (err.code !== 'MODULE_NOT_FOUND') {
                 cb(err);
+
                 return;
             }
             // otherwise ignore, creating a new metric tag file
@@ -361,9 +385,14 @@ class Cassandra extends Plugin {
         }
 
         try {
-            fs.writeFileSync(metricTagsFile, JSON.stringify(metric_tags, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+            fs.writeFileSync(metricTagsFile, JSON.stringify(metric_tags, null, 4), {
+                encoding : 'utf8',
+                flag     : 'w',
+                mode     : 0o644
+            });
         } catch (err) {
             cb(err);
+
             return;
         }
 
@@ -371,6 +400,12 @@ class Cassandra extends Plugin {
     }
 
 
+    /**
+     * add column family graphs
+     * @arg {Object} metrics to use
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
     _addCFGraphs(metrics, cb) {
         const templateFile = path.resolve(path.join(cosi.reg_dir, `template-dashboard-cassandranode-${this.instance}.json`));
         const template = require(templateFile); // eslint-disable-line global-require
@@ -401,31 +436,31 @@ class Cassandra extends Plugin {
             console.log(`\tAdding graph ${cf}`);
 
             dash.widgets.push({
-                width,
-                name : 'Graph',
-                active : true,
-                origin : `a${height}`,
-                height : 1,
+                active   : true,
+                height   : 1,
+                name     : 'Graph',
+                origin   : `a${height}`,
                 settings : {
-                    hide_yaxis: false,
-                    graph_id: null,
-                    show_flags: true,
-                    _graph_title: `{{=cosi.host_name}} {{=cosi.dashboard_instance}} ${cf}`,
-                    key_inline: false,
-                    period: 2000,
-                    key_size: 1,
-                    overlay_set_id: '',
-                    account_id: cosi.account_id,
-                    date_window: '2h',
-                    key_wrap: false,
-                    hide_xaxis: false,
-                    label: `{{=cosi.dashboard_instance}} ${cf}`,
-                    key_loc: 'noop',
-                    realtime: false
+                    _graph_title   : `{{=cosi.host_name}} {{=cosi.dashboard_instance}} ${cf}`,
+                    account_id     : cosi.account_id,
+                    date_window    : '2h',
+                    graph_id       : null,
+                    hide_xaxis     : false,
+                    hide_yaxis     : false,
+                    key_inline     : false,
+                    key_loc        : 'noop',
+                    key_size       : 1,
+                    key_wrap       : false,
+                    label          : `{{=cosi.dashboard_instance}} ${cf}`,
+                    overlay_set_id : '',
+                    period         : 2000,
+                    realtime       : false,
+                    show_flags     : true
                 },
-                tags: [ `cassandra:cfstats:${cf}` ],
-                type: 'graph',
-                widget_id: `w${widget_id}`
+                tags      : [ `cassandra:cfstats:${cf}` ],
+                type      : 'graph',
+                widget_id : `w${widget_id}`,
+                width
             });
 
             widget_id += 1;
@@ -442,31 +477,31 @@ class Cassandra extends Plugin {
             console.log(`\tAdding graph ${cf}`);
 
             dash.widgets.push({
-                width,
-                name : 'Graph',
-                active : true,
-                origin : `a${height}`,
-                height : 1,
+                active   : true,
+                height   : 1,
+                name     : 'Graph',
+                origin   : `a${height}`,
                 settings : {
-                    hide_yaxis: false,
-                    graph_id: null,
-                    show_flags: true,
-                    _graph_title: `{{=cosi.host_name}} {{=cosi.dashboard_instance}} ${cf}`,
-                    key_inline: false,
-                    period: 2000,
-                    key_size: 1,
-                    overlay_set_id: '',
-                    account_id: cosi.account_id,
-                    date_window: '2h',
-                    key_wrap: false,
-                    hide_xaxis: false,
-                    label: `{{=cosi.dashboard_instance}} ${cf}`,
-                    key_loc: 'noop',
-                    realtime: false
+                    _graph_title   : `{{=cosi.host_name}} {{=cosi.dashboard_instance}} ${cf}`,
+                    account_id     : cosi.account_id,
+                    date_window    : '2h',
+                    graph_id       : null,
+                    hide_xaxis     : false,
+                    hide_yaxis     : false,
+                    key_inline     : false,
+                    key_loc        : 'noop',
+                    key_size       : 1,
+                    key_wrap       : false,
+                    label          : `{{=cosi.dashboard_instance}} ${cf}`,
+                    overlay_set_id : '',
+                    period         : 2000,
+                    realtime       : false,
+                    show_flags     : true
                 },
-                tags: [ `cassandra:cfstats:${cf}` ],
-                type: 'graph',
-                widget_id: `w${widget_id}`
+                tags      : [ `cassandra:cfstats:${cf}` ],
+                type      : 'graph',
+                widget_id : `w${widget_id}`,
+                width
             });
 
             widget_id += 1;
@@ -477,9 +512,14 @@ class Cassandra extends Plugin {
         dash.grid_layout.height = height;
 
         try {
-            fs.writeFileSync(templateFile, JSON.stringify(template, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+            fs.writeFileSync(templateFile, JSON.stringify(template, null, 4), {
+                encoding : 'utf8',
+                flag     : 'w',
+                mode     : 0o644
+            });
         } catch (err) {
             cb(err);
+
             return;
         }
 
@@ -487,11 +527,16 @@ class Cassandra extends Plugin {
     }
 
 
+    /**
+     * pre-configures dashboard template(s) so that the registration run will succeed
+     * @returns {Undefined} nothing, emits event
+     */
     preConfigDashboard() {
         const metaErr = this._createMetaConf();
 
         if (metaErr !== null) {
             this.emit('preconfig.done', metaErr);
+
             return;
         }
         console.log(chalk.green(`\tSaved`), 'meta configuration');
@@ -504,6 +549,7 @@ class Cassandra extends Plugin {
         this._loadMetrics((loadErr, metrics) => {
             if (loadErr !== null) {
                 self.emit('preconfig.done', loadErr);
+
                 return;
             }
             console.log(chalk.green('\tMetrics loaded'));
@@ -511,6 +557,7 @@ class Cassandra extends Plugin {
             self._createMetricTags(metrics, (tagErr, tagFile) => {
                 if (tagErr !== null) {
                     self.emit('preconfig.done', tagErr);
+
                     return;
                 }
                 console.log(chalk.green('\tSaved'), `metric tags ${tagFile}`);
@@ -518,6 +565,7 @@ class Cassandra extends Plugin {
                 self._addCFGraphs(metrics, (graphErr, added, templateFile) => {
                     if (graphErr !== null) {
                         self.emit('preconfig.done', graphErr);
+
                         return;
                     }
                     console.log(chalk.green('\tAdded'), `${added} graph(s) to template`);
@@ -529,7 +577,11 @@ class Cassandra extends Plugin {
         });
     }
 
-    _test_nodetool() {
+    /**
+     * verify the cassandra `nodetool` command functions as configured
+     * @returns {Undefined} null if ok, or exits if not found
+     */
+    _test_nodetool() { // eslint-disable-line class-methods-use-this
         let nt_test_stdout = null;
 
         try {
@@ -546,10 +598,14 @@ class Cassandra extends Plugin {
     }
 
 
+    /**
+     * create meta data config to use during registration of plugin visuals
+     * @returns {Object} error or null
+     */
     _createMetaConf() {
         const meta = {
-            sys_graphs: [],
-            vars: { cluster_name: this.globalMetadata.cluster_name }
+            sys_graphs : [],
+            vars       : { cluster_name: this.globalMetadata.cluster_name }
         };
 
         // for *GLOBAL* meta data (available to all plugin visuals), add attributes to
@@ -585,7 +641,11 @@ class Cassandra extends Plugin {
         // node dashboard meta data
         try {
             metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-cassandranode-${this.instance}.json`));
-            fs.writeFileSync(metaFile, JSON.stringify(meta, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+            fs.writeFileSync(metaFile, JSON.stringify(meta, null, 4), {
+                encoding : 'utf8',
+                flag     : 'w',
+                mode     : 0o644
+            });
         } catch (err) {
             return err;
         }
@@ -593,7 +653,11 @@ class Cassandra extends Plugin {
         // cluster dashboard meta data
         try {
             metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-cassandracluster-${this.instance}.json`));
-            fs.writeFileSync(metaFile, JSON.stringify(meta, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+            fs.writeFileSync(metaFile, JSON.stringify(meta, null, 4), {
+                encoding : 'utf8',
+                flag     : 'w',
+                mode     : 0o644
+            });
         } catch (err) {
             return err;
         }
@@ -601,6 +665,10 @@ class Cassandra extends Plugin {
         return null;
     }
 
+    /**
+     * load current plugin state configuration if it exists
+     * @returns {Object} error or null
+     */
     _loadStateConfig() {
         let state = null;
 
@@ -611,6 +679,7 @@ class Cassandra extends Plugin {
             if (err.code === 'MODULE_NOT_FOUND') {
                 return new Error('Plugin configuration not found');
             }
+
             return new Error(`Parsing plugin configuration ${err}`);
         }
 
@@ -628,6 +697,7 @@ class Cassandra extends Plugin {
 
         return null;
     }
+
 }
 
 module.exports = Cassandra;

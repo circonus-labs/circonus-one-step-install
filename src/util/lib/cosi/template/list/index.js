@@ -1,6 +1,8 @@
-'use strict';
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-/* eslint-env node, es6 */
+'use strict';
 
 const path = require('path');
 const fs = require('fs');
@@ -8,6 +10,12 @@ const fs = require('fs');
 const cosi = require(path.resolve(path.join(__dirname, '..', '..')));
 const Template = require(path.resolve(path.join(cosi.lib_dir, 'template')));
 
+/**
+ * build list of template files
+ * @arg {String} dir to scan
+ * @arg {Function} cb callback
+ * @returns {Undefined} nothing, it uses a callback
+ */
 function buildTemplateList(dir, cb) {
     let templateDir = cosi.reg_dir;
     let callback = null;
@@ -24,30 +32,28 @@ function buildTemplateList(dir, cb) {
         if (err) {
             console.log('template list, readdir', err);
             callback(err);
+
             return;
         }
 
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-
+        for (const file of files) {
             if (file.match(/^template-.*\.json$/)) {
                 try {
                     templates.push({
-                        file,
-                        config: new Template(path.resolve(path.join(cosi.reg_dir, file)))
+                        config: new Template(path.resolve(path.join(cosi.reg_dir, file))),
+                        file
                     });
                 } catch (errFile) {
                     console.log('template list, add to list', err);
                     callback(errFile);
+
                     return;
                 }
             }
         }
 
         callback(null, templates);
-        return;
     });
-
 }
 
 module.exports = buildTemplateList;

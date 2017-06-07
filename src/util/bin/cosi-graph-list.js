@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
-/* eslint-env node, es6 */
-/* eslint-disable no-magic-numbers */
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
 'use strict';
 
@@ -14,6 +15,14 @@ const sprintf = require('sprintf-js').sprintf;
 const cosi = require(path.resolve(path.join(__dirname, '..', 'lib', 'cosi')));
 const graphList = require(path.join(cosi.lib_dir, 'graph', 'list'));
 
+/**
+ * generic function to print lines
+ * @arg {Number} maxIdLen max length of an ID
+ * @arg {String} id definition
+ * @arg {String} title of graph
+ * @arg {String} description of graph
+ * @returns {Undefined} nothing
+ */
 function emitLine(maxIdLen, id, title, description) {
     const maxTitleLen = 40;
     const maxDescriptionLen = 40;
@@ -31,6 +40,11 @@ function emitLine(maxIdLen, id, title, description) {
     }
 }
 
+/**
+ * generic function to print info in long format
+ * @arg {Object} graph definition
+ * @returns {Undefined} nothing
+ */
 function emitLong(graph) {
     console.log('================');
     console.log(chalk.bold('Graph ID       :'), graph.id);
@@ -53,15 +67,12 @@ const list = graphList();
 
 if (list.length === 0) {
     console.error(chalk.red('No local graphs found'));
-    process.exit(1); // eslint-disable-line no-process-exit
+    process.exit(1);
 }
 
 let maxIdLen = 20;
 
-// for (const graph of list) {
-for (let i = 0; i < list.length; i++) {
-    const graph = list[i];
-
+for (const graph of list) {
     if (graph.id.length > maxIdLen) {
         maxIdLen = graph.id.length;
     }
@@ -71,10 +82,7 @@ if (!app.quiet && !app.long) {
     emitLine(maxIdLen);
 }
 
-// for (const graph of list) {
-for (let i = 0; i < list.length; i++) {
-    const graph = list[i];
-
+for (const graph of list) {
     if (app.long) {
         emitLong(graph);
     } else {

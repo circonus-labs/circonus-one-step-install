@@ -42,6 +42,8 @@ Options
 
   [--target]      Host IP/hostname to use as check target.
 
+  [--group]       Unique identifier to use when creating/finding the group check. (e.g. 'webservers')
+
   [--broker]      Broker to use (numeric portion of broker CID e.g. cid=/broker/123, pass 123 as argument).
 
   [--broker-type] Type of broker to use, (any|enterprise) default: any
@@ -136,6 +138,14 @@ __parse_parameters() {
                 shift
             else
                 fail "--regconf must be followed by a filespec."
+            fi
+            ;;
+        (--group)
+            if [[ -n "${1:-}" ]]; then
+                cosi_group_id="$1"
+                shift
+            else
+                fail "--group must be followed by an ID string"
             fi
             ;;
         (--target)
@@ -449,11 +459,11 @@ __install_agent() {
         [[ ! -f "$package_file" ]] && fail "Unable to find package '$package_file'"
         if [[ -z "${pkg_cmd:-}" ]]; then
             if [[ $package_file =~ \.rpm$ ]]; then
-                pkg_cmd="rpm"
-                pkg_cmd_args="-v --install ${package_file}"
+                pkg_cmd="yum"
+                pkg_cmd_args="localinstall -y ${package_file}"
             elif [[ $package_file =~ \.deb$ ]]; then
                 pkg_cmd="dpkg"
-                pkg_cmd_args="--install ${package_file}"
+                pkg_cmd_args="--install --force-confold ${package_file}"
             else
                 fail "Unable to determine package installation command on '${cosi_os_dist}' for '${package_file}'. Please set package_install_cmd in config file to continue."
             fi
@@ -584,14 +594,25 @@ __start_agent() {
     log "Starting agent (if not already running)"
 
     if [[ ${agent_state:-0} -eq 1 ]]; then
-        if [[ ! -x "/etc/init.d/nad" ]]; then
-            fail "Agent init script /etc/init.d/nad not found!"
+        if [[ -s /lib/systemd/system/nad.service ]]; then
+            systemctl start nad
+        elif [[ -s /etc/init/nad.conf ]]; then
+            initctl start nad
+        elif [[ -s /etc/init.d/nad ]]; then
+            /etc/init.d/nad start
+        elif [[ -s /var/svc/manifest/network/circonus/nad.xml ]]; then
+            svcadm enable nad
+        else
+            fail "Agent installed, unable to determine how to start it (unrecognized init system)."
         fi
-        /etc/init.d/nad start
+        if [[ $? -ne 0 ]]; then
+            fail "COSI was unable to start NAD - try running NAD manually, check for errors specific to this system."
+        fi
+        sleep 5
     fi
 
     set +e
-    agent_pid=$(pgrep -f "sbin/nad")
+    agent_pid=$(pgrep -n -f "sbin/nad")
     ret=$?
     set -e
 
@@ -624,7 +645,8 @@ __save_cosi_register_config() {
     "cosi_os_vers": "${cosi_os_vers}",
     "cosi_os_arch": "${cosi_os_arch}",
     "cosi_os_type": "${cosi_os_type}",
-    "cosi_os_dmi": "${cosi_os_dmi}"
+    "cosi_os_dmi": "${cosi_os_dmi}",
+    "cosi_group_id": "${cosi_group_id}"
 }
 EOF
     [[ $? -eq 0 ]] || fail "Unable to save COSI registration configuration '${cosi_register_config}'"
@@ -657,17 +679,6 @@ __fetch_cosi_utils() {
     log "Unpacking COSI utilities into $(pwd)"
     tar -oxzf "$cosi_utils_file"
     [[ $? -eq 0 ]] || fail "Unable to unpack COSI utiltities"
-
-    # log "Installing required node modules for COSI utilities"
-    # [[ -d node_modules ]] || {
-    #     mkdir node_modules
-    #     [[ $? -eq 0 ]] || fail "Unable to create node_modules directory in COSI utiltities"
-    # }
-    # for f in .modules/*.tgz; do tar -xzf "$f" -C node_modules/; done
-    # [[ $? -eq 0 ]] || fail "Issue(s) unpacking node modules for COSI utiltities"
-    #
-    # log "Cleaning up after node module installation"
-    # rm -rf .modules
 
     log "Verifying node version..." # oh FFS!
     node_bin=""     # omnibus packages              omnios packages
@@ -760,6 +771,7 @@ cosi_initialize() {
     cosi_os_vers=""
     cosi_os_dmi=""
     cosi_id=""
+    cosi_group_id=""
 
     #
     # set defaults (if config file not used or options left unset)
@@ -797,6 +809,7 @@ cosi_initialize() {
     cosi_quiet_flag \
     package_install_cmd \
     package_install_args \
+    cosi_group_id
     "
 
     #
@@ -913,7 +926,7 @@ cosi_register() {
     local cosi_register_cmd="register"
     local cosi_register_opt=""
     local install_nadpush="${cosi_dir}/bin/install_nadpush.sh"
-    local install_nadreverse="${cosi_dir}/bin/install_nadreverse.sh"
+    local install_nadreverse="${cosi_dir}/bin/nadreverse_install.sh"
 
     echo
     __fetch_cosi_utils

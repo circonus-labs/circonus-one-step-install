@@ -1,3 +1,14 @@
+### 1.0.0 2017-06-05
+
+* New NAD integration
+  * add: group check (new install option `--group <name>`)
+  * upd: [un]install_nadreverse
+  * upd: registration (switch statsd to group, since statsd is now included in nad)
+  * upd: templates (switch statsd to group, since statsd is now included in nad)
+  * upd: do not delete group check with `cosi reset -a`
+
+>  NOTE: group check is **not** deleted on `cosi reset -a`. It must be explicitly passed via `cosi reset -c group` or deleted manually in the UI. There is no way for a given system to determine if *other* systems are still depending on the group check.
+
 ### 0.12.4 2017-03-27
 
 * fix: `transform*` ruleset attributes no longer supported/required.

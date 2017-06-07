@@ -1,14 +1,14 @@
-'use strict';
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-/* eslint-env node, es6 */
-/* eslint-disable no-magic-numbers, global-require, camelcase, no-process-exit */
+'use strict';
 
 const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const http = require('http');
-const dgram = require('dgram');
 
 const chalk = require('chalk');
 
@@ -20,13 +20,22 @@ const Registration = require(path.resolve(cosi.lib_dir, 'registration'));
 const TemplateFetcher = require(path.join(cosi.lib_dir, 'template', 'fetch'));
 
 class Setup extends Registration {
+
+
+    /**
+     * create worksheet object
+     * @arg {Boolean} quiet squelch some info messages
+     */
     constructor(quiet) {
         super(quiet);
 
         this.metricGroups = [];
-
     }
 
+    /**
+     * setup the registration process
+     * @returns {Undefined} nothing
+     */
     setup() {
         console.log(chalk.bold('Registration - setup'));
 
@@ -70,11 +79,6 @@ class Setup extends Registration {
 
         this.once('broker.trap', this.getTrapBroker);
         this.once('broker.trap.done', () => {
-            self.emit('verify.statsd');
-        });
-
-        this.once('verify.statsd', this.checkStatsdPort);
-        this.once('verify.statsd.done', () => {
             self.emit('save.config');
         });
 
@@ -99,21 +103,37 @@ class Setup extends Registration {
         this.emit('verify.api');
     }
 
+    /**
+     * verify access to circonus api (api token key and api token app)
+     * @returns {Undefined} nothing
+     */
     verifyCirconusAPI() {
         console.log(chalk.blue(this.marker));
         console.log('Verify Circonus API access');
 
         const self = this;
 
+        const credentialTroubleshooting = `Check credentials in ${cosi.etc_dir}/cosi.json. Verify they are correct and work with the Circonus API.`;
+
         api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
         api.get('/account/current', null, (code, err, account) => {
             if (err) {
+                if (code === 403) {
+                    err.troubleshooting = credentialTroubleshooting; // eslint-disable-line no-param-reassign
+                }
                 self.emit('error', err);
+
                 return;
             }
 
             if (code !== 200) {
-                self.emit('error', new Error(`verifyAPI - API return code: ${code} ${err} ${account}`));
+                const apiError = new Error(`verifyAPI - API return code: ${code} ${err} ${account}`);
+
+                if (code === 403) {
+                    apiError.troubleshooting = credentialTroubleshooting;
+                }
+
+                self.emit('error', apiError);
             }
 
             console.log(chalk.green('API key verified'), 'for account', account.name, account.description === null ? '' : `- ${account.description}`);
@@ -125,72 +145,20 @@ class Setup extends Registration {
             }
 
             self.regConfig.account = {
-                name: account.name,
-                ui_url: accountUrl,
-                account_id: account._cid.replace('/account/', '')
+                account_id : account._cid.replace('/account/', ''),
+                name       : account.name,
+                ui_url     : accountUrl
             };
 
             self.emit('verify.api.done');
-
         });
     }
 
-    _isStatsdPortAvailable(port, cb) {
-        const tester = dgram.createSocket('udp4');
 
-        tester.once('error', (err) => {
-            if (err.code === 'EADDRINUSE') {
-                return cb(null, false);
-            }
-            return cb(err);
-        });
-
-        tester.once('listening', () => {
-            tester.once('close', () => {
-                return cb(null, true);
-            });
-            tester.close();
-        });
-
-        tester.bind(port);
-    }
-
-    checkStatsdPort() {
-        console.log(chalk.blue(this.marker));
-        console.log('Checking StatsD port');
-
-        if (!this.regConfig.statsd.enabled) {
-            console.log('\tStatsD disabled, skipping.');
-            this.emit('verify.statsd.done');
-            return;
-        }
-
-        const self = this;
-
-        this._isStatsdPortAvailable(this.regConfig.statsd.port, (err, ok) => {
-            if (err) {
-                self.emit('error', err);
-                return;
-            }
-
-            if (ok) {
-                console.log(chalk.green('\tOK:'), `StatsD port ${self.regConfig.statsd.port} is open.`);
-                self.emit('verify.statsd.done');
-                return;
-            }
-
-            console.log(chalk.yellow('\tWARN:'), `StatsD port ${self.regConfig.statsd.port} is in use, disabling StatsD setup.`);
-            self.regConfig.statsd.enabled = false;
-            try {
-                fs.writeFileSync(path.resolve(path.join(cosi.etc_dir, 'statsd.disabled')));
-            } catch (errSignalFile) {
-                console.log(chalk.yellow('\tWARN:'), errSignalFile);
-            }
-            self.emit('verify.statsd.done');
-            return;
-        });
-    }
-
+    /**
+     * fetch available metrics from running nad process
+     * @returns {Undefined} nothing
+     */
     fetchNADMetrics() {
         console.log(chalk.blue(this.marker));
         console.log('Fetch available metrics from NAD');
@@ -201,6 +169,7 @@ class Setup extends Registration {
         metrics.load((err) => {
             if (err) {
                 self.emit('error', err);
+
                 return;
             }
             console.log(chalk.green('Metrics loaded'));
@@ -224,7 +193,11 @@ class Setup extends Registration {
         });
     }
 
-
+    /**
+     * saves the metrics fetched from nad
+     * @arg {Object} metrics fetched from nad
+     * @returns {Undefined} nothing
+     */
     saveMetrics(metrics) {
         assert.equal(typeof metrics, 'object', 'metrics is required');
 
@@ -235,15 +208,20 @@ class Setup extends Registration {
         metrics.getMetrics((metricsError, agentMetrics) => {
             if (metricsError) {
                 self.emit('error', metricsError);
+
                 return;
             }
             fs.writeFile(
                 self.regConfig.metricsFile,
-                JSON.stringify(agentMetrics, null, 4),
-                { encoding: 'utf8', mode: 0o600, flag: 'w' },
+                JSON.stringify(agentMetrics, null, 4), {
+                    encoding : 'utf8',
+                    flag     : 'w',
+                    mode     : 0o600
+                },
                 (saveError) => {
                     if (saveError) {
                         self.emit('error', saveError);
+
                         return;
                     }
                     console.log(chalk.green('Metrics saved', self.regConfig.metricsFile));
@@ -254,6 +232,10 @@ class Setup extends Registration {
     }
 
 
+    /**
+     * fetch available templates from cosi-site
+     * @returns {Undefined} nothing
+     */
     fetchTemplates() {
         console.log(chalk.blue(this.marker));
         console.log('Fetching templates');
@@ -266,6 +248,7 @@ class Setup extends Registration {
         templateFetch.all(this.quiet, (err, result) => {
             if (err) {
                 self.emit('error', err);
+
                 return;
             }
             console.log(`Checked ${result.attempts}, fetched ${result.fetched}, warnings ${result.warnings}, errors ${result.errors}`);
@@ -274,6 +257,10 @@ class Setup extends Registration {
     }
 
 
+    /**
+     * get default broker for json checks
+     * @returns {Undefined} nothing
+     */
     getJsonBroker() {
         console.log(chalk.blue(this.marker));
         console.log('Determine default broker for json');
@@ -284,6 +271,7 @@ class Setup extends Registration {
         bh.getDefaultBroker('json', (err, broker) => {
             if (err) {
                 self.emit('error', err);
+
                 return;
             }
 
@@ -293,6 +281,10 @@ class Setup extends Registration {
     }
 
 
+    /**
+     * gets the default HTTPTRAP broker
+     * @returns {Undefined} nothing
+     */
     getTrapBroker() {
         console.log(chalk.blue(this.marker));
         console.log('Determine default broker for trap');
@@ -303,6 +295,7 @@ class Setup extends Registration {
         bh.getDefaultBroker('httptrap', (err, broker) => {
             if (err) {
                 self.emit('error', err);
+
                 return;
             }
 
@@ -311,7 +304,10 @@ class Setup extends Registration {
         });
     }
 
-
+    /**
+     * sets check target
+     * @returns {Undefined} nothing
+     */
     setTarget() {
         const self = this;
 
@@ -349,10 +345,17 @@ class Setup extends Registration {
     }
 
 
+    /**
+     * deterive the systems IP
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
     _getDefaultHostIp(cb) {
         this._checkAWS((awsHostname) => {
             if (awsHostname !== null) {
-                return cb(awsHostname);
+                cb(awsHostname);
+
+                return;
             }
 
             console.log('Obtaining target IP/Host from local information');
@@ -361,27 +364,32 @@ class Setup extends Registration {
 
             for (const iface in networkInterfaces) {
                 if ({}.hasOwnProperty.call(networkInterfaces, iface)) {
-                    // for (const addr of networkInterfaces[iface]) {
-                    for (let i = 0; i < networkInterfaces[iface].length; i++) {
-                        const addr = networkInterfaces[iface][i];
-
+                    for (const addr of networkInterfaces[iface]) {
                         if (!addr.internal && addr.family === 'IPv4') {
-                            return cb(addr.address);
+                            cb(addr.address);
+
+                            return;
                         }
                     }
                 }
             }
 
-            return cb('0.0.0.0');
+            cb('0.0.0.0');
         });
     }
 
-    _checkAWS(cb) { // eslint-disable-line consistent-return
-
+    /**
+     * determine if system is running in AWS
+     * @arg {Function} cb callback
+     * @returns {Undefined} nothing, uses callback
+     */
+    _checkAWS(cb) { // eslint-disable-line class-methods-use-this
         // ONLY make this request if dmiinfo contains 'amazon'
         // no reason to wait for a timeout otherwise
         if (!{}.hasOwnProperty.call(cosi, 'dmi_bios_ver') || !cosi.dmi_bios_ver.match(/amazon/i)) {
-            return cb(null);
+            cb(null);
+
+            return;
         }
 
         console.log('Checking AWS for target (public ip/hostname for host)');
@@ -399,14 +407,17 @@ class Setup extends Registration {
                     const hostnames = data.split(/\r?\n/); // or os.EOL but it's a web response not a file
 
                     if (hostnames.length > 0) {
-                        return cb(hostnames[0]);
+                        cb(hostnames[0]);
+
+                        return;
                     }
                 }
-                return cb(null);
+
+                cb(null);
             });
         }).on('error', () => {
             // just punt, use the default "dumb" logic
-            return cb(null);
+            cb(null);
         });
     }
 

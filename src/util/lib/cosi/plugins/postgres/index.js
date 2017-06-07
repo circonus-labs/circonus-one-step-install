@@ -1,8 +1,8 @@
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 'use strict';
-
-/* eslint-env node, es6 */
-
-/* eslint-disable no-process-exit, no-process-env */
 
 const child = require('child_process');
 const fs = require('fs');
@@ -15,45 +15,15 @@ const chalk = require('chalk');
 const cosi = require(path.resolve(path.join(__dirname, '..', '..', '..', 'cosi')));
 const Plugin = require(path.resolve(path.join(cosi.lib_dir, 'plugins')));
 
-/* Note:
-
-The postgres plugin is capable of using protocol_observer to track wire latency metrics
-pertaining to postgres. protocol_obserer is not included/installed as part of NAD or COSI.
-It must be supplied locally. Example install for CentOS:
-
-```
-# install go (if needed)
-curl "https://storage.googleapis.com/golang/go1.7.1.linux-amd64.tar.gz" -O
-tar -C /usr/local -xzf go1.7.1.linux-amd64.tar.gz
-export PATH="$PATH:/usr/local/go/bin"
-
-# setup go environment (if needed)
-mkdir godev && cd godev && mkdir bin pkg src
-export GOPATH=$(pwd)
-
-# install required header for wirelatency
-yum install -y libpcap-devel
-
-# get the wirelatency source (and dependencies)
-go get github.com/circonus-labs/wirelatency
-
-# build
-cd $GOPATH/src/github.com/circonus-labs/wirelatency/protocol_observer
-go build
-
-# copy resulting protocol_observer binary somewhere in $PATH so the plugin can find it
-# or to the default location of /opt/circonus/bin/protocol_observer
-cp protocol_observer /opt/circonus/bin
-```
-
-*/
 class Postgres extends Plugin {
 
-    /* options:
-        database    postgres database to use (default: postgres)
-        port        postgresql server port (default: 5432)
-        user        postgres user (default: postgres)
-        pass        postgres pass (default: none)
+    /**
+     * create new postgres plugin object
+     * @arg {Object} options for plugin
+     *               database    postgres database to use (default: postgres)
+     *               port        postgresql server port (default: 5432)
+     *               user        postgres user (default: postgres)
+     *               pass        postgres pass (default: none)
     */
     constructor(options) {
         super(options);
@@ -83,17 +53,21 @@ class Postgres extends Plugin {
         this.protocolObserverConf = path.resolve(path.join(this.nad_etc_dir, `${this.shortName}_po_conf.sh`));
         this.iface = options.iface || 'auto';
         this.execEnv = {
-            NAD_SCRIPTS_DIR: path.resolve(path.join(cosi.nad_etc_dir, 'node-agent.d')),
-            PLUGIN_SCRIPTS_DIR: path.resolve(path.join(cosi.nad_etc_dir, 'node-agent.d', this.longName)),
-            PLUGIN_SETTINGS_FILE: this.settingsFile,
-            COSI_PLUGIN_CONFIG_FILE: this.cfgFile,
-            LOG_FILE: this.logFile
+            COSI_PLUGIN_CONFIG_FILE : this.cfgFile,
+            LOG_FILE                : this.logFile,
+            NAD_SCRIPTS_DIR         : path.resolve(path.join(cosi.nad_etc_dir, 'node-agent.d')),
+            PLUGIN_SCRIPTS_DIR      : path.resolve(path.join(cosi.nad_etc_dir, 'node-agent.d', this.longName)),
+            PLUGIN_SETTINGS_FILE    : this.settingsFile
         };
 
         this.state = null;
-
     }
 
+    /**
+     * Overridden base class method to enable the plugin
+     * @arg {Function} cb callback called with null or error
+     * @returns {Undefined} nothing, uses callback
+     */
     enablePlugin(cb) {
         console.log(chalk.blue(this.marker));
         console.log(`Enabling agent plugin for PostgreSQL database '${this.instance}'`);
@@ -103,11 +77,13 @@ class Postgres extends Plugin {
 
             if (err !== null) {
                 cb(err);
+
                 return;
             }
 
             console.log(chalk.yellow('\tPlugin scripts already enabled'), 'use --force to overwrite NAD plugin script config(s).');
             cb(null);
+
             return;
         }
 
@@ -126,6 +102,7 @@ class Postgres extends Plugin {
         }
         if (err !== null) {
             cb(err);
+
             return;
         }
         console.log(chalk.green('\tCreated'), 'protocol_observer config');
@@ -134,6 +111,11 @@ class Postgres extends Plugin {
     }
 
 
+    /**
+     * Overridden base class method to configure the plugin
+     * @arg {Function} cb callback called with null or error
+     * @returns {Undefined} nothing, uses callback
+     */
     configurePlugin(cb) {
         console.log(chalk.blue(this.marker));
         console.log('Configuring plugin for registration');
@@ -145,15 +127,16 @@ class Postgres extends Plugin {
         this.once('preconfig.done', (err) => {
             if (err !== null) {
                 cb(err);
+
                 return;
             }
             cb(null);
-            return;
         });
 
         this.addCustomMetrics((err) => {
             if (err !== null) {
                 cb(err);
+
                 return;
             }
             self.emit('newmetrics.done');
@@ -161,6 +144,11 @@ class Postgres extends Plugin {
     }
 
 
+    /**
+     * Overridden base class method to disable the plugin
+     * @arg {Function} cb callback called with null or error
+     * @returns {Undefined} nothing, uses callback
+     */
     disablePlugin(cb) {
         if (!fs.existsSync(this.pg_conf_file)) {
             console.log(chalk.yellow('WARN'), `PostgreSQL plugin configuration not found, plugin may already be disabled. ${this.pg_conf_file}`);
@@ -176,9 +164,10 @@ class Postgres extends Plugin {
         const options = { env: this.execEnv };
         const self = this;
 
-        child.exec(script, options, (error, stdout, stderr) => {
+        child.exec(script, options, (error, stdout, stderr) => { // eslint-disable-line no-unused-vars
             if (error !== null) {
                 cb(new Error(`${stderr} (exit code ${error.code})`));
+
                 return;
             }
 
@@ -199,11 +188,15 @@ class Postgres extends Plugin {
             console.log(chalk.green('\tDisabled'), 'agent plugin for PostgreSQL');
 
             cb(null);
-            return;
         });
     }
 
 
+    /**
+     * called by enable plugin to activate the individual plugin scripts
+     * @arg {Function} cb callback called with null or error
+     * @returns {Undefined} nothing, uses callback
+     */
     activatePluginScripts(cb) {
         console.log('\tActivating PostgreSQL plugin scripts');
 
@@ -213,9 +206,10 @@ class Postgres extends Plugin {
         const script = path.resolve(path.join(__dirname, 'nad-enable.sh'));
         const options = { env: this.execEnv };
 
-        child.exec(script, options, (error, stdout, stderr) => {
+        child.exec(script, options, (error, stdout, stderr) => { // eslint-disable-line no-unused-vars
             if (error !== null) {
                 cb(new Error(`${stderr} (exit code ${error.code})`));
+
                 return;
             }
 
@@ -223,20 +217,26 @@ class Postgres extends Plugin {
 
             if (err !== null) {
                 cb(err);
+
                 return;
             }
 
             console.log(chalk.green('\tEnabled'), 'agent plugin for PostgreSQL');
 
             cb(null);
-            return;
         });
     }
 
-    addCustomMetrics(cb) { // eslint-disable-line consistent-return
-
+    /**
+     * called by enable plugin to activate metrics used in plugin visuals
+     * @arg {Function} cb callback called with null or error
+     * @returns {Undefined} nothing, uses callback
+     */
+    addCustomMetrics(cb) {
         if (!this.state.protocol_observer) {
-            return cb(null);
+            cb(null);
+
+            return;
         }
 
         /*
@@ -252,18 +252,10 @@ class Postgres extends Plugin {
         const seps = [ '`', '`SELECT`', '`INSERT`', '`UPDATE`', '`DELETE`' ];
         const atts = [ 'latency', 'request_bytes', 'response_bytes', 'response_rows' ];
 
-            // for (const type of types) {
-        for (let i = 0; i < types.length; i++) {
-            const type = types[i];
-
-                // for (const sep of seps ) {
-            for (let j = 0; j < seps.length; j++) {
-                const sep = seps[j];
-
-                    // for (const att of atts) {
-                for (let k = 0; k < atts.length; k++) {
-                    const att = atts[k];
-                    const key = type + sep + att;
+        for (const type of types) {
+            for (const sep of seps) {
+                for (const att of atts) {
+                    const key = `${type}${sep}${att}`;
 
                     if (!{}.hasOwnProperty.call(po, key)) {
                         po[key] = { _type: 'n', _value: null };
@@ -295,11 +287,11 @@ class Postgres extends Plugin {
             res.on('end', () => {
                 if (res.statusCode !== 200) {
                     cb(new Error(`NAD non-200 response ${res.statusCode} ${res.statusMessage} body: ${body}`));
+
                     return;
                 }
                 console.log(chalk.green('\tAdded'), 'new metrics for protocol_observer.');
                 cb(null);
-                return;
             });
         });
 
@@ -307,7 +299,12 @@ class Postgres extends Plugin {
         req.end();
     }
 
-    loadFSMetrics(cb) {
+    /**
+     * load fs metrics (to determine where db data is stored)
+     * @arg {Function} cb callback called with null or error
+     * @returns {Undefined} nothing, uses callback
+     */
+    loadFSMetrics(cb) { // eslint-disable-line class-methods-use-this
         console.log('\t\tLoading FS metrics');
 
         http.get(`${cosi.agent_url}run/fs`, (res) => {
@@ -321,19 +318,21 @@ class Postgres extends Plugin {
                 try {
                     const metrics = JSON.parse(data);
 
-                    cb(null, metrics);
-                    return;
+                    cb(null, metrics); // eslint-disable-line callback-return
                 } catch (err) {
-                    cb(err);
-                    return;
+                    cb(err); // eslint-disable-line callback-return
                 }
             });
         }).on('error', (err) => {
             cb(err);
-            return;
         });
     }
 
+    /**
+     * configures dashboard forecast widget for db data fs mount point
+     * @arg {Function} cb callback called with null or error
+     * @returns {Undefined} nothing, uses callback
+     */
     configForecastWidgets(cb) {
         console.log(chalk.bold('\tConfiguring forecast widgets'));
 
@@ -341,6 +340,7 @@ class Postgres extends Plugin {
         if (this.state.fs_mount === '') {
             console.log('\t\tfs_mount not set from enable, skipping.');
             cb(null);
+
             return;
         }
 
@@ -357,7 +357,6 @@ class Postgres extends Plugin {
         if (!{}.hasOwnProperty.call(cfg, 'config')) {
             console.error(chalk.red('ERROR'), `invalid template, no 'config' property ${cfgFile}`);
             process.exit(1);
-
         }
 
         if (!{}.hasOwnProperty.call(cfg.config, 'widgets')) {
@@ -371,12 +370,14 @@ class Postgres extends Plugin {
         this.loadFSMetrics((err, metrics) => {
             if (err !== null) {
                 cb(err);
+
                 return;
             }
 
             if (metrics === null || !{}.hasOwnProperty.call(metrics, 'fs')) {
                 console.log('\t\tNo FS metrics returned from agent, skipping');
                 cb(null);
+
                 return;
             }
 
@@ -392,6 +393,7 @@ class Postgres extends Plugin {
             if (metricName === null) {
                 console.log(`\t\tDid not find a metric matching '${this.state.fs_mount}'`);
                 cb(null);
+
                 return;
             }
 
@@ -412,9 +414,14 @@ class Postgres extends Plugin {
             }
 
             try {
-                fs.writeFileSync(cfgFile, JSON.stringify(cfg, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+                fs.writeFileSync(cfgFile, JSON.stringify(cfg, null, 4), {
+                    encoding : 'utf8',
+                    flag     : 'w',
+                    mode     : 0o644
+                });
             } catch (saveErr) {
                 cb(saveErr);
+
                 return;
             }
 
@@ -423,11 +430,16 @@ class Postgres extends Plugin {
     }
 
 
+    /**
+     * pre-configures dashboard template so that the registration run will succeed
+     * @returns {Undefined} nothing, emits event
+     */
     preConfigDashboard() {
         const metaErr = this._createMetaConf();
 
         if (metaErr !== null) {
             this.emit('preconfig.done', metaErr);
+
             return;
         }
 
@@ -438,7 +450,12 @@ class Postgres extends Plugin {
         });
     }
 
-    _find_psql_command(psql_cmd) {
+    /**
+     * attempt to locate the `psql` command
+     * @arg {String} psql_cmd custom psql command location, if any
+     * @returns {String} command or exits if not found
+     */
+    _find_psql_command(psql_cmd) { // eslint-disable-line class-methods-use-this
         let cmd = psql_cmd;
 
         if (cmd === null || cmd === '') {
@@ -447,7 +464,7 @@ class Postgres extends Plugin {
             try {
                 output = child.execSync('command -v psql');
             } catch (err) {
-                console.error(`Unable to find 'psql' in '${process.env.PATH}', specify with --psql_cmd`);
+                console.error(`Unable to find 'psql' in '${process.env.PATH}', specify with --psql_cmd`, err);
                 process.exit(1);
             }
             cmd = output.toString().trim();
@@ -461,6 +478,11 @@ class Postgres extends Plugin {
         return cmd;
     }
 
+    /**
+     * verify the `psql` command functions as configured
+     * @arg {String} psql_cmd custom psql command location, if any
+     * @returns {Undefined} null if ok, or exits if not found
+     */
     _test_psql() {
         const psql_cmd = this._find_psql_command(this.options.psql_cmd || null);
         let psql_test_stdout = null;
@@ -483,6 +505,10 @@ class Postgres extends Plugin {
     }
 
 
+    /**
+     * create meta data config to use during registration of plugin visuals
+     * @returns {Object} error or null
+     */
     _createMetaConf() {
         const metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-${this.name}-${this.instance}.json`));
         const meta = { sys_graphs: [] };
@@ -505,15 +531,19 @@ class Postgres extends Plugin {
         */
         if (this.state.fs_mount && this.state.fs_mount !== '') {
             meta.sys_graphs.push({
-                dashboard_tag: 'database:file_system_space',
-                metric_group: 'fs',
-                metric_item: this.state.fs_mount.replace(/[^a-z0-9\-_]/ig, '_'),
-                graph_instance: null
+                dashboard_tag  : 'database:file_system_space',
+                graph_instance : null,
+                metric_group   : 'fs',
+                metric_item    : this.state.fs_mount.replace(/[^a-z0-9\-_]/ig, '_')
             });
         }
 
         try {
-            fs.writeFileSync(metaFile, JSON.stringify(meta, null, 4), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+            fs.writeFileSync(metaFile, JSON.stringify(meta, null, 4), {
+                encoding : 'utf8',
+                flag     : 'w',
+                mode     : 0o644
+            });
         } catch (err) {
             return err;
         }
@@ -521,6 +551,10 @@ class Postgres extends Plugin {
         return null;
     }
 
+    /**
+     * creates the settings file for the plugin's shell commands
+     * @returns {Object} error or null
+     */
     _createPluginSettingsConf() {
         // create config for postgres plugin scripts
         const cfgFile = this.settingsFile;
@@ -542,7 +576,11 @@ class Postgres extends Plugin {
         }
 
         try {
-            fs.writeFileSync(cfgFile, contents.join('\n'), { encoding: 'utf8', mode: 0o644, flag: 'w' });
+            fs.writeFileSync(cfgFile, contents.join('\n'), {
+                encoding : 'utf8',
+                flag     : 'w',
+                mode     : 0o644
+            });
         } catch (err) {
             return err;
         }
@@ -550,6 +588,10 @@ class Postgres extends Plugin {
         return null;
     }
 
+    /**
+     * load current plugin state configuration if it exists
+     * @returns {Object} error or null
+     */
     _loadStateConfig() {
         let state = null;
 
@@ -560,6 +602,7 @@ class Postgres extends Plugin {
             if (err.code === 'MODULE_NOT_FOUND') {
                 return new Error('Plugin configuration not found');
             }
+
             return new Error(`Parsing plugin configuration ${err}`);
         }
 
@@ -571,6 +614,7 @@ class Postgres extends Plugin {
 
         return null;
     }
+
 }
 
 module.exports = Postgres;
