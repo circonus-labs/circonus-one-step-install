@@ -14,37 +14,33 @@ const Check = require(path.resolve(path.join(cosi.lib_dir, 'check')));
 /**
  * verify that a local check reflects what the API returns
  * @arg {Object} localCheck object
- * @arg {Function} cb callback
- * @returns {Undefined} nothing, uses callback
+ * @returns {Promise} fetch remote check, compare to provided check
  */
-function verify(localCheck, cb) {
+function verify(localCheck) {
     assert.strictEqual(typeof localCheck, 'object', 'check is not an object');
     assert(localCheck instanceof Check, 'localCheck is not a Check');
-    assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
-    api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
-    api.get(localCheck._cid, null, (code, err, remoteCheck) => {
-        if (err) {
-            console.log('verify api call', remoteCheck);
-            cb(err);
+    return new Promise((resolve, reject) => {
+        api.get(localCheck._cid, null).
+            then((res) => {
+                if (res.code !== 200) {
+                    const err = new Error();
 
-            return;
-        }
+                    err.code = res.code;
+                    err.message = 'UNEXPECTED_API_RETURN';
+                    err.body = res.parsed_body;
+                    err.raw_body = res.raw_body;
 
-        if (code !== 200) {
-            console.log('verify api call, non 200 return', code, remoteCheck);
-            cb(new Error('verify circonus api call non-200 response code'));
+                    reject(err);
 
-            return;
-        }
+                    return;
+                }
 
-        if (remoteCheck._last_modified !== localCheck._last_modified) {
-            cb(null, false); // doh! check has been modified in UI
-
-            return;
-        }
-
-        cb(null, true); // verified!
+                resolve(res.parsed_body._last_modified === localCheck._last_modified);
+            }).
+            catch((err) => {
+                reject(err);
+            });
     });
 }
 

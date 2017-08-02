@@ -55,8 +55,6 @@ if (checkType === 'system') {
     circonusCheckType = cosi.agent_mode.toLowerCase() === 'pull' ? 'json:nad' : 'httptrap';
 }
 
-api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
-
 let urlPath = '/check_bundle';
 let query = { f_type: circonusCheckType };
 
@@ -84,34 +82,47 @@ if (app.id) {
     query = null;
 }
 
-api.get(urlPath, query, (code, err, result) => {
-    if (err) {
-        console.error(err, code, result);
-        throw err;
-    }
+api.get(urlPath, query).
+    then((parsed_body, code, raw_body) => {
+        if (code !== 200) {
+            const err = new Error('Fetching check');
 
-    if (code !== 200) {
-        console.error(code);
-        console.dir(result);
-    }
+            err.code = code;
+            err.parsed_body = parsed_body;
+            err.raw_body = raw_body;
 
-    if (result.length === 0) {
-        console.error(chalk.red(`No ${checkType} checks found for ${criteria}.`));
-        process.exit(1);
-    }
+            console.error(chalk.red('ERROR'), err);
+            process.exit(1);
+        }
 
-    if (app.save) {
-        const file = path.resolve(app.save);
+        if (parsed_body === null) {
+            console.error(chalk.red(`No ${checkType} checks found for ${criteria}.`));
+            process.exit(1);
+        }
 
-        fs.writeFileSync(file, JSON.stringify(result, null, 4));
-        console.log(chalk.green('Saved'), `check configuration to ${file}`);
-    } else if (Array.isArray(result)) {
-        for (let i = 0; i < result.length; i++) {
-            if (result[i].type === circonusCheckType) {
-                console.dir(result[i]);
+        if (Array.isArray(parsed_body)) {
+            if (parsed_body.length === 0) {
+                console.error(chalk.red(`No ${checkType} checks found for ${criteria}.`));
+                process.exit(1);
+            }
+
+            if (parsed_body.length > 1) {
+                console.log(chalk.yellow('WARN'), `multiple checks found matching ${criteria}`);
+                console.dir(parsed_body);
+                process.exit(0);
             }
         }
-    } else {
-        console.dir(result);
-    }
-});
+
+        if (app.save) {
+            const file = path.resolve(app.save);
+
+            fs.writeFileSync(file, JSON.stringify(parsed_body, null, 4));
+            console.log(chalk.green('Saved'), `check configuration to ${file}`);
+        } else {
+            console.dir(parsed_body);
+        }
+    }).
+    catch((err) => {
+        console.error(chalk.red('ERROR'), `fetching check`, err);
+        process.exit(1);
+    });

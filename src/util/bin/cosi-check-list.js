@@ -119,23 +119,24 @@ emitter.on('next', () => {
 
     spinner.start();
 
-    verifyCheck(check.config, (errVerify, valid) => {
-        if (errVerify) {
+    verifyCheck(check.config).
+        then((valid) => {
+            const status = valid ? chalk.green('OK') : chalk.red('Modified');
+
+            spinner.stop();
+
+            if (app.long) {
+                emitLong(check, status);
+            } else {
+                emitLine(check, status);
+            }
+            emitter.emit('next');
+        }).
+        catch((err) => {
+            spinner.stop();
             console.log('check list, verify', errVerify);
-        }
-
-        const status = valid ? chalk.green('OK') : chalk.red('Modified');
-
-        spinner.stop();
-
-        if (app.long) {
-            emitLong(check, status);
-        } else {
-            emitLine(check, status);
-        }
-
-        emitter.emit('next');
-    });
+            emitter.emit('next');
+        });
 });
 
 // start processing list of checks
