@@ -15,8 +15,7 @@ const ct = require('connection-tester');
 const cosi = require(path.resolve(path.join(__dirname, '..')));
 const api = require(path.resolve(cosi.lib_dir, 'api'));
 
-let brokerList = null;
-let defaultBrokerConfig = null;
+let instance = null;
 
 class Broker {
 
@@ -25,68 +24,77 @@ class Broker {
      * @arg {Boolean} quiet messages
      */
     constructor(quiet) {
+        if (instance !== null) {
+            return instance;
+        }
+
+        this.brokerList = null;
+        this.defaultBrokerConfig = null;
         this.verbose = !quiet;
         this.defaultBrokers = {};
+        instance = this; // eslint-disable-line consistent-this
     }
 
     /**
      * get the default broker to use for a specific check type
      * @arg {String} checkType type of check broker needs to support
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    getDefaultBroker(checkType, cb) {
-        assert.strictEqual(typeof checkType, 'string', 'checkType must be a string');
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
+    getDefaultBroker(checkType) {
+        return new Promise((resolve, reject) => {
+            if (typeof checkType !== 'string') {
+                reject(new Error('checkType must be a string'));
 
-        // already verified
-        if ({}.hasOwnProperty.call(this.defaultBrokers, checkType)) {
-            cb(null, this.defaultBrokers[checkType]);
+                return;
+            }
 
-            return;
-        }
+            // already verified
+            if ({}.hasOwnProperty.call(this.defaultBrokers, checkType)) {
+                resolve(this.defaultBrokers[checkType]);
 
-        const self = this;
+                return;
+            }
 
-        this.getBrokerList().
-            catch((err) => {
-                console.error(chalk.red('ERROR:'), 'Fetching broker list from API', err);
-                process.exit(1);
-            }).
-            then(() => {
-                return self.getDefaultBrokerList();
-            }).
-            then(() => {
-                let brokerId = self._verifyCustomBroker(self._getCustomBroker(), checkType);
-
-                if (brokerId === null) {
-                    brokerId = self._getEnterpriseBroker(checkType);
-                }
-
-                if (brokerId === null) {
-                    brokerId = self._getCosiBroker(checkType);
-                }
-
-                if (brokerId === null) {
-                    console.error(chalk.red('ERROR'), 'Unable to determine broker to use.');
+            this.getBrokerList().
+                catch((err) => {
+                    console.error(chalk.red('ERROR:'), 'Fetching broker list from API', err);
                     process.exit(1);
-                }
+                }).
+                then(() => {
+                    return this.getDefaultBrokerList();
+                }).
+                then(() => {
+                    let brokerId = this._verifyCustomBroker(this._getCustomBroker(), checkType);
 
-                const broker = self.getBrokerById(brokerId);
+                    if (brokerId === null) {
+                        brokerId = this._getEnterpriseBroker(checkType);
+                    }
 
-                if (self._isValidBroker(broker, checkType)) {
-                    self.defaultBrokers[checkType] = broker;
-                } else {
-                    console.error(chalk.red('ERROR'), 'Invalid broker', broker._name, 'is not valid for', checkType);
+                    if (brokerId === null) {
+                        brokerId = this._getCosiBroker(checkType);
+                    }
+
+                    if (brokerId === null) {
+                        console.error(chalk.red('ERROR'), 'Unable to determine broker to use.');
+                        process.exit(1);
+                    }
+
+                    const broker = this.getBrokerById(brokerId);
+
+                    if (this._isValidBroker(broker, checkType)) {
+                        this.defaultBrokers[checkType] = broker;
+                    } else {
+                        console.error(chalk.red('ERROR'), 'Invalid broker', broker._name, 'is not valid for', checkType);
+                        process.exit(1);
+                    }
+
+                    resolve(broker);
+                }).
+                catch((err) => {
+                    console.error(chalk.red('ERROR:'), 'Fetching default broker list from COSI API', err);
                     process.exit(1);
-                }
-
-                cb(null, broker);
-            }).
-            catch((err) => {
-                console.error(chalk.red('ERROR:'), 'Fetching default broker list from COSI API', err);
-                process.exit(1);
-            });
+                });
+        });
     }
 
     /**
@@ -94,14 +102,14 @@ class Broker {
      * @returns {Object} promise
      */
     getBrokerList() {
-        const self = this;
-
         return new Promise((resolve, reject) => {
-            if (brokerList !== null) {
-                resolve(brokerList);
+            if (this.brokerList !== null) {
+                resolve(this.brokerList);
+
+                return;
             }
 
-            if (self.verbose) {
+            if (this.verbose) {
                 console.log('Fetching broker list from Circonus');
             }
 
@@ -138,20 +146,20 @@ class Broker {
                         return;
                     }
 
-                    brokerList = [];
+                    this.brokerList = [];
 
                     // filter broker groups which do not have a minimum of
                     // one member in an active state.
                     for (const broker of parsed_body) {
                         for (const detail of broker._details) {
                             if (detail.status === 'active') {
-                                brokerList.push(broker);
+                                this.brokerList.push(broker);
                                 break;
                             }
                         }
                     }
 
-                    resolve(brokerList);
+                    resolve(this.brokerList);
                 }).
                 catch((err) => {
                     reject(err);
@@ -164,14 +172,14 @@ class Broker {
      * @returns {Object} promise
      */
     getDefaultBrokerList() {
-        const self = this;
-
         return new Promise((resolve, reject) => {
-            if (defaultBrokerConfig !== null) {
-                resolve(defaultBrokerConfig);
+            if (this.defaultBrokerConfig !== null) {
+                resolve(this.defaultBrokerConfig);
+
+                return;
             }
 
-            if (self.verbose) {
+            if (this.verbose) {
                 console.log('Checking Custom configuration for default broker list');
             }
 
@@ -201,20 +209,21 @@ class Broker {
                     }
 
                     // we want a *copy* of it, not a reference to the original...
-                    defaultBrokerConfig = JSON.parse(JSON.stringify(cosi.custom_options.broker.default));
+                    this.defaultBrokerConfig = JSON.parse(JSON.stringify(cosi.custom_options.broker.default));
 
-                    resolve(defaultBrokerConfig);
+                    resolve(this.defaultBrokerConfig);
 
                     return;
                 }
             }
 
 
-            if (self.verbose) {
+            if (this.verbose) {
                 console.log('Fetching default broker list from COSI');
             }
 
             const reqOptions = cosi.getProxySettings(`${cosi.cosi_url}brokers`);
+            const self = this;
             let client = null;
 
             if (reqOptions.protocol === 'https:') {
@@ -258,9 +267,9 @@ class Broker {
                         return;
                     }
 
-                    defaultBrokerConfig = brokers;
+                    self.defaultBrokerConfig = brokers;
 
-                    resolve(defaultBrokerConfig);
+                    resolve(self.defaultBrokerConfig);
                 });
             }).on('error', (err) => {
                 if (err.code === 'ECONNREFUSED') {
@@ -285,7 +294,7 @@ class Broker {
 
         const brokerCid = `/broker/${brokerId}`;
 
-        for (const broker of brokerList) {
+        for (const broker of this.brokerList) {
             if (broker._cid === brokerCid) {
                 return JSON.parse(JSON.stringify(broker));
             }
@@ -390,7 +399,7 @@ class Broker {
         const enterpriseBrokers = [];
         let numValidBrokers = 0;
 
-        for (const broker of brokerList) {
+        for (const broker of this.brokerList) {
             if (broker._type !== 'enterprise') {
                 continue;
             }
@@ -443,8 +452,8 @@ class Broker {
     _getCosiBroker(checkType) {
         let brokerId = null;
 
-        if ({}.hasOwnProperty.call(defaultBrokerConfig, checkType)) {
-            brokerId = defaultBrokerConfig[checkType];
+        if ({}.hasOwnProperty.call(this.defaultBrokerConfig, checkType)) {
+            brokerId = this.defaultBrokerConfig[checkType];
         }
 
         if (this.verbose) {

@@ -57,53 +57,56 @@ class Fetch extends Events {
 
     /**
      * fetch template list from cosi-site
-     * @arg {Function} cb callback called with list of templates
-     * @returns {Undefined} nothing, uses a callback
+     * @returns {Object} promise
      */
-    list(cb) {
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
+    list() {
+        return new Promise((resolve, reject) => {
+            this.cosiUrl.pathname = '/templates';
 
-        this.cosiUrl.pathname = '/templates';
+            const reqOptions = cosi.getProxySettings(url.format(this.cosiUrl));
+            let client = null;
 
-        const reqOptions = cosi.getProxySettings(url.format(this.cosiUrl));
-        let client = null;
-
-        if (reqOptions.protocol === 'https:') {
-            client = https;
-        } else {
-            client = http;
-        }
-
-
-        client.get(reqOptions, (res) => {
-            let data = '';
-
-            res.on('data', (chunk) => {
-                data += chunk;
-            });
-
-            res.on('end', () => {
-                if (res.statusCode !== 200) {
-                    return cb(new Error(`${res.statusCode} ${res.statusMessage} ${data}`));
-                }
-
-                let templates = {};
-
-                try {
-                    templates = JSON.parse(data);
-                } catch (err) {
-                    return cb(err);
-                }
-
-                return cb(null, templates);
-            });
-        }).on('error', (err) => {
-            if (err.code === 'ECONNREFUSED') {
-                console.error(chalk.red('Fetch template list - unable to connect to COSI'), reqOptions, err.toString());
-                process.exit(1); // eslint-disable-line no-process-exit
+            if (reqOptions.protocol === 'https:') {
+                client = https;
+            } else {
+                client = http;
             }
 
-            return cb(err);
+
+            client.get(reqOptions, (res) => {
+                let data = '';
+
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+
+                res.on('end', () => {
+                    if (res.statusCode !== 200) {
+                        reject(new Error(`${res.statusCode} ${res.statusMessage} ${data}`));
+
+                        return;
+                    }
+
+                    let templates = {};
+
+                    try {
+                        templates = JSON.parse(data);
+                    } catch (err) {
+                        reject(err);
+
+                        return;
+                    }
+
+                    resolve(templates);
+                });
+            }).on('error', (err) => {
+                if (err.code === 'ECONNREFUSED') {
+                    console.error(chalk.red('Fetch template list - unable to connect to COSI'), reqOptions, err.toString());
+                    process.exit(1); // eslint-disable-line no-process-exit
+                }
+
+                reject(err);
+            });
         });
     }
 
@@ -133,71 +136,74 @@ class Fetch extends Events {
     /**
      * fetch all available templates
      * @arg {Boolean} quiet output
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing
+     * @returns {Object} promise
      */
-    all(quiet, cb) {
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
+    all(quiet) {
+        return new Promise((resolve, reject) => {
+            const metrics = new Metrics(`file://${path.join(cosi.reg_dir, 'setup-metrics.json')}`);
 
-        const self = this;
-        const metrics = new Metrics(`file://${path.join(cosi.reg_dir, 'setup-metrics.json')}`);
-
-        const log = (msg) => {
-            if (!quiet) {
-                console.log(msg);
-            }
-        };
-
-        metrics.getGroups((errGroups, groups) => {
-            if (errGroups) {
-                cb(errGroups);
-
-                return;
-            }
-
-            // list of all templates applicable to this host
-            const wantTemplates = [ 'check-system', 'worksheet-system' ];
-
-            if (self.enable_group_check) {
-                wantTemplates.push('check-group');
-            }
-
-            if (self.extraTemplates) {
-                for (const templateId of self.extraTemplates) {
-                    wantTemplates.push(templateId);
+            const log = (msg) => {
+                if (!quiet) {
+                    console.log(msg);
                 }
-            }
+            };
 
-            for (const group of groups) {
-                wantTemplates.push(`graph-${group}`);
-            }
+            metrics.getGroups().
+                then((groups) => {
+                // list of all templates applicable to this host
+                    const wantTemplates = [ 'check-system', 'worksheet-system' ];
 
-            // check the templates, to see if they already exist
-            let fetchTemplates = [];
-
-            if (self.force) {
-                fetchTemplates = wantTemplates;
-            } else {
-                for (const templateId of wantTemplates) {
-                    if (self.exists(templateId)) {
-                        log(`Skipping ${templateId}, template exists, use --force to overwrite.`);
-                    } else {
-                        log(`Adding ${templateId} to fetch list`);
-                        fetchTemplates.push(templateId);
+                    if (this.enable_group_check) {
+                        wantTemplates.push('check-group');
                     }
-                }
-            }
 
-            if (fetchTemplates.length === 0) {
-                cb(null, 'no templates to fetch');
+                    if (this.extraTemplates) {
+                        for (const templateId of this.extraTemplates) {
+                            wantTemplates.push(templateId);
+                        }
+                    }
 
-                return;
-            }
+                    for (const group of groups) {
+                        wantTemplates.push(`graph-${group}`);
+                    }
 
-            log('---');
-            log(`Fetching template(s) for: ${fetchTemplates.join(', ')}`);
-            log('---');
-            self.templates(fetchTemplates, quiet, cb);
+                    // check the templates, to see if they already exist
+                    let fetchTemplates = [];
+
+                    if (this.force) {
+                        fetchTemplates = wantTemplates;
+                    } else {
+                        for (const templateId of wantTemplates) {
+                            if (this.exists(templateId)) {
+                                log(`Skipping ${templateId}, template exists, use --force to overwrite.`);
+                            } else {
+                                log(`Adding ${templateId} to fetch list`);
+                                fetchTemplates.push(templateId);
+                            }
+                        }
+                    }
+
+                    if (fetchTemplates.length === 0) {
+                        resolve('no templates to fetch');
+
+                        return;
+                    }
+
+                    log('---');
+                    log(`Fetching template(s) for: ${fetchTemplates.join(', ')}`);
+                    log('---');
+
+                    this.templates(fetchTemplates, quiet).
+                        then((result) => {
+                            resolve(result);
+                        }).
+                        catch((err) => {
+                            reject(err);
+                        });
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 
@@ -205,71 +211,72 @@ class Fetch extends Events {
     /**
      * fetch specific template
      * @arg {String} id of template
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing
+     * @returns {Object} promise
      */
-    template(id, cb) {
+    template(id) {
         assert.strictEqual(typeof id, 'string', 'id is required');
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
-        const parts = id.split('-');
+        return new Promise((resolve, reject) => {
+            const parts = id.split('-');
 
-        if (parts && parts.length === 2) {
-            this.cosiUrl.pathname = `/template/${parts[0]}/${parts[1]}`;
-        } else {
-            cb(new Error(`invalid template id ${id}`));
+            if (parts && parts.length === 2) {
+                this.cosiUrl.pathname = `/template/${parts[0]}/${parts[1]}`;
+            } else {
+                reject(new Error(`invalid template id ${id}`));
 
-            return;
-        }
-
-        const reqOptions = cosi.getProxySettings(url.format(this.cosiUrl));
-        let client = null;
-
-        if (reqOptions.protocol === 'https:') {
-            client = https;
-        } else {
-            client = http;
-        }
-
-        client.get(reqOptions, (res) => {
-            let data = '';
-
-            res.on('data', (chunk) => {
-                data += chunk;
-            });
-
-            res.on('end', () => {
-                if (res.statusCode !== 200) {
-                    const resErr = new Error();
-
-                    resErr.code = res.statusCode;
-                    resErr.message = res.statusMessage;
-                    resErr.details = JSON.parse(data);
-
-                    cb(resErr);
-
-                    return;
-                }
-
-                let template = {};
-
-                try {
-                    template = new Template(data);
-                } catch (err) {
-                    cb(err);
-
-                    return;
-                }
-
-                cb(null, template);
-            });
-        }).on('error', (err) => {
-            if (err.code === 'ECONNREFUSED') {
-                console.error(chalk.red(`Fetch template ${id} - unable to connect to COSI`), reqOptions, err.toString());
-                process.exit(1); // eslint-disable-line no-process-exit
+                return;
             }
 
-            cb(err);
+            const reqOptions = cosi.getProxySettings(url.format(this.cosiUrl));
+            let client = null;
+
+            if (reqOptions.protocol === 'https:') {
+                client = https;
+            } else {
+                client = http;
+            }
+
+            client.get(reqOptions, (res) => {
+                let data = '';
+
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+
+                res.on('end', () => {
+                    if (res.statusCode !== 200) {
+                        const resErr = new Error();
+
+                        resErr.code = res.statusCode;
+                        resErr.message = res.statusMessage;
+                        resErr.details = JSON.parse(data);
+                        resErr.options = reqOptions;
+
+                        reject(resErr);
+
+                        return;
+                    }
+
+                    let template = {};
+
+                    try {
+                        template = new Template(data);
+                    } catch (err) {
+                        reject(err);
+
+                        return;
+                    }
+
+                    resolve(template);
+                });
+            }).on('error', (err) => {
+                if (err.code === 'ECONNREFUSED') {
+                    console.error(chalk.red(`Fetch template ${id} - unable to connect to COSI`), reqOptions, err.toString());
+                    process.exit(1); // eslint-disable-line no-process-exit
+                }
+
+                reject(err);
+            });
         });
     }
 
@@ -278,88 +285,88 @@ class Fetch extends Events {
      * fetch list of templates
      * @arg {Array} list of templates
      * @arg {Boolean} quiet squelch progress messages
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing
+     * @returns {Object} promise
      */
-    templates(list, quiet, cb) {
-        const self = this;
-        const attempts = list.length;
-        let errors = 0;
-        let warnings = 0;
-        let fetched = 0;
+    templates(list, quiet) {
+        return new Promise((resolve, reject) => {
+            const self = this;
+            const attempts = list.length;
+            let errors = 0;
+            let warnings = 0;
+            let fetched = 0;
 
-        const log = (msg) => {
-            if (!quiet) {
-                console.log(msg);
-            }
-        };
+            const log = (msg) => {
+                if (!quiet) {
+                    console.log(msg);
+                }
+            };
 
-        this.once('fetch.done', () => {
-            self.removeAllListeners('fetch.error');
+            this.once('fetch.done', () => {
+                self.removeAllListeners('fetch.error');
 
-            cb(null, {
-                attempts,
-                errors,
-                fetched,
-                warnings
+                resolve({
+                    attempts,
+                    errors,
+                    fetched,
+                    warnings
+                });
             });
-        });
 
-        this.once('fetch.error', (err) => {
-            self.removeAllListeners('fetch.next');
-            self.removeAllListeners('fetch.done');
-            console.error(chalk.red('Template Fetch Error'), err);
-
-            cb(err, {
-                attempts,
-                errors,
-                fetched,
-                warnings
-            });
-        });
-
-        this.on('fetch.next', () => {
-            const templateId = list.shift();
-
-            if (typeof templateId === 'undefined') {
+            this.once('fetch.error', (err) => {
                 self.removeAllListeners('fetch.next');
-                self.emit('fetch.done');
+                self.removeAllListeners('fetch.done');
+                console.error(chalk.red('Template Fetch Error'), err);
 
-                return;
-            }
+                reject(err);
+                // {
+                // attempts,
+                // errors,
+                // fetched,
+                // warnings
+                // }
+            });
 
-            self.template(templateId, (err, template) => {
-                if (err) {
-                    if (err.code === 404) {
-                        console.error(chalk.yellow('WARN'), `Skipping ${templateId}, no COSI template available.`);
-                        warnings += 1;
-                        self.emit('fetch.next');
-                    } else {
-                        errors += 1;
-                        self.emit('fetch.error', err);
-                    }
+            this.on('fetch.next', () => {
+                const templateId = list.shift();
+
+                if (typeof templateId === 'undefined') {
+                    self.removeAllListeners('fetch.next');
+                    self.emit('fetch.done');
 
                     return;
                 }
 
-                fetched += 1;
+                self.template(templateId).
+                    then((template) => {
+                        fetched += 1;
 
-                const parts = templateId.split('-');
+                        const parts = templateId.split('-');
 
-                template.id = parts[1]; // eslint-disable-line no-param-reassign
-                template.type = parts[0]; // eslint-disable-line no-param-reassign
+                        template.id = parts[1]; // eslint-disable-line no-param-reassign
+                        template.type = parts[0]; // eslint-disable-line no-param-reassign
 
-                const templateFile = path.join(cosi.reg_dir, `template-${templateId}.json`);
+                        const templateFile = path.join(cosi.reg_dir, `template-${templateId}.json`);
 
-                if (template.save(templateFile, self.force)) {
-                    log(`Saved template: ${templateFile}`);
-                }
+                        if (template.save(templateFile, self.force)) {
+                            log(`Saved template: ${templateFile}`);
+                        }
 
-                self.emit('fetch.next');
+                        self.emit('fetch.next');
+                    }).
+                    catch((err) => {
+                        if (err.code === 404) {
+                            console.error(chalk.yellow('WARN'), `Skipping ${templateId}, no COSI template available.`);
+                            warnings += 1;
+                            self.emit('fetch.next');
+                        } else {
+                            errors += 1;
+                            self.emit('fetch.error', err);
+                        }
+                    });
             });
-        });
 
-        this.emit('fetch.next');
+            this.emit('fetch.next');
+        });
     }
 
 }

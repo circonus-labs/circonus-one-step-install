@@ -13,46 +13,43 @@ const Template = require(path.resolve(path.join(cosi.lib_dir, 'template')));
 /**
  * build list of template files
  * @arg {String} dir to scan
- * @arg {Function} cb callback
- * @returns {Undefined} nothing, it uses a callback
+ * @returns {Object} promise
  */
-function buildTemplateList(dir, cb) {
-    let templateDir = cosi.reg_dir;
-    let callback = null;
-    const templates = [];
+function buildTemplateList(dir) {
+    return new Promise((resolve, reject) => {
+        let templateDir = cosi.reg_dir;
+        const templates = [];
 
-    if (typeof dir === 'function') {
-        callback = dir;
-    } else {
-        templateDir = dir;
-        callback = cb;
-    }
-
-    fs.readdir(templateDir, (err, files) => {
-        if (err) {
-            console.log('template list, readdir', err);
-            callback(err);
-
-            return;
+        if (typeof dir === 'string') {
+            templateDir = dir;
         }
 
-        for (const file of files) {
-            if (file.match(/^template-.*\.json$/)) {
-                try {
-                    templates.push({
-                        config: new Template(path.resolve(path.join(cosi.reg_dir, file))),
-                        file
-                    });
-                } catch (errFile) {
-                    console.log('template list, add to list', err);
-                    callback(errFile);
+        fs.readdir(templateDir, (err, files) => {
+            if (err) {
+                console.log('template list, readdir', err);
+                reject(err);
 
-                    return;
+                return;
+            }
+
+            for (const file of files) {
+                if (file.match(/^template-.*\.json$/)) {
+                    try {
+                        templates.push({
+                            config: new Template(path.resolve(path.join(cosi.reg_dir, file))),
+                            file
+                        });
+                    } catch (errFile) {
+                        console.log('template list, add to list', err);
+                        reject(errFile);
+
+                        return;
+                    }
                 }
             }
-        }
 
-        callback(null, templates);
+            resolve(templates);
+        });
     });
 }
 

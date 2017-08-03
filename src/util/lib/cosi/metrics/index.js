@@ -22,15 +22,13 @@ class Metrics {
 
     /**
      * create new metrics object
-     * @arg {String} agentUrl URL for NAD/agent
      */
-    constructor(agentUrl) {
+    constructor() {
         if (instance !== null) {
             return instance;
         }
-        assert.strictEqual(typeof agentUrl, 'string', 'agentUrl is required');
 
-        this.url = url.parse(agentUrl);
+        this.url = url.parse(cosi.agent_url);
         if (this.url.protocol === 'https:') {
             this.client = require('https'); // eslint-disable-line global-require
         } else {
@@ -46,154 +44,139 @@ class Metrics {
 
     /**
      * load metrics from the agent
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    load(cb) {
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
-        const self = this;
+    load() {
+        return new Promise((resolve, reject) => {
+            if (groups.length > 0) {
+                resolve(true);
 
-        if (groups.length > 0) {
-            cb(null, true);
-
-            return;
-        }
-
-        instance.client.get(instance.url, (res) => {
-            let data = '';
-
-            res.on('data', (chunk) => {
-                data += chunk;
-            });
-
-            res.on('end', () => {
-                if (res.statusCode !== 200) {
-                    cb(new Error(`${res.statusCode} ${res.statusMessage} ${data}`));
-
-                    return;
-                }
-
-                try {
-                    // try to save a copy of the RAW output from NAD for debugging (if needed)
-                    const rawMetricsFile = path.resolve(path.join(cosi.reg_dir, `raw-metrics-${Date.now()}.json`));
-
-                    fs.writeFileSync(rawMetricsFile, data, {
-                        encoding : 'utf8',
-                        flag     : 'w',
-                        mode     : 0o644
-                    });
-                } catch (ignoreError) {
-                    // ignore
-                }
-
-                try {
-                    metrics = self._parseMetrics(JSON.parse(data));
-                    groups = Object.keys(metrics);
-                } catch (err) {
-                    cb(err);
-
-                    return;
-                }
-
-                cb(null, true);
-            });
-        }).on('error', (err) => {
-            if (err.code === 'ECONNREFUSED') {
-                console.error(chalk.red('Fetch metrics - unable to connect to NAD'), url.format(this.url), err.toString());
-                process.exit(1); // eslint-disable-line no-process-exit
+                return;
             }
 
-            cb(err);
+            instance.client.get(instance.url, (res) => {
+                let data = '';
+
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+
+                res.on('end', () => {
+                    if (res.statusCode !== 200) {
+                        reject(new Error(`${res.statusCode} ${res.statusMessage} ${data}`));
+
+                        return;
+                    }
+
+                    try {
+                    // try to save a copy of the RAW output from NAD for debugging (if needed)
+                        const rawMetricsFile = path.resolve(path.join(cosi.reg_dir, `raw-metrics-${Date.now()}.json`));
+
+                        fs.writeFileSync(rawMetricsFile, data, {
+                            encoding : 'utf8',
+                            flag     : 'w',
+                            mode     : 0o644
+                        });
+                    } catch (ignoreError) {
+                    // ignore
+                    }
+
+                    try {
+                        metrics = this._parseMetrics(JSON.parse(data));
+                        groups = Object.keys(metrics);
+                    } catch (err) {
+                        reject(err);
+
+                        return;
+                    }
+
+                    resolve(true);
+                });
+            }).on('error', (err) => {
+                if (err.code === 'ECONNREFUSED') {
+                    console.error(chalk.red('Fetch metrics - unable to connect to NAD'), url.format(this.url), err.toString());
+                    process.exit(1); // eslint-disable-line no-process-exit
+                }
+
+                reject(err);
+            });
         });
     }
 
     /**
      * return metric groups
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    getGroups(cb) { // eslint-disable-line class-methods-use-this
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
-
-        instance.load((err) => {
-            if (err) {
-                cb(err);
-
-                return;
-            }
-
-            cb(null, groups);
+    getGroups() { // eslint-disable-line class-methods-use-this
+        return new Promise((resolve, reject) => {
+            instance.load().
+                then(() => {
+                    resolve(groups);
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 
     /**
      * return metrics
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    getMetrics(cb) { // eslint-disable-line class-methods-use-this
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
-
-        instance.load((err) => {
-            if (err) {
-                cb(err);
-
-                return;
-            }
-
-            cb(null, metrics);
+    getMetrics() { // eslint-disable-line class-methods-use-this
+        return new Promise((resolve, reject) => {
+            instance.load().
+                then(() => {
+                    resolve(metrics);
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 
     /**
      * return metrics for specific group
      * @arg {String} group metric group
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    getGroupMetrics(group, cb) { // eslint-disable-line class-methods-use-this
+    getGroupMetrics(group) { // eslint-disable-line class-methods-use-this
         assert.strictEqual(typeof group, 'string', 'group is required');
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
-        instance.load((err) => {
-            if (err) {
-                cb(err);
+        return new Promise((resolve, reject) => {
+            instance.load().
+                then(() => {
+                    if (!{}.hasOwnProperty.call(metrics, group)) {
+                        reject(new Error(`Unknown metric group '${group}'`));
 
-                return;
-            }
-
-            if (!{}.hasOwnProperty.call(metrics, group)) {
-                cb(new Error(`Unknown metric group '${group}'`));
-
-                return;
-            }
-
-            cb(null, metrics[group]);
+                        return;
+                    }
+                    resolve(metrics[group]);
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 
     /**
      * return count of metrics for each metric group
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    getMetricStats(cb) { // eslint-disable-line class-methods-use-this
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
+    getMetricStats() { // eslint-disable-line class-methods-use-this
+        return new Promise((resolve, reject) => {
+            instance.load().
+                then(() => {
+                    const stats = {};
 
-        instance.load((err) => {
-            if (err) {
-                cb(err);
-
-                return;
-            }
-
-            const stats = {};
-
-            for (let i = 0; i < groups.length; i++) {
-                stats[groups[i]] = Object.keys(metrics[groups[i]]).length;
-            }
-
-            cb(null, stats);
+                    for (let i = 0; i < groups.length; i++) {
+                        stats[groups[i]] = Object.keys(metrics[groups[i]]).length;
+                    }
+                    resolve(stats);
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 

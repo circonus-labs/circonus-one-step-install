@@ -179,31 +179,22 @@ module.exports = class Check {
 
             api.post('/check_bundle', self).
                 then((res) => {
-                    const parsed_body = res.parsed_body;
-                    const code = res.code;
-                    const raw_body = res.raw_body;
-
-                    if (parsed_body === null) {
-                        console.log(code, parsed_body, raw_body);
-                        process.exit(1);
-                    }
-
-                    if (code !== 200) {
+                    if (res.parsed_body === null || res.code !== 200) {
                         const err = new Error();
 
-                        err.code = code;
+                        err.code = res.code;
                         err.message = 'UNEXPECTED_API_RETURN';
-                        err.body = parsed_body;
-                        err.raw_body = raw_body;
+                        err.body = res.parsed_body;
+                        err.raw_body = res.raw_body;
 
                         reject(err);
 
                         return;
                     }
 
-                    self._init(parsed_body);
+                    this._init(res.parsed_body);
 
-                    resolve(parsed_body);
+                    resolve(res.parsed_body);
                 }).
                 catch((err) => {
                     reject(err);
@@ -228,31 +219,22 @@ module.exports = class Check {
 
             api.put(self._cid, self).
                 then((res) => {
-                    const parsed_body = res.parsed_body;
-                    const code = res.code;
-                    const raw_body = res.raw_body;
-
-                    if (parsed_body === null) {
-                        console.log(code, parsed_body, raw_body);
-                        process.exit(1);
-                    }
-
-                    if (code !== 200) {
+                    if (res.parsed_body === null || res.code !== 200) {
                         const err = new Error();
 
-                        err.code = code;
+                        err.code = res.code;
                         err.message = 'UNEXPECTED_API_RETURN';
-                        err.body = parsed_body;
-                        err.raw_body = raw_body;
+                        err.body = res.parsed_body;
+                        err.raw_body = res.raw_body;
 
                         reject(err);
 
                         return;
                     }
 
-                    self._init(parsed_body);
+                    this._init(res.parsed_body);
 
-                    resolve(parsed_body);
+                    resolve(res.parsed_body);
                 }).
                 catch((err) => {
                     reject(err);

@@ -43,74 +43,85 @@ class Dashboards extends Registration {
 
     /**
      * start the dashboard creation process
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    create(cb) {
-        console.log(chalk.bold('\nRegistration - dashboards'));
+    create() {
+        return new Promise((resolve, reject) => {
+            console.log(chalk.bold('\nRegistration - dashboards'));
 
-        const self = this;
+            this.findTemplates().
+                then(() => {
+                    if (this.templates.length === 0) {
+                        // this is benign, we can't reject it.
+                        // there are no *required* dashboards
+                        console.log(chalk.yellow('WARN'), 'No dashboard templates found');
+                        console.log(chalk.green('\nSKIPPING'), 'dasbhoards, none found to register');
 
-        this.once('checks.load', () => {
+                        return null;
+                    }
+
+                    return this.processTemplates();
+                }).
+                then(() => {
+                    resolve();
+                }).
+                catch((err) => {
+                    reject(err);
+                });
+        });
+    }
+
+    /**
+     * process dashboard templates
+     * @returns {Object} promise
+     */
+    processTemplates() {
+        return new Promise((resolve, reject) => {
+            this.loadCheckMeta().
+                then(() => {
+                    return this.loadMetrics();
+                }).
+                then(() => {
+                    return this.loadGraphs();
+                }).
+                then(() => {
+                    return this.configDashboards();
+                }).
+                then(() => {
+                    return this.createDashboards();
+                }).
+                then(() => {
+                    return this.finalizeDashboards();
+                }).
+                then(() => {
+                    resolve();
+                }).
+                catch((err) => {
+                    reject(err);
+                });
+        });
+    }
+
+    /**
+     * load check meta data
+     * @returns {Object} promise
+     */
+    loadCheckMeta() {
+        return new Promise((resolve, reject) => {
             console.log(chalk.blue(this.marker));
             console.log('Loading check meta data');
 
             const checks = new Checks();
 
-            self.checkMeta = checks.getMeta();
-            if (self.checkMeta === null) {
-                self.emit('error', new Error('Unable to load check meta data'));
+            this.checkMeta = checks.getMeta();
+            if (this.checkMeta === null) {
+                reject(new Error('Unable to load check meta data'));
 
                 return;
             }
             console.log(chalk.green('Loaded'), 'check meta data');
-            self.emit('templates.find');
+            resolve();
         });
-
-        this.once('templates.find', this.findTemplates);
-        this.once('templates.find.done', () => {
-            if (self.templates.length === 0) {
-                console.log(chalk.yellow('WARN'), 'No dashboard templates found');
-                console.log(chalk.green('\nSKIPPING'), 'dasbhoards, none found to register');
-                self.emit('dashboards.done');
-
-                return;
-            }
-            self.emit('metrics.load');
-        });
-
-        this.once('metrics.load', this.loadMetrics);
-        this.once('metrics.load.done', () => {
-            self.emit('graphs.load');
-        });
-
-        this.once('graphs.load', this.loadGraphs);
-        this.once('graphs.load.done', () => {
-            self.emit('dashboards.config');
-        });
-
-        this.once('dashboards.config', this.configDashboards);
-        this.once('dashboards.config.done', () => {
-            self.emit('dashboards.create');
-        });
-
-        this.once('dashboards.create', this.createDashboards);
-        this.once('dashboards.create.done', () => {
-            self.emit('dashboards.finalize');
-        });
-
-        this.once('dashboards.finalize', () => {
-            // noop at this point
-            self.emit('dashboards.done');
-        });
-
-        this.once('dashboards.done', () => {
-            if (typeof cb === 'function') {
-                cb(); // eslint-disable-line callback-return
-            }
-        });
-
-        this.emit('checks.load');
     }
 
     /**
@@ -118,248 +129,211 @@ class Dashboards extends Registration {
      * @returns {Undefined} nothing, emits event
      */
     findTemplates() {
-        console.log(chalk.blue(this.marker));
-        console.log('Identifying dashboard templates');
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log('Identifying dashboard templates');
 
-        const self = this;
+            templateList(cosi.reg_dir).
+                then((templates) => {
+                    this.templates = [];
 
-        templateList(cosi.reg_dir, (listError, templates) => {
-            if (listError) {
-                self.emit('error', listError);
+                    for (const template of templates) {
+                        const templateType = template.config.type;
+                        const templateId = template.config.id;
 
-                return;
-            }
+                        if (templateType !== 'dashboard') {
+                            continue;
+                        }
 
-            self.templates = [];
+                        console.log(`\tFound ${templateType}-${templateId} ${template.file}`);
+                        this.templates.push(template);
+                    }
 
-            for (const template of templates) {
-                const templateType = template.config.type;
-                const templateId = template.config.id;
-
-                if (templateType !== 'dashboard') {
-                    continue;
-                }
-
-                console.log(`\tFound ${templateType}-${templateId} ${template.file}`);
-                self.templates.push(template);
-            }
-
-            console.log(chalk.green('Loaded'), `${this.templates.length} template(s)`);
-            self.emit('templates.find.done');
+                    console.log(chalk.green('Loaded'), `${this.templates.length} template(s)`);
+                    resolve();
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 
 
     /**
      * load existing graphs
-     * @returns {Undefined} nothing, emits event
+     * @returns {Object} promise
      */
     loadGraphs() {
-        console.log(chalk.blue(this.marker));
-        console.log('Loading graphs');
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log('Loading graphs');
 
-        this.graphs = [];
+            this.graphs = [];
 
-        const fileList = fs.readdirSync(cosi.reg_dir);
+            const fileList = fs.readdirSync(cosi.reg_dir);
 
-        for (const file of fileList) {
-            if (file.match(/^registration-graph-/)) {
-                console.log(`\tExtracting meta data from ${file}`);
-                const graphCfgFile = path.resolve(path.join(cosi.reg_dir, file));
-                const graph = new Graph(graphCfgFile);
+            for (const file of fileList) {
+                if (file.match(/^registration-graph-/)) {
+                    console.log(`\tExtracting meta data from ${file}`);
+                    const graphCfgFile = path.resolve(path.join(cosi.reg_dir, file));
+                    const graph = new Graph(graphCfgFile);
 
-                this.graphs.push({
-                    id            : graph._cid.replace('/graph/', ''),
-                    instance_name : path.basename(file, '.json').replace(/^registration-graph-/, ''),
-                    tags          : graph.tags.join(',')
-                });
+                    this.graphs.push({
+                        id            : graph._cid.replace('/graph/', ''),
+                        instance_name : path.basename(file, '.json').replace(/^registration-graph-/, ''),
+                        tags          : graph.tags.join(',')
+                    });
+                }
             }
-        }
 
-        if (this.graphs === null || this.graphs.length === 0) {
-            this.emit('error', new Error('Unable to load meta data for graphs'));
+            if (this.graphs === null || this.graphs.length === 0) {
+                reject(new Error('Unable to load meta data for graphs'));
 
-            return;
-        }
+                return;
+            }
 
-        console.log(chalk.green('Loaded'), `meta data from ${this.graphs.length} graphs`);
-        this.emit('graphs.load.done');
+            console.log(chalk.green('Loaded'), `meta data from ${this.graphs.length} graphs`);
+            resolve();
+        });
     }
 
 
     /**
      * configure dasbhoards
-     * @returns {Undefined} nothing, emits event
+     * @returns {Object} promise
      */
     configDashboards() {
-        const self = this;
-        const dashboards = this.templates;
+        return new Promise((resolve, reject) => {
+            const dashboards = this.templates;
 
-        console.log(chalk.bold(`Configuring dasbhoards`), `for ${this.templates.length} template(s)`);
+            console.log(chalk.bold(`Configuring dasbhoards`), `for ${this.templates.length} template(s)`);
 
-        this.on('config.dashboard.next', () => {
-            const template = dashboards.shift();
+            this.on('config.dashboard.next', () => {
+                const template = dashboards.shift();
 
-            if (typeof template === 'undefined') {
-                self.emit('dashboards.config.done');
+                if (typeof template === 'undefined') {
+                    this.removeAllListeners('config.dashboard.next');
+                    resolve();
 
-                return;
-            }
+                    return;
+                }
 
-            self.configDashboard(template);
-            self.emit('config.dashboard.next');
+                this.configDashboard(template).
+                    then(() => {
+                        this.emit('config.dashboard.next');
+                    }).
+                    catch((err) => {
+                        reject(err);
+                    });
+            });
+
+            this.emit('config.dashboard.next');
         });
-
-        this.emit('config.dashboard.next');
     }
 
 
     /**
      * configure individual dashboard
      * @arg {Object} template to base configuration on
-     * @returns {Undefined} nothing, emits event
+     * @returns {Object} promise
      */
-    configDashboard(template) { // eslint-disable-line complexity, max-statements
-        console.log(chalk.blue(this.marker));
-        console.log(`Configuring dasbhoard`);
+    configDashboard(template) {
+        return new Promise((resolve, reject) => { // eslint-disable-line complexity, max-statements
+            console.log(chalk.blue(this.marker));
+            console.log(`Configuring dasbhoard`);
 
-        const templateMatch = template.file.match(/^template-dashboard-([^-]+)-(.+)\.json$/);
+            const templateMatch = template.file.match(/^template-dashboard-([^-]+)-(.+)\.json$/);
 
-        if (templateMatch === null) {
-            this.emit('error', new Error(`Invalid template, no instance found. ${template.file}`));
+            if (templateMatch === null) {
+                reject(new Error(`Invalid template, no instance found. ${template.file}`));
 
-            return;
-        }
+                return;
+            }
 
-        const dashboardID = `${templateMatch[1]}-${templateMatch[2]}`;
-        const dashboardInstance = templateMatch[2];
-        const templateFile = path.resolve(path.join(cosi.reg_dir, template.file));
-        const configFile = templateFile.replace('template-', 'config-');
+            const dashboardID = `${templateMatch[1]}-${templateMatch[2]}`;
+            const dashboardInstance = templateMatch[2];
+            const templateFile = path.resolve(path.join(cosi.reg_dir, template.file));
+            const configFile = templateFile.replace('template-', 'config-');
 
-        console.log(`\tDashboard: ${dashboardID} (${templateFile})`);
+            console.log(`\tDashboard: ${dashboardID} (${templateFile})`);
 
-        if (this._fileExists(configFile)) {
-            console.log(chalk.bold('\tConfiguration exists'), `- using ${configFile}`);
-            this.emit('config.dashboard.next');
+            if (this._fileExists(configFile)) {
+                console.log(chalk.bold('\tConfiguration exists'), `- using ${configFile}`);
+                resolve();
 
-            return;
-        }
+                return;
+            }
 
-        const metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-${dashboardID}.json`));
-        let metaData = { sys_graphs: [] };
+            const metaFile = path.resolve(path.join(cosi.reg_dir, `meta-dashboard-${dashboardID}.json`));
+            let metaData = { sys_graphs: [] };
 
-        console.log(`\tUsing meta data from ${metaFile}`);
+            console.log(`\tUsing meta data from ${metaFile}`);
 
-        if (this._fileExists(metaFile)) {
-            try {
-                metaData = require(metaFile); // eslint-disable-line global-require
-                if (!{}.hasOwnProperty.call(metaData, 'sys_graphs')) {
-                    metaData.sys_graphs = [];
-                }
-            } catch (err) {
-                if (err.code !== 'MODULE_NOT_FOUND') {
-                    this.emit('error', err);
+            if (this._fileExists(metaFile)) {
+                try {
+                    metaData = require(metaFile); // eslint-disable-line global-require
+                    if (!{}.hasOwnProperty.call(metaData, 'sys_graphs')) {
+                        metaData.sys_graphs = [];
+                    }
+                } catch (err) {
+                    if (err.code !== 'MODULE_NOT_FOUND') {
+                        reject(err);
 
-                    return;
+                        return;
+                    }
                 }
             }
-        }
 
-        for (let i = 0; i < metaData.sys_graphs.length; i++) {
-            metaData.sys_graphs[i].instance_name = [
+            for (let i = 0; i < metaData.sys_graphs.length; i++) {
+                metaData.sys_graphs[i].instance_name = [
                 metaData.sys_graphs[i].metric_group,
                 metaData.sys_graphs[i].graph_instance === null ? 0 : metaData.sys_graphs[i].graph_instance,
                 metaData.sys_graphs[i].metric_item
-            ].join('-');
-        }
-
-        const config = JSON.parse(JSON.stringify(template.config.config));
-        let data = null;
-
-        data = this._mergeData(`dashboard-${dashboardID}`);
-        data.dashboard_instance = dashboardInstance;
-        if ({}.hasOwnProperty.call(metaData, 'vars')) {
-            for (const dataVar in metaData.vars) { // eslint-disable-line guard-for-in
-                data[dataVar] = metaData.vars[dataVar];
-            }
-        }
-
-        console.log(`\tInterpolating title ${config.title}`);
-        config.title = this._expand(config.title, data);
-
-        console.log(`\tConfiguring graph widgets`);
-        for (let i = config.widgets.length - 1; i >= 0; i--) {
-            const widget = config.widgets[i];
-
-            if (widget.type !== 'graph') {
-                continue;
+                ].join('-');
             }
 
-            const graphIdx = this._findWidgetGraph(widget, metaData);
+            const config = JSON.parse(JSON.stringify(template.config.config));
+            let data = null;
 
-            if (graphIdx === -1) {
-                console.log(chalk.yellow('\tWARN'), 'No graph found for', widget.widget_id, 'with tag', widget.tags);
-                continue;
-            }
-            widget.settings.graph_id = this.graphs[graphIdx].id;
-            widget.settings.label = this._expand(widget.settings.label, data);
-            delete widget.tags; // tags property used to match graphs, remove before submission
-        }
-
-        console.log(`\tConfiguring gauge widgets`);
-        for (let i = config.widgets.length - 1; i >= 0; i--) {
-            const widget = config.widgets[i];
-
-            if (widget.type !== 'gauge') {
-                continue;
-            }
-
-            const metric_name = this._expand(widget.settings.metric_name, data);
-            const metricParts = metric_name.match(/^([^`]+)`(.*)$/);
-            let foundMetric = false;
-
-            if (metricParts === null) {
-                foundMetric = {}.hasOwnProperty.call(this.metrics, metric_name);
-            } else {
-                const metricGroup = metricParts[1];
-                const metricName = metricParts[2];
-
-                if ({}.hasOwnProperty.call(this.metrics, metricGroup)) {
-                    foundMetric = {}.hasOwnProperty.call(this.metrics[metricGroup], metricName);
+            data = this._mergeData(`dashboard-${dashboardID}`);
+            data.dashboard_instance = dashboardInstance;
+            if ({}.hasOwnProperty.call(metaData, 'vars')) {
+                for (const dataVar in metaData.vars) { // eslint-disable-line guard-for-in
+                    data[dataVar] = metaData.vars[dataVar];
                 }
             }
 
-            if (foundMetric) {
-                widget.settings.metric_name = metric_name;
-                widget.settings.check_uuid = this.checkMeta.system.uuid;
-            } else {
-                console.log(chalk.yellow('\tWARN'), 'No metric found for widget', widget.widget_id, 'matching', metric_name);
-            }
-        }
+            console.log(`\tInterpolating title ${config.title}`);
+            config.title = this._expand(config.title, data);
 
+            console.log(`\tConfiguring graph widgets`);
+            for (let i = config.widgets.length - 1; i >= 0; i--) {
+                const widget = config.widgets[i];
 
-        console.log(`\tConfiguring forecast widgets`);
-        for (let i = config.widgets.length - 1; i >= 0; i--) {
-            const widget = config.widgets[i];
+                if (widget.type !== 'graph') {
+                    continue;
+                }
 
-            if (widget.type !== 'forecast') {
-                continue;
-            }
+                const graphIdx = this._findWidgetGraph(widget, metaData);
 
-            if (!{}.hasOwnProperty.call(widget.settings, 'metrics')) {
-                console.log(`\t\tNo metrics attribute in widget '${widget.settings.title}', skipping.`);
-                continue;
-            }
-
-            if (!Array.isArray(widget.settings.metrics) || widget.settings.metrics.length === 0) {
-                console.log(`\t\t0 metrics defined for widget '${widget.settings.title}', skipping.`);
-                continue;
+                if (graphIdx === -1) {
+                    console.log(chalk.yellow('\tWARN'), 'No graph found for', widget.widget_id, 'with tag', widget.tags);
+                    continue;
+                }
+                widget.settings.graph_id = this.graphs[graphIdx].id;
+                widget.settings.label = this._expand(widget.settings.label, data);
+                delete widget.tags; // tags property used to match graphs, remove before submission
             }
 
-            const forecast_metrics = [];
+            console.log(`\tConfiguring gauge widgets`);
+            for (let i = config.widgets.length - 1; i >= 0; i--) {
+                const widget = config.widgets[i];
 
-            for (const metric of widget.settings.metrics) {
-                const metric_name = this._expand(metric, data);
+                if (widget.type !== 'gauge') {
+                    continue;
+                }
+
+                const metric_name = this._expand(widget.settings.metric_name, data);
                 const metricParts = metric_name.match(/^([^`]+)`(.*)$/);
                 let foundMetric = false;
 
@@ -375,198 +349,247 @@ class Dashboards extends Registration {
                 }
 
                 if (foundMetric) {
-                    forecast_metrics.push({
-                        check_uuid: this.checkMeta.system.uuid,
-                        metric_name
-                    });
+                    widget.settings.metric_name = metric_name;
+                    widget.settings.check_uuid = this.checkMeta.system.uuid;
+                } else {
+                    console.log(chalk.yellow('\tWARN'), 'No metric found for widget', widget.widget_id, 'matching', metric_name);
                 }
             }
 
-            if (widget.settings.metrics.length !== forecast_metrics.length) {
-                console.log(`\t\tMetric count error, only found ${forecast_metrics.length} of ${widget.settings.metrics.length}`);
-                continue;
+
+            console.log(`\tConfiguring forecast widgets`);
+            for (let i = config.widgets.length - 1; i >= 0; i--) {
+                const widget = config.widgets[i];
+
+                if (widget.type !== 'forecast') {
+                    continue;
+                }
+
+                if (!{}.hasOwnProperty.call(widget.settings, 'metrics')) {
+                    console.log(`\t\tNo metrics attribute in widget '${widget.settings.title}', skipping.`);
+                    continue;
+                }
+
+                if (!Array.isArray(widget.settings.metrics) || widget.settings.metrics.length === 0) {
+                    console.log(`\t\t0 metrics defined for widget '${widget.settings.title}', skipping.`);
+                    continue;
+                }
+
+                const forecast_metrics = [];
+
+                for (const metric of widget.settings.metrics) {
+                    const metric_name = this._expand(metric, data);
+                    const metricParts = metric_name.match(/^([^`]+)`(.*)$/);
+                    let foundMetric = false;
+
+                    if (metricParts === null) {
+                        foundMetric = {}.hasOwnProperty.call(this.metrics, metric_name);
+                    } else {
+                        const metricGroup = metricParts[1];
+                        const metricName = metricParts[2];
+
+                        if ({}.hasOwnProperty.call(this.metrics, metricGroup)) {
+                            foundMetric = {}.hasOwnProperty.call(this.metrics[metricGroup], metricName);
+                        }
+                    }
+
+                    if (foundMetric) {
+                        forecast_metrics.push({
+                            check_uuid: this.checkMeta.system.uuid,
+                            metric_name
+                        });
+                    }
+                }
+
+                if (widget.settings.metrics.length !== forecast_metrics.length) {
+                    console.log(`\t\tMetric count error, only found ${forecast_metrics.length} of ${widget.settings.metrics.length}`);
+                    continue;
+                }
+
+                const forecastData = JSON.parse(JSON.stringify(data));
+
+                widget.settings.title = this._expand(widget.settings.title, data);
+                forecastData.forecast_metrics = forecast_metrics;
+                widget.settings.resource_limit = this._expand(widget.settings.resource_limit, forecastData);
+                widget.settings.resource_usage = this._expand(widget.settings.resource_usage, forecastData);
+                delete widget.settings.metrics;
+                console.log(`\t\tConfigured forecast widget '${widget.settings.title}'`);
             }
 
-            const forecastData = JSON.parse(JSON.stringify(data));
 
-            widget.settings.title = this._expand(widget.settings.title, data);
-            forecastData.forecast_metrics = forecast_metrics;
-            widget.settings.resource_limit = this._expand(widget.settings.resource_limit, forecastData);
-            widget.settings.resource_usage = this._expand(widget.settings.resource_usage, forecastData);
-            delete widget.settings.metrics;
-            console.log(`\t\tConfigured forecast widget '${widget.settings.title}'`);
-        }
+            console.log(`\tPurging unconfigured widgets`);
+            for (let i = config.widgets.length - 1; i >= 0; i--) {
+                let removeWidget = false;
 
+                if (config.widgets[i].type === 'graph') {
+                    removeWidget = config.widgets[i].settings.graph_id === null;
+                } else if (config.widgets[i].type === 'gauge') {
+                    removeWidget = config.widgets[i].settings.check_uuid === null;
+                } else if (config.widgets[i].type === 'forecast') {
+                    removeWidget = {}.hasOwnProperty.call(config.widgets[i].settings, 'metrics');
+                } else {
+                    console.log(chalk.yellow('\tWARN'), `Unsupported widget type (${config.widgets[i].type}), ignoring widget id:${config.widgets[i].widget_id}`);
+                }
 
-        console.log(`\tPurging unconfigured widgets`);
-        for (let i = config.widgets.length - 1; i >= 0; i--) {
-            let removeWidget = false;
-
-            if (config.widgets[i].type === 'graph') {
-                removeWidget = config.widgets[i].settings.graph_id === null;
-            } else if (config.widgets[i].type === 'gauge') {
-                removeWidget = config.widgets[i].settings.check_uuid === null;
-            } else if (config.widgets[i].type === 'forecast') {
-                removeWidget = {}.hasOwnProperty.call(config.widgets[i].settings, 'metrics');
-            } else {
-                console.log(chalk.yellow('\tWARN'), `Unsupported widget type (${config.widgets[i].type}), ignoring widget id:${config.widgets[i].widget_id}`);
+                if (removeWidget) {
+                    console.log(chalk.yellow('\tWARN'), `Removing widget from dashboard (id ${config.widgets[i].widget_id})`);
+                    config.widgets.splice(i, 1);
+                }
             }
 
-            if (removeWidget) {
-                console.log(chalk.yellow('\tWARN'), `Removing widget from dashboard (id ${config.widgets[i].widget_id})`);
-                config.widgets.splice(i, 1);
+            if (config.widgets.length === 0) {
+                console.log(chalk.red('ERROR'), 'No applicable widgets were configured with available metrics/graphs...');
+                reject(new Error('No widgets configured on dashboard'));
+
+                return;
             }
-        }
 
-        if (config.widgets.length === 0) {
-            console.log(chalk.red('ERROR'), 'No applicable widgets were configured with available metrics/graphs...');
-            this.emit('error', new Error('No widgets configured on dashboard'));
+            try {
+                fs.writeFileSync(configFile, JSON.stringify(config, null, 4), {
+                    encoding : 'utf8',
+                    flag     : 'w',
+                    mode     : 0o644
+                });
+            } catch (err) {
+                reject(err);
 
-            return;
-        }
+                return;
+            }
 
-        try {
-            fs.writeFileSync(configFile, JSON.stringify(config, null, 4), {
-                encoding : 'utf8',
-                flag     : 'w',
-                mode     : 0o644
-            });
-        } catch (err) {
-            this.emit('error', err);
-
-            return;
-        }
-
-        console.log('\tSaved configuration', configFile);
+            console.log('\tSaved configuration', configFile);
+            resolve();
+        });
     }
 
 
     /**
      * managing creating all dashboards
-     * @returns {Undefined} nothing, emits event
+     * @returns {Object} promise
      */
     createDashboards() {
-        const self = this;
-        const dashboardConfigs = [];
+        return new Promise((resolve, reject) => {
+            const dashboardConfigs = [];
 
-        try {
-            const files = fs.readdirSync(cosi.reg_dir);
+            try {
+                const files = fs.readdirSync(cosi.reg_dir);
 
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
 
-                if (file.match(/^config-dashboard-/)) {
-                    dashboardConfigs.push(path.resolve(path.join(cosi.reg_dir, file)));
+                    if (file.match(/^config-dashboard-/)) {
+                        dashboardConfigs.push(path.resolve(path.join(cosi.reg_dir, file)));
+                    }
                 }
-            }
-        } catch (err) {
-            this.emit('error', err);
-
-            return;
-        }
-
-        this.on('create.dashboard.next', () => {
-            const configFile = dashboardConfigs.shift();
-
-            if (typeof configFile === 'undefined') {
-                self.emit('dashboards.create.done');
+            } catch (err) {
+                reject(err);
 
                 return;
             }
 
-            self.createDashboard(configFile);
-        });
+            this.on('create.dashboard.next', () => {
+                const configFile = dashboardConfigs.shift();
 
-        this.emit('create.dashboard.next');
+                if (typeof configFile === 'undefined') {
+                    this.removeAllListeners('config.dashboard.next');
+                    resolve();
+
+                    return;
+                }
+
+                this.createDashboard(configFile).
+                    then(() => {
+                        this.emit('create.dashboard.next');
+                    }).
+                    catch((err) => {
+                        reject(err);
+                    });
+            });
+
+            this.emit('create.dashboard.next');
+        });
     }
 
     /**
      * create specific dashboard
      * @arg {String} cfgFile for dashboard
-     * @returns {Undefined} nothing, emits event
+     * @returns {Object} promise
      */
     createDashboard(cfgFile) {
-        console.log(chalk.blue(this.marker));
-        console.log('Creating dashboard', cfgFile);
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log('Creating dashboard', cfgFile);
 
-        const regFile = cfgFile.replace('config-', 'registration-');
+            const regFile = cfgFile.replace('config-', 'registration-');
 
-        if (this._fileExists(regFile)) {
-            console.log(chalk.bold('\tRegistration exists'), `- using ${regFile}`);
-            this.emit('create.dashboard.next');
-
-            return;
-        }
-
-        if (!this._fileExists(cfgFile)) {
-            this.emit('error', new Error(`Missing dashboard configuration file '${cfgFile}'`));
-
-            return;
-        }
-
-        const dashboard = new Dashboard(cfgFile);
-
-        if (dashboard.verifyConfig()) {
-            console.log('\tValid dashboard config');
-        }
-
-        console.log('\tSending dashboard configuration to Circonus API');
-
-        const self = this;
-
-        this._findDashboard(dashboard.title, (findErr, regConfig) => {
-            if (findErr !== null) {
-                self.emit('error', findErr);
+            if (this._fileExists(regFile)) {
+                console.log(chalk.bold('\tRegistration exists'), `- using ${regFile}`);
+                resolve();
 
                 return;
             }
 
-            if (regConfig !== null) {
-                console.log(`\tSaving registration ${regFile}`);
-                try {
-                    fs.writeFileSync(regFile, JSON.stringify(regConfig, null, 4), {
-                        encoding : 'utf8',
-                        flag     : 'w',
-                        mode     : 0o644
-                    });
-                } catch (saveErr) {
-                    self.emit('error', saveErr);
-
-                    return;
-                }
-
-                console.log(chalk.green('\tDashboard:'), `${self.regConfig.account.ui_url}/dashboards/view/${dashboard._dashboard_uuid}`);
-                self.emit('create.dashboard.next');
+            if (!this._fileExists(cfgFile)) {
+                reject(new Error(`Missing dashboard configuration file '${cfgFile}'`));
 
                 return;
+            }
+
+            const dashboard = new Dashboard(cfgFile);
+
+            if (dashboard.verifyConfig()) {
+                console.log('\tValid dashboard config');
             }
 
             console.log('\tSending dashboard configuration to Circonus API');
 
-            dashboard.create((err) => {
-                if (err) {
-                    self.emit('error', err);
+            this._findDashboard(dashboard.title).
+                then((regConfig) => {
+                    if (regConfig === null) {
+                        console.log('\tSending dashboard configuration to Circonus API');
 
-                    return;
-                }
+                        return dashboard.create();
+                    }
 
-                console.log(`\tSaving registration ${regFile}`);
-                dashboard.save(regFile, true);
+                    console.log(`\tSaving registration ${regFile}`);
+                    try {
+                        fs.writeFileSync(regFile, JSON.stringify(regConfig, null, 4), {
+                            encoding : 'utf8',
+                            flag     : 'w',
+                            mode     : 0o644
+                        });
+                    } catch (errSave) {
+                        reject(errSave);
 
-                console.log(chalk.green('\tDashboard created:'), `${self.regConfig.account.ui_url}/dashboards/view/${dashboard._dashboard_uuid}`);
-                self.emit('create.dashboard.next');
-            });
+                        return null;
+                    }
+
+                    console.log(chalk.green('\tDashboard:'), `${this.regConfig.account.ui_url}/dashboards/view/${dashboard._dashboard_uuid}`);
+
+                    return null;
+                }).
+                then((cfg) => {
+                    if (cfg !== null) {
+                        console.log(`\tSaving registration ${regFile}`);
+                        dashboard.save(regFile, true);
+
+                        console.log(chalk.green('\tDashboard created:'), `${this.regConfig.account.ui_url}/dashboards/view/${dashboard._dashboard_uuid}`);
+                        resolve();
+                    }
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 
 
     /**
      * noop placeholder
-     * @returns {Undefined} nothing
+     * @returns {Object} promise
      */
-    finalizeDashboards() {
-        // noop at this point
-        this.emit('dashboards.finalize.done');
+    finalizeDashboards() { // eslint-disable-line class-methods-use-this
+        // NOP at this time
+        return Promise.resolve();
     }
 
 
@@ -580,49 +603,45 @@ class Dashboards extends Registration {
      * find a specific dashboard
      * @arg {String} title to search for
      * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    _findDashboard(title, cb) { // eslint-disable-line class-methods-use-this
-        if (title === null) {
-            cb(new Error('Invalid dashboard title'));
-
-            return;
-        }
-
-        console.log(`\tChecking API for existing dashboard with title '${title}'`);
-
-        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
-        api.get('/dashboard', { f_title: title }, (code, errAPI, result) => {
-            if (errAPI) {
-                const apiError = new Error();
-
-                apiError.code = 'CIRCONUS_API_ERROR';
-                apiError.message = errAPI;
-                apiError.details = result;
-                cb(apiError);
+    _findDashboard(title) { // eslint-disable-line class-methods-use-this
+        return new Promise((resolve, reject) => {
+            if (title === null) {
+                reject(new Error('Invalid dashboard title'));
 
                 return;
             }
 
-            if (code !== 200) {
-                const errResp = new Error();
+            console.log(`\tChecking API for existing dashboard with title '${title}'`);
 
-                errResp.code = code;
-                errResp.message = 'UNEXPECTED_API_RETURN';
-                errResp.details = result;
-                cb(errResp);
+            api.get('/dashboard', { f_title: title }).
+                then((res) => {
+                    if (res.parsed_body === null || res.code !== 200) {
+                        const err = new Error();
 
-                return;
-            }
+                        err.code = res.code;
+                        err.message = 'UNEXPECTED_API_RETURN';
+                        err.body = res.parsed_body;
+                        err.raw_body = res.raw_body;
 
-            if (Array.isArray(result) && result.length > 0) {
-                console.log(chalk.green('\tFound'), `${result.length} existing dashboard(s) with title '${title}'`);
-                cb(null, result[0]);
+                        reject(err);
 
-                return;
-            }
+                        return;
+                    }
 
-            cb(null, null);
+                    if (Array.isArray(res.parsed_body) && res.parsed_body.length > 0) {
+                        console.log(chalk.green('\tFound'), `${res.parsed_body.length} existing dashboard(s) with title '${title}'`);
+                        resolve(res.parsed_body[0]);
+
+                        return;
+                    }
+
+                    resolve(null);
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 

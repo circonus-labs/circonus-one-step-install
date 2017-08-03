@@ -140,48 +140,42 @@ class Registration extends Events {
 
     /**
      * load available metrics from NAD
-     * @returns {Undefined} nothing
+     * @returns {Object} promise
      */
     loadMetrics() {
-        console.log(chalk.blue(this.marker));
-        console.log('Loading available metrics');
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log('Loading available metrics');
 
-        // *always* fetch a fresh copy of the metrics
-        // the setup-metrics.json is for DEBUGGING the initial registration run
+            // *always* fetch a fresh copy of the metrics
+            // the setup-metrics.json is for DEBUGGING the
+            // initial registration run **ONLY**
 
-        const self = this;
-        const metrics = new Metrics(cosi.agent_url);
+            const metrics = new Metrics();
 
-        metrics.load((err) => {
-            if (err) {
-                self.emit('error', err);
+            metrics.load().
+                then(() => {
+                    return metrics.getMetricStats();
+                }).
+                then((stats) => {
+                    let totalMetrics = 0;
 
-                return;
-            }
-            metrics.getMetricStats((metricStatsError, stats) => {
-                if (metricStatsError) {
-                    self.emit('error', metricStatsError);
-                }
-
-                let totalMetrics = 0;
-
-                for (const group in stats) { // eslint-disable-line guard-for-in
-                    console.log(`\t${group} has ${stats[group]} metrics`);
-                    totalMetrics += stats[group];
-                }
-
-                metrics.getMetrics((metricsError, agentMetrics) => {
-                    if (metricsError) {
-                        self.emit('error', metricsError);
-
-                        return;
+                    for (const group in stats) { // eslint-disable-line guard-for-in
+                        console.log(`\t${group} has ${stats[group]} metrics`);
+                        totalMetrics += stats[group];
                     }
                     console.log(`\tTotal metrics: ${totalMetrics}`);
-                    self.metrics = agentMetrics;
+
+                    return metrics.getMetrics();
+                }).
+                then((agentMetrics) => {
+                    this.metrics = agentMetrics;
                     console.log(chalk.green('Metrics loaded'));
-                    self.emit('metrics.load.done');
+                    resolve();
+                }).
+                catch((err) => {
+                    reject(err);
                 });
-            });
         });
     }
 

@@ -241,6 +241,7 @@ class APIClient {
                         err_msg = new Error('An error occurred - response body could not be parsed');
                         err_msg.detail = err.message;
                         err_msg.body = body;
+                        err_msg.options = options;
                     }
                     cb(
                         err_msg,
@@ -358,7 +359,7 @@ class APIClient {
         if (options.circapi.data !== null) {
             if (options.method === 'GET') {
                 if (Object.keys(options.circapi.data).length !== 0) {
-                    options.path += `?${qs.stringify(options.circapi.data)}`;
+                    options.query += `?${qs.stringify(options.circapi.data)}`;
                 }
             } else if (options.method === 'POST' || options.method === 'PUT') {
                 options.headers['Content-Length'] = JSON.stringify(options.circapi.data).length;
