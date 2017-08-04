@@ -990,13 +990,18 @@ cosi_register() {
         return
     fi
 
-    log "Running COSI registration script"
-
     [[ -x "$cosi_script" ]] || fail "Unable to find cosi command '${cosi_script}'"
 
+    echo
+    log "### Running COSI registration ###"
+    echo
+    log "running: $cosi_script" "$cosi_register_cmd"
     "$cosi_script" "$cosi_register_cmd" | tee -a $cosi_install_log
     [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "Errors encountered during registration."
 
+    echo
+    log "### Installing nad Agent ###"
+    echo
     if [[ "${cosi_agent_mode:-}" == "push" ]]; then
         echo
         echo
@@ -1025,10 +1030,14 @@ cosi_register() {
     fi
 
     echo
+    log "### Creating Rulesets ###"
+    echo
     log "Creating rulesets if any ruleset configurations were pre-installed."
     log "running: '${cosi_dir}/bin/cosi rulesets create'"
     "${cosi_dir}/bin/cosi" rulesets create
 
+    echo
+    log "### Registration Overview ###"
     echo
     pass "--- Graphs created ---"
     log "running: '${cosi_dir}/bin/cosi graph list --long'"
