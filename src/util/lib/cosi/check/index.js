@@ -208,16 +208,14 @@ module.exports = class Check {
      * @returns {Promise} using api to update check
      */
     update() {
-        const self = this;
-
         return new Promise((resolve, reject) => {
-            if (!self.verifyConfig(true)) {
+            if (!this.verifyConfig(true)) {
                 reject(new Error('Invalid configuration'));
 
                 return;
             }
 
-            api.put(self._cid, self).
+            api.put(this._cid, this).
                 then((res) => {
                     if (res.parsed_body === null || res.code !== 200) {
                         const err = new Error();

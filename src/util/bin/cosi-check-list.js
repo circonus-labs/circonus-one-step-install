@@ -134,7 +134,7 @@ emitter.on('next', () => {
         }).
         catch((err) => {
             spinner.stop();
-            console.log('check list, verify', errVerify);
+            console.log('check list, verify', err);
             emitter.emit('next');
         });
 });

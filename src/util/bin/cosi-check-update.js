@@ -31,25 +31,11 @@ const cfgFile = path.resolve(app.args[0]);
 const check = new Check(cfgFile);
 
 check.update().
-    then((parsed_body, code, raw_body) => {
-        if (code !== 200) {
-            const err = new Error('Creating check');
-
-            err.code = code;
-            err.parsed_body = parsed_body;
-            err.raw_body = raw_body;
-
-            console.error(chalk.red('ERROR'), err);
-            process.exit(1);
-        }
+    then((updated) => {
         check.save(cfgFile, true);
-        console.log(chalk.green('Updated'), parsed_body.display_name);
+        console.log(chalk.green('Updated'), updated.display_name);
     }).
     catch((err) => {
-        console.error(chalk.red(`Error: ${err.code} -- ${err.message}`));
-        if (err.details) {
-            console.error(err.details.join('\n'));
-        }
-        console.dir(err);
+        console.error(chalk.red('ERROR:'), err);
         process.exit(1);
     });
