@@ -34,51 +34,51 @@ if (app.args.length !== 1) {
 const [ broker_id ] = app.args;
 const bh = new Broker(app.quiet);
 
-bh.getBrokerList((errGBL) => {
-    if (errGBL) {
-        console.error(chalk.red('ERROR:'), 'Fetching broker list from API.', errGBL);
-        process.exit(1);
-    }
+bh.getBrokerList().
+    then(() => {
+        const broker = bh.getBrokerById(broker_id);
 
-    const broker = bh.getBrokerById(broker_id);
+        const checkTypes = {};
+        let maxCheckWidth = 0;
+        let active = false;
 
-    const checkTypes = {};
-    let maxCheckWidth = 0;
-    let active = false;
-
-    for (const detail of broker._details) {
-        if (detail.status === 'active') {
-            active = true;
-            for (const check_module of detail.modules) {
-                if (check_module !== 'selfcheck' && check_module.substr(0, 7) !== 'hidden:') {
-                    checkTypes[check_module] = true;
-                    maxCheckWidth = Math.max(maxCheckWidth, check_module.length);
+        for (const detail of broker._details) {
+            if (detail.status === 'active') {
+                active = true;
+                for (const check_module of detail.modules) {
+                    if (check_module !== 'selfcheck' && check_module.substr(0, 7) !== 'hidden:') {
+                        checkTypes[check_module] = true;
+                        maxCheckWidth = Math.max(maxCheckWidth, check_module.length);
+                    }
                 }
             }
         }
-    }
 
-    if (active) {
-        const checkList = Object.keys(checkTypes);
-        const width = 10;
+        if (active) {
+            const checkList = Object.keys(checkTypes);
+            const width = 10;
 
-        console.log(chalk.bold(sprintf(`%-${width}s`, 'ID')), broker._cid.replace('/broker/', ''));
-        console.log(chalk.bold(sprintf(`%-${width}s`, 'Name')), broker._name);
-        console.log(chalk.bold(sprintf(`%-${width}s`, 'Type')), broker._type);
-        console.log(chalk.bold(sprintf(`%-${width}s`, 'Checks')), `${checkList.length} types supported`);
+            console.log(chalk.bold(sprintf(`%-${width}s`, 'ID')), broker._cid.replace('/broker/', ''));
+            console.log(chalk.bold(sprintf(`%-${width}s`, 'Name')), broker._name);
+            console.log(chalk.bold(sprintf(`%-${width}s`, 'Type')), broker._type);
+            console.log(chalk.bold(sprintf(`%-${width}s`, 'Checks')), `${checkList.length} types supported`);
 
-        maxCheckWidth += 2;
-        const cols = Math.floor(70 / maxCheckWidth);
+            maxCheckWidth += 2;
+            const cols = Math.floor(70 / maxCheckWidth);
 
-        for (let i = 0; i < checkList.length; i += cols) {
-            let line = '';
+            for (let i = 0; i < checkList.length; i += cols) {
+                let line = '';
 
-            for (let j = 0; j < cols; j++) {
-                line += sprintf(`%-${maxCheckWidth}s`, checkList[i + j] || '');
+                for (let j = 0; j < cols; j++) {
+                    line += sprintf(`%-${maxCheckWidth}s`, checkList[i + j] || '');
+                }
+                console.log(sprintf(`%-${width}s`, ''), line);
             }
-            console.log(sprintf(`%-${width}s`, ''), line);
+        } else {
+            console.error(chalk.red(`Broker ${broker_id} is not active.`));
         }
-    } else {
-        console.error(chalk.red(`Broker ${broker_id} is not active.`));
-    }
-});
+    }).
+    catch((err) => {
+        console.error(chalk.red('ERROR:'), err);
+        process.exit(1);
+    });
