@@ -17,6 +17,7 @@ const Graph = require(path.join(cosi.lib_dir, 'graph'));
 app.
     version(cosi.app_version).
     usage('[options] <config_file>').
+    description('Update Circonus graph from local graph config file (e.g. /opt/circonus/cosi/registration/config-*.json)').
     parse(process.argv);
 
 console.log(chalk.bold(app.name()), `v${app.version()}`);
