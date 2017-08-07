@@ -426,8 +426,11 @@ class Graphs extends Registration {
         assert.equal(typeof graphIdx, 'number', 'graphIdx is required');
 
         // flat list of full metric names metric_group`metric_name (fs`/sys/fs/cgroup`df_used_percent)
-        const metrics = Object.keys(this.metrics[template.id]).map((val) => {
-            return `${template.id}\`${val}`;
+        var metrics = [];
+        const self = this;
+        Object.keys(this.metrics).forEach(function(id){
+            console.log(id);
+            metrics = metrics.concat(Object.keys(self.metrics[id]).map((val) => { return `${id}\`${val}`; }));
         });
 
         const variableMetrics = {};
