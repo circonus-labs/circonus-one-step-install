@@ -30,16 +30,12 @@ if (app.args.length === 0) {
 const cfgFile = path.resolve(app.args[0]);
 const dash = new Dashboard(cfgFile);
 
-dash.update((err, result) => {
-    if (err) {
-        console.error(chalk.red(`Error: ${err.code} -- ${err.message}`));
-        if (err.details) {
-            console.error(err.details.join('\n'));
-        }
-        console.dir(err);
+dash.update().
+    then((updated) => {
+        dash.save(cfgFile, true);
+        console.log(chalk.green('Updated'), updated.display_name);
+    }).
+    catch((err) => {
+        console.error(chalk.red('ERROR:'), err);
         process.exit(1);
-    }
-
-    dash.save(cfgFile, true);
-    console.log(chalk.green('Updated'), result.title);
-});
+    });

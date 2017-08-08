@@ -7,7 +7,6 @@
 'use strict';
 
 const path = require('path');
-const fs = require('fs');
 
 const app = require('commander');
 const chalk = require('chalk');
@@ -33,25 +32,15 @@ if (app.args.length === 0) {
 const cfgFile = path.resolve(app.args[0]);
 const dash = new Dashboard(cfgFile);
 
-dash.create((err, result) => {
-    if (err) {
-        console.error(chalk.red(`Error: ${err.code} -- ${err.message}`));
-        if (err.details) {
-            console.error(err.details.join('\n'));
+dash.create().
+    then((created) => {
+        if (app.output) {
+            dash.save(app.output, app.force);
+        } else {
+            console.dir(created);
         }
-        console.dir(err);
+    }).
+    catch((err) => {
+        console.error(chalk.red('ERROR:'), err);
         process.exit(1);
-    }
-
-    if (app.output) {
-        const opts = {
-            encoding : 'utf8',
-            flag     : app.force ? 'w' : 'wx',
-            mode     : 0o644
-        };
-
-        fs.writeFileSync(app.output, JSON.stringify(result, null, 4), opts);
-    } else {
-        console.log(result);
-    }
-});
+    });
