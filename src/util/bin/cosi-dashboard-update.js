@@ -33,7 +33,7 @@ const dash = new Dashboard(cfgFile);
 dash.update().
     then((updated) => {
         dash.save(cfgFile, true);
-        console.log(chalk.green('Updated'), updated.display_name);
+        console.log(chalk.green('Updated'), updated.title);
     }).
     catch((err) => {
         console.error(chalk.red('ERROR:'), err);
