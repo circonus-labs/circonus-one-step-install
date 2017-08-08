@@ -1,0 +1,284 @@
+{
+    "type": "dashboard",
+    "id": "system",
+    "description" : "The standard dashboard for monitoring postgres.",
+    "notes" : [],
+    "config": {
+        "account_default": false,
+        "grid_layout": {
+            "height": 4,
+            "width": 8
+        },
+        "options": {
+            "access_configs": [],
+            "fullscreen_hide_title": true,
+            "hide_grid": false,
+            "linkages": [],
+            "scale_text": false,
+            "text_size": 12
+        },
+        "shared": true,
+        "title": "{{=cosi.host_name}} USE System Dashboard",
+        "widgets": [
+            {
+                "active": true,
+                "height": 1,
+                "name": "Graph",
+                "origin": "a0",
+                "settings": {
+                    "date_window": "global",
+                    "graph_id": null,
+                    "hide_xaxis": false,
+                    "hide_yaxis": false,
+                    "key_inline": false,
+                    "key_loc": "noop",
+                    "key_size": "1",
+                    "key_wrap": false,
+                    "label": "CPU Utilization",
+                    "period": 2000,
+                    "realtime": false,
+                    "show_flags": false
+                },
+                "tags" : [ "use:cpu-utilization" ],
+                "type": "graph",
+                "widget_id": "wA0",
+                "width": 3
+            },
+            {
+                "active": true,
+                "height": 1,
+                "width": 3,
+                "name": "Graph",
+                "origin": "a1",
+                "settings": {
+                    "date_window": "global",
+                    "graph_id": null,
+                    "hide_xaxis": false,
+                    "hide_yaxis": false,
+                    "key_inline": false,
+                    "key_loc": "noop",
+                    "key_size": "1",
+                    "key_wrap": false,
+                    "label": "Memory Utilization",
+                    "period": 2000,
+                    "realtime": false,
+                    "show_flags": false
+                },
+                "tags" : [ "use:memory-utilization" ],
+                "type": "graph",
+                "widget_id": "wA1"
+            },
+            {
+                "active": true,
+                "height": 1,
+                "width": 3,
+                "name": "Graph",
+                "origin": "a2",
+                "settings": {
+                    "date_window": "global",
+                    "graph_id": null,
+                    "hide_xaxis": false,
+                    "hide_yaxis": false,
+                    "key_inline": false,
+                    "key_loc": "noop",
+                    "key_size": "1",
+                    "key_wrap": false,
+                    "label": "Network Utilization",
+                    "period": 2000,
+                    "realtime": false,
+                    "show_flags": false
+                },
+                "tags" : [ "use:network-utilization" ],
+                "type": "graph",
+                "widget_id": "wA2"
+            },
+            {
+                "active": true,
+                "height": 1,
+                "width": 3,
+                "name": "Graph",
+                "origin": "a3",
+                "settings": {
+                    "date_window": "global",
+                    "graph_id": null,
+                    "hide_xaxis": false,
+                    "hide_yaxis": false,
+                    "key_inline": false,
+                    "key_loc": "noop",
+                    "key_size": "1",
+                    "key_wrap": false,
+                    "label": "Disk Utilization",
+                    "period": 2000,
+                    "realtime": false,
+                    "show_flags": false
+                },
+                "tags" : [ "use:disk-utilization" ],
+                "type": "graph",
+                "widget_id": "wA3"
+            },
+            {
+                "width": 3,
+                "name": "Graph",
+                "active": true,
+                "origin": "d0",
+                "height": 1,
+                "settings": {
+                    "hide_yaxis": false,
+                    "graph_id": null,
+                    "show_flags": false,
+                    "key_inline": false,
+                    "period": 2000,
+                    "key_size": 1,
+                    "overlay_set_id": "",
+                    "date_window": "global",
+                    "key_wrap": false,
+                    "hide_xaxis": false,
+                    "key_loc": "out-r",
+                    "label": "CPU Saturation",
+                    "realtime": false
+                },
+                "type": "graph",
+                "tags" : ["use:cpu-saturation"],
+                "widget_id": "wD0"
+            },
+            {
+                "width": 3,
+                "name": "Graph",
+                "active": true,
+                "origin": "d1",
+                "height": 1,
+                "settings": {
+                    "hide_yaxis": false,
+                    "graph_id": null,
+                    "show_flags": false,
+                    "key_inline": false,
+                    "period": 2000,
+                    "key_size": 1,
+                    "overlay_set_id": "",
+                    "date_window": "global",
+                    "key_wrap": false,
+                    "hide_xaxis": false,
+                    "key_loc": "out-r",
+                    "label": "Memory Saturation",
+                    "realtime": false
+                },
+                "type": "graph",
+                "tags" : ["use:memory-saturation"],
+                "widget_id": "wD1"
+            },
+            {
+                "width": 3,
+                "name": "Graph",
+                "active": true,
+                "origin": "d2",
+                "height": 1,
+                "settings": {
+                    "hide_yaxis": false,
+                    "graph_id": null,
+                    "show_flags": false,
+                    "key_inline": false,
+                    "period": 2000,
+                    "key_size": 1,
+                    "overlay_set_id": "",
+                    "date_window": "global",
+                    "key_wrap": false,
+                    "hide_xaxis": false,
+                    "key_loc": "out-r",
+                    "label": "Network Saturation",
+                    "realtime": false
+                },
+                "type": "graph",
+                "tags" : [ "use:network-saturation" ],
+                "widget_id": "wD2"
+            },
+            {
+                "width": 3,
+                "name": "Graph",
+                "active": true,
+                "origin": "d3",
+                "height": 1,
+                "settings": {
+                    "hide_yaxis": false,
+                    "graph_id": null,
+                    "show_flags": false,
+                    "key_inline": false,
+                    "period": 2000,
+                    "key_size": 1,
+                    "overlay_set_id": "",
+                    "date_window": "global",
+                    "key_wrap": false,
+                    "hide_xaxis": false,
+                    "key_loc": "out-r",
+                    "label": "Disk Saturation",
+                    "realtime": false
+                },
+                "type": "graph",
+                "tags" : ["use:disk-saturation"],
+                "widget_id": "wD3"
+            },
+            {
+                "width": 2,
+                "name": "HTML",
+                "active": true,
+                "origin": "g0",
+                "height": 1,
+                "settings": {
+                    "markup": "<ul><li>Correctable ECC events</li><li>CPU faults</li></ul>",
+                    "title": "CPU Errors"
+                },
+                "type": "html",
+                "widget_id": "wG0"
+            },
+            {
+                "width": 2,
+                "name": "HTML",
+                "active": true,
+                "origin": "g1",
+                "height": 1,
+                "settings": {
+                    "markup": "<ul><li>physical failures (dmesg)</li><li>failed malloc()s</li></ul><br><br>Saturation is missing OOM Killer events (dmesg)",
+                    "title": "Memory Errors"
+                },
+                "type": "html",
+                "widget_id": "G1"
+            },
+            {
+                "width": 3,
+                "name": "Graph",
+                "active": true,
+                "origin": "g2",
+                "height": 1,
+                "settings": {
+                    "hide_yaxis": false,
+                    "show_flags": false,
+                    "key_inline": false,
+                    "period": 2000,
+                    "key_size": 1,
+                    "overlay_set_id": "",
+                    "date_window": "global",
+                    "hide_xaxis": false,
+                    "key_wrap": false,
+                    "label": "Network Errors",
+                    "key_loc": "noop",
+                    "realtime": false
+                },
+                "type": "graph",
+                "tags" : [ "use:network-error" ],
+                "widget_id": "wG2"
+            },
+            {
+                "width": 2,
+                "name": "HTML",
+                "active": true,
+                "origin": "g3",
+                "height": 1,
+                "settings": {
+                    "markup": "<ul><li>/sys/devices/../ioerr_cnt (not available)</li><li>smartctl (not available)</li><li>tracing of the IO subsystem (TBD ?)</li></ul>",
+                    "title": "Disk Errors"
+                },
+                "type": "html",
+                "widget_id": "wG3"
+            }
+        ]
+    }
+}

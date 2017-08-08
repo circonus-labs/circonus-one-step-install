@@ -152,8 +152,9 @@ class Fetch extends Events {
                 then((groups) => {
                     // list of all templates applicable to this host
                     const wantTemplates = [
-                        'check-system', 'worksheet-system'
-                        'graph-use_cpu', 'graph-use_vm'
+                        'check-system', 'worksheet-system', 'dashboard-system',
+                        'graph-load',
+                        'graph-network_summary', 'graph-disk_summary'
                     ];
 
                     if (this.enable_group_check) {
