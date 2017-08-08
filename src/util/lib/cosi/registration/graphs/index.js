@@ -290,9 +290,56 @@ class Graphs extends Registration {
 
         const graphId = `${template.type}-${template.id}`;
 
+        // compile list of all metrics
+        const self = this;
+        var metrics = [];
+        Object.keys(self.metrics).forEach(function(id){
+            metrics = metrics.concat(Object.keys(self.metrics[id]).map((val) => { return `${id}\`${val}`; }));
+        });
+
+        const datapoints_filled = [];
         for (let i = 0; i < graph.datapoints.length; i++) {
-            graph.datapoints[i].check_id = this.checkMeta.system.id;
+            const dp = graph.datapoints[i];
+
+            // insert check ID
+            dp.check_id = this.checkMeta.system.id;
+
+            if (dp.variable) {
+                var match_count = 0;
+                // remove property before sending the object to the Circonus API
+                delete dp.variable;
+                // fill in matching datapoints
+                for (const metric of metrics) {
+                    const match = metric.match(dp.metric_name);
+                    if(match) {
+                        (function() {
+                            match_count++;
+                            if (dp.filter) { // apply filters
+                                const dp_filter = dp.filter;
+                                delete dp.filter;
+                                for (const filter of dp_filter.exclude) {
+                                    if (metric.match(filter)) return;
+                                }
+                            }
+                            console.log(`\tFilling in datapoint ${metric}`);
+                            const dp_copy = JSON.parse(JSON.stringify(dp));
+                            dp_copy.metric_name = metric;
+                            dp_copy.name = self._expand(dp_copy.name, {
+                                match : match,
+                                metric : metric
+                            });
+                            datapoints_filled.push(dp_copy);
+                        })();
+                    }
+                }
+                if (match_count == 0) {
+                    console.log(`\tNo matches found for ${dp.metric_name}`);
+                }
+            } else { // not variable: pass on as is
+                datapoints_filled.push(dp);
+            }
         }
+        graph.datapoints = datapoints_filled;
 
         this._setTags(graph, graphId);
         this._setCustomGraphOptions(graph, graphId);
@@ -429,7 +476,6 @@ class Graphs extends Registration {
         var metrics = [];
         const self = this;
         Object.keys(this.metrics).forEach(function(id){
-            console.log(id);
             metrics = metrics.concat(Object.keys(self.metrics[id]).map((val) => { return `${id}\`${val}`; }));
         });
 
