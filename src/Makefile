@@ -19,6 +19,8 @@ RPM_FILE=rpm/cosi-${COSI_VER}-1.noarch.rpm
 
 DEST_DIR=$(DEST)/provision/roles/site/files
 
+NPM=$(shell { command -v yarn || command -v npm; } 2>/dev/null)
+
 usage:
 	@echo "Use 'make package' to create the COSI-Site package, there are no 'build/compile' steps required."
 	@exit 2
@@ -48,7 +50,7 @@ install:
 	@exit 2
 
 init:
-	test -d node_modules || yarn
+	test -d node_modules || $(NPM) install
 	make -C util init
 
 package: utils $(SITE_TGZ)
