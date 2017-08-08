@@ -23,31 +23,36 @@ app.
 
 console.log(chalk.bold(app.name()), `v${app.version()}`);
 
+if (!app.all && !app.id) {
+    app.outputHelp();
+    process.exit(0);
+}
+
 if (app.id) {
     const regFile = path.resolve(path.join(cosi.ruleset_dir, `${app.id}-cosi.json`));
     const ruleset = new Ruleset(regFile);
 
-    ruleset.delete((err, result) => {
-        if (err) {
-            console.error(chalk.red('ERROR'), err);
+    ruleset.delete().
+        then((result) => {
+            if (result) {
+                fs.unlink(regFile, (errUnlink) => {
+                    if (errUnlink) {
+                        console.error(chalk.red('ERROR:'), 'removing', regFile, errUnlink);
+                        process.exit(1);
+                    }
+                    console.log(chalk.green('REMOVED'), 'rule', app.id, regFile);
+                });
+            } else {
+                console.error(chalk.yellow('WARN:'), 'unable to remove', app.id);
+                process.exit(2);
+            }
+
+            process.exit(0);
+        }).
+        catch((err) => {
+            console.error(chalk.red('ERROR:'), err);
             process.exit(1);
-        }
-
-        if (result) {
-            fs.unlink(regFile, (errUnlink) => {
-                if (errUnlink) {
-                    console.error(chalk.red('ERROR'), 'removing', regFile, errUnlink);
-                    process.exit(1);
-                }
-                console.log(chalk.green('REMOVED'), 'rule', app.id, regFile);
-            });
-        } else {
-            console.error(chalk.yellow('WARN'), 'unable to remove', app.id);
-            process.exit(2);
-        }
-    });
-
-    process.exit(0);
+        });
 }
 
 if (app.all) {
@@ -69,16 +74,28 @@ if (app.all) {
             if (file.match(/-cosi\.json$/)) {
                 const ruleset = new Ruleset(file);
 
-                ruleset.delete((errDelete, result) => {
-                    if (errDelete) {
-                        console.error(chalk.red('ERROR'), errDelete);
+                ruleset.delete().
+                    then((result) => {
+                        if (result) {
+                            fs.unlink(file, (errUnlink) => {
+                                if (errUnlink) {
+                                    console.error(chalk.red('ERROR:'), 'removing', file, errUnlink);
+                                    process.exit(1);
+                                }
+                                console.log(chalk.green('REMOVED'), 'rule', app.id, file);
+                            });
+                        } else {
+                            console.error(chalk.yellow('WARN:'), 'unable to remove', app.id);
+                            process.exit(2);
+                        }
+
+                        process.exit(0);
+                    }).
+                    catch((errDelete) => {
+                        console.error(chalk.red('ERROR:'), errDelete);
                         process.exit(1);
-                    }
-                    console.dir(result);
-                });
+                    });
             }
         }
     });
-} else {
-    app.outputHelp();
 }
