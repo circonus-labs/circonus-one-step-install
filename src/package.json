@@ -26,8 +26,8 @@
   },
   "scripts": {
     "check": "make check",
-    "lint": "eslint --cache *.js lib/",
-    "test": "node_modules/tape/bin/tape test/*.js",
+    "lint": "node_modules/.bin/eslint --cache *.js lib/",
+    "test": "node_modules/.bin/tape test/*.js",
     "showenv": "echo \"Host system $(uname -srv)\" ; vagrant --version ; echo \"Virtualbox $(vboxmanage --version)\" ; ansible --version ; echo \"Node $(node --version)\" ; echo \"NPM $(npm --version)\" ; echo 'Global npm modules'; npm ls -g --depth=0; echo 'Local npm modules' ; npm ls --depth=0"
   },
   "devDependencies": {
