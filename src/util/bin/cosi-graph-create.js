@@ -7,7 +7,6 @@
 'use strict';
 
 const path = require('path');
-const fs = require('fs');
 
 const app = require('commander');
 const chalk = require('chalk');
@@ -33,31 +32,15 @@ if (app.args.length === 0) {
 const cfgFile = path.resolve(app.args[0]);
 const graph = new Graph(cfgFile);
 
-graph.create((err, result) => {
-    if (err) {
-        console.error(chalk.red(`Error: ${err.code} -- ${err.message}`));
-        if (err.details) {
-            if (Array.isArray(err.details)) {
-                console.error(err.details.join('\n'));
-            } else {
-                console.error(err.details);
-            }
+graph.create().
+    then((created) => {
+        if (app.output) {
+            graph.save(app.output, true);
+        } else {
+            console.dir(created);
         }
-        console.dir(err);
+    }).
+    catch((err) => {
+        console.error(chalk.red('ERROR:'), err);
         process.exit(1);
-    }
-
-    if (app.output) {
-        const opts = {
-            encoding : 'utf8',
-            flag     : app.force ? 'w' : 'wx',
-            mode     : 0o644
-        };
-
-        fs.writeFileSync(app.output, JSON.stringify(result, null, 4), opts);
-
-        console.log('Graph created, saved:', app.output);
-    } else {
-        console.log(result);
-    }
-});
+    });
