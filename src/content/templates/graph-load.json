@@ -2,7 +2,7 @@
     "type": "graph",
     "id": "load",
     "description": "System load",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "notes": [],
     "graphs": [
         {
@@ -17,7 +17,7 @@
                     "name": "1 min",
                     "axis": "l",
                     "data_formula": null,
-                    "color": "#b5c52d",
+                    "color": "#7B4D94",
                     "alpha": null,
                     "metric_name": "load`1min",
                     "hidden": false,
@@ -31,7 +31,7 @@
                     "name": "5 min",
                     "axis": "l",
                     "data_formula": null,
-                    "color": "#657aa6",
+                    "color": "#8E69A2",
                     "alpha": null,
                     "metric_name": "load`5min",
                     "hidden": false,
@@ -45,9 +45,23 @@
                     "name": "15 min",
                     "axis": "l",
                     "data_formula": null,
-                    "color": "#4fa18e",
+                    "color": "#855D9C",
                     "alpha": null,
                     "metric_name": "load`15min",
+                    "hidden": false,
+                    "derive": "gauge"
+                },
+                {
+                    "legend_formula": null,
+                    "check_id": null,
+                    "metric_type": "numeric",
+                    "stack": null,
+                    "name": "Runnable processes",
+                    "axis": "l",
+                    "data_formula": "=VAL",
+                    "color": "#693287",
+                    "metric_name": "cpu`procs_runnable",
+                    "alpha": "0.3",
                     "hidden": false,
                     "derive": "gauge"
                 }
@@ -72,7 +86,7 @@
             "min_right_y": null,
             "notes": null,
             "style": "line",
-            "tags": [],
+            "tags": [ "use", "use:cpu-saturation" ],
             "title": "{{=cosi.host_name}} System Load"
         }
     ]

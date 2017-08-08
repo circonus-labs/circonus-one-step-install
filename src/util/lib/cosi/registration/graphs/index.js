@@ -17,6 +17,24 @@ const Template = require(path.resolve(path.join(cosi.lib_dir, 'template')));
 const templateList = require(path.resolve(path.join(cosi.lib_dir, 'template', 'list')));
 const Graph = require(path.resolve(path.join(cosi.lib_dir, 'graph')));
 
+/*
+ * Maintains integer indices for objects
+ */
+class Indexer {
+    constructor() {
+        this.store = {};
+        this.count = 0;
+    }
+    index(o) {
+        if(!this.store[o]) {
+            this.count += 1;
+            this.store[o] = this.count;
+        }
+        return this.count;
+    }
+}
+
+
 class Graphs extends Registration {
 
     /**
@@ -297,6 +315,7 @@ class Graphs extends Registration {
             metrics = metrics.concat(Object.keys(self.metrics[id]).map((val) => { return `${id}\`${val}`; }));
         });
 
+        const indexer = new Indexer();
         const datapoints_filled = [];
         for (let i = 0; i < graph.datapoints.length; i++) {
             const dp = graph.datapoints[i];
@@ -328,6 +347,9 @@ class Graphs extends Registration {
                                 match : match,
                                 metric : metric
                             });
+                            dp_copy.stack = Number(self._expand(String(dp_copy.stack), {
+                                match_idx : indexer.index(match[1])
+                            }));
                             datapoints_filled.push(dp_copy);
                         })();
                     }
