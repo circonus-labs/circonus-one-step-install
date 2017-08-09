@@ -992,8 +992,13 @@ cosi_register() {
         echo
         log "Enabling ${cosi_agent_mode} mode for agent"
         if [[ -x "$install_nadreverse" ]]; then
-            $install_nadreverse | tee -a $cosi_install_log
-            [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "Errors encountered during NAD ${cosi_agent_mode} configuration."
+            if [[ -x /bin/freebsd-version ]]; then
+                $install_nadreverse
+                [[ $? -eq 0 ]] || fail "Errors encountered during NAD ${cosi_agent_mode} configuration."
+            else
+                $install_nadreverse | tee -a $cosi_install_log
+                [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "Errors encountered during NAD ${cosi_agent_mode} configuration."
+            fi
         else
             fail "Agent mode is ${cosi_agent_mode}, nadreverse installer not found."
         fi
