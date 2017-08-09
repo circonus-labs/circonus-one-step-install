@@ -59,11 +59,11 @@ bh.getBrokerList().
         for (const broker of brokers) {
             if (broker._name !== 'composite') {
                 emitLine(
-                app.quiet,
-                broker._cid.replace('/broker/', ''),
-                broker._type,
-                broker._name
-            );
+                    app.quiet,
+                    broker._cid.replace('/broker/', ''),
+                    broker._type,
+                    broker._name
+                );
             }
         }
     }).
