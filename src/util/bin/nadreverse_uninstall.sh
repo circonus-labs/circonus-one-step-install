@@ -40,6 +40,15 @@ function uninstall_linux {
     fi
 }
 
+function uninstall_freebsd {
+    orig_conf_backup="${cosi_dir}/cache/nad.conf.orig"
+    nad_conf="${nad_dir}/etc/nad.conf"
+
+    if [[ ! -f $nad_conf ]]; then
+        fail "Unable to find running nad config ($nad_conf)"
+    fi
+}
+
 function uninstall_omnios {
     orig_conf_backup="${cosi_dir}/cache/nad.method.orig"
     nad_conf="/var/svc/method/circonus-nad"
@@ -51,6 +60,8 @@ function uninstall_omnios {
 function uninstall {
     if [[ -d /var/svc/manifest && -x /usr/sbin/svcadm ]]; then
         uninstall_omnios
+    elif [[ -x /bin/freebsd-version ]]; then
+        uninstall_freebsd
     else
         uninstall_linux
     fi

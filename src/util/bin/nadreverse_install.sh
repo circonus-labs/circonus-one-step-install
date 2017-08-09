@@ -137,9 +137,67 @@ function install_linux {
     sleep 2
 }
 
+function install_freebsd {
+    nad_conf="${nad_dir}/etc/nad.conf"
+    log "Checking for NAD config"
+    if [[ ! -f $nad_conf ]]; then
+        fail "NAD conf not found ${nad_conf}"
+    fi
+
+    nad_conf_new="${nad_conf}.new"
+
+    # ensure any instance of old NAD_OPTS setting is disabled
+    if [[ $(grep -c "^NAD_OPTS" $nad_conf) -ne 0 ]]; then
+    	sed -e 's/^NAD_OPTS/#NAD_OPTS/' $nad_conf > $nad_conf_new
+        install_conf=1
+    fi
+
+    # add listen address setting, if not set
+    if [[ $(grep -c "^NAD_LISTEN" $nad_conf) -eq 0 ]]; then
+    	[[ -f $nad_conf_new ]] || { cp $nad_conf $nad_conf_new; echo -e "\n\n# ADDED BY COSI\n" >> $nad_conf_new; }
+    	echo 'NAD_LISTEN="127.0.0.1:2609"' >> $nad_conf_new
+        install_conf=1
+    fi
+
+    # add reverse flag setting, if not set
+    if [[ $(grep -c "^NAD_REVERSE" $nad_conf) -eq 0 ]]; then
+        [[ -f $nad_conf_new ]] || { cp $nad_conf $nad_conf_new; echo -e "\n\n# ADDED BY COSI\n" >> $nad_conf_new; }
+    	echo 'NAD_REVERSE="yes"' >> $nad_conf_new
+        install_conf=1
+    fi
+
+    if [[ $install_conf -eq 0 ]]; then
+        pass "NAD conf already has reverse config, exiting"
+        exit 0
+    fi
+
+    log "Updating NAD conf ${nad_conf}"
+    stop_nad
+
+    [[ ! -f  $orig_conf_backup ]] && {
+        cp $nad_conf $orig_conf_backup
+        pass "saved copy of default NAD conf as ${orig_conf_backup}"
+    }
+
+    if [[ ! -f $nad_conf_new ]]; then
+        fail "Updated NAD conf ${nad_conf_new} not found"
+    fi
+
+    mv -f $nad_conf_new $nad_conf
+    [[ $? -eq 0 ]] || fail "Unable to update ${nad_conf} with ${nad_conf_new}"
+
+    pass "Installed reverse config, restarting NAD"
+    start_nad
+
+    log "Waiting for NAD to restart"
+    sleep 2
+}
+
 function install {
     if [[ -d /var/svc/manifest && -x /usr/sbin/svcadm ]]; then
         install_omnios
+    elif [[ -x /bin/freebsd-version ]]; then
+        install_freebsd
     else
         install_linux
     fi
