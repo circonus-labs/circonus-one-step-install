@@ -37,11 +37,11 @@ if (settings.ssl_cert_file !== null && settings.ssl_key_file !== null) {
 
 const server = restify.createServer(serverOptions);
 
-server.use(restify.queryParser());
-server.use(restify.bodyParser());
-server.use(restify.gzipResponse());
-server.use(restify.requestLogger());
-server.use(restify.throttle({
+server.use(restify.plugins.queryParser({ mapParams: true }));
+server.use(restify.plugins.bodyParser({ mapParams: true }));
+server.use(restify.plugins.gzipResponse());
+server.use(restify.plugins.requestLogger());
+server.use(restify.plugins.throttle({
     burst     : 100,
     ip        : true,
     overrides : {
@@ -57,7 +57,7 @@ server.use(restify.throttle({
 //
 // log each request coming in (for metrics)
 //
-server.on('after', restify.auditLogger({ log }));
+server.on('after', restify.plugins.auditLogger({ event: 'after', log }));
 
 server.on('uncaughtException', (req, res, route, err) => { // eslint-disable-line no-unused-vars
     log.fatal(`uncaughtException ${route} ${req.params} ${err.stack}`);
@@ -138,7 +138,7 @@ server.get(
 // return the cosi-install script, designed to be used via:
 //      \curl https://cosi.circonus.com/install | bash -s
 //
-server.get(/^\/install\/?$/, restify.serveStatic({
+server.get(/^\/install\/?$/, restify.plugins.serveStatic({
     directory : './content/files',
     file      : 'cosi-install.sh',
     maxAge    : 0
@@ -151,7 +151,7 @@ server.get(/^\/install\/?$/, restify.serveStatic({
 // return the cosi-install skeleton config, designed to be used via:
 //      \curl https://cosi.circonus.com/install/config > /etc/defaults/cosi-install
 //
-server.get(/^\/install\/conf(?:ig)?\/?$/, restify.serveStatic({
+server.get(/^\/install\/conf(?:ig)?\/?$/, restify.plugins.serveStatic({
     directory : './content/files',
     file      : 'cosi-install.conf',
     maxAge    : 0
@@ -168,7 +168,7 @@ if (settings.installer_rpm_file !== null) {
     //      rpm -ivh "https://onestep.circonus.com/install/rpm"
     //      /opt/circonus/cosi/bin/cosi-install.sh --key ... --app ... ...
     //
-    server.get(/^\/install\/rpm?$/, restify.serveStatic({
+    server.get(/^\/install\/rpm?$/, restify.plugins.serveStatic({
         directory : './content/files',
         file      : settings.installer_rpm_file,
         maxAge    : 0
@@ -188,7 +188,7 @@ if (settings.installer_rpm_file !== null) {
 //      create default graphs
 //      create worksheet containing default graphs
 //
-server.get(/^\/utils\/?$/, restify.serveStatic({
+server.get(/^\/utils\/?$/, restify.plugins.serveStatic({
     directory : './content/files',
     file      : 'cosi-util.tar.gz',
     maxAge    : 0
@@ -200,7 +200,7 @@ server.get(/^\/utils\/?$/, restify.serveStatic({
 //
 // return the cosi-statsd (containing circonus backend)
 //
-server.get(/^\/statsd\/?$/, restify.serveStatic({
+server.get(/^\/statsd\/?$/, restify.plugins.serveStatic({
     directory : './content/files',
     file      : 'cosi-statsd.tar.gz',
     maxAge    : 0

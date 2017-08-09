@@ -68,3 +68,8 @@
   become: true
   npm: executable="{{ npm_bin }}" path="{{ cosi_directory }}"  state="present" name="restify" version="5.0.1"
   notify: Restart Site
+
+- name: Install 'restify-errors' nodejs module
+  become: true
+  npm: executable="{{ npm_bin }}" path="{{ cosi_directory }}"  state="present" name="restify-errors" version="4.3.0"
+  notify: Restart Site
