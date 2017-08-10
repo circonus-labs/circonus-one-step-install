@@ -97,14 +97,14 @@ function deleteItem(item, keepTemplates, cb) {
     console.log(chalk.bold('Checking'), `${itemName} ${itemURL}`);
     api.get(itemURL, null).
         then((res) => {
-            if (res.code === 404 && (res.parsed_body.code && res.parsed_body.code === 'ObjectError.InstanceNotFound')) {
+            if (res.code === 404 && (res.raw_body && res.raw_body.indexOf('requested object was not found') !== -1)) {
                 console.log(`\t${itemURL}`, chalk.bold('not found'), '- cleaning up orphaned files.');
                 cb(cleaner());
 
                 return;
             }
 
-            if (res.code < 200 || res.code > 299) { // eslint-disable-line no-magic-numbers
+            if (res.code < 200 || res.code > 299) {
                 console.error(chalk.red('API RESULT CODE'), res.code, res.parsed_body);
                 cb(res.parsed_body);
 
@@ -115,7 +115,7 @@ function deleteItem(item, keepTemplates, cb) {
 
             api.delete(itemURL).
                 then((res2) => {
-                    if (res2.code < 200 || res2.code > 299) { // eslint-disable-line no-magic-numbers
+                    if (res2.code < 200 || res2.code > 299) {
                         console.error(chalk.red('API RESULT CODE'), res2.code, res2.parsed_body);
                         cb(res2.parsed_body);
 
@@ -131,7 +131,7 @@ function deleteItem(item, keepTemplates, cb) {
                 });
         }).
         catch((err) => {
-            if ({}.hasOwnProperty.call(err, 'detail') && err.detail.message.indexOf('not found') !== -1) {
+            if ({}.hasOwnProperty.call(err, 'raw_body') && err.raw_body.indexOf('requested object was not found') !== -1) {
                 console.log(`\t${itemURL}`, chalk.bold('not found'), '- cleaning up orphaned files.');
                 cb(cleaner());
 
