@@ -1,3 +1,11 @@
+### 2.0.0 2017-08-10
+
+* switch to promises
+* continue nad v2 integration
+* freebsd v11 support
+* debian v9 support
+* misc. fixes and minor updates
+
 ### 1.0.0 2017-06-05
 
 * New NAD integration
