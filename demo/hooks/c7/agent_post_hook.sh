@@ -2,7 +2,7 @@
 
 set -eu
 
-plugin_dir="/opt/circonus/etc/node-agent.d"
+plugin_dir="/opt/circonus/nad/etc/node-agent.d"
 [[ ! -d "$plugin_dir" ]] && { echo "Unable to find NAD plugin directory '${plugin_dir}'"; exit 1; }
 
 linux_dir="${plugin_dir}/linux"

@@ -13,7 +13,8 @@ const path = require('path');
 const url = require('url');
 
 // local modules
-const restify = require('restify');
+// const restify = require('restify');
+const rerrors = require('restify-errors');
 
 // application modules
 const settings = require(path.normalize(path.join(__dirname, '..', 'settings')));
@@ -88,7 +89,7 @@ class Handlers {
         );
 
         if (packageFileName === null) {
-            return next(new restify.ResourceNotFoundError(`no package found for specified os. ref id: ${req.id()}`));
+            return next(new rerrors.ResourceNotFoundError(`no package found for specified os. ref id: ${req.id()}`));
         }
 
         if ({}.hasOwnProperty.call(req.params, 'redirect')) {
@@ -156,7 +157,7 @@ class Handlers {
         );
 
         if (template === null) {
-            return next(new restify.ResourceNotFoundError(`Unknown template ID '${req.params.t_cat}-${req.params.t_name}', ref id: ${reqId}`));
+            return next(new rerrors.ResourceNotFoundError(`Unknown template ID '${req.params.t_cat}-${req.params.t_name}', ref id: ${reqId}`));
         }
 
         res.cache('private', { maxAge: 300 });
@@ -193,7 +194,7 @@ class Handlers {
                 brokerIdx = brokers.json_default;
             }
         } else {
-            return next(new restify.InvalidArgumentError(`Invalid agent mode specified '${mode}'`));
+            return next(new rerrors.InvalidArgumentError(`Invalid agent mode specified '${mode}'`));
         }
 
         if (broker === null) {
@@ -205,7 +206,7 @@ class Handlers {
         }
 
         if (broker === null) {
-            return next(new restify.InternalServerError(`Invalid broker configuration, could not satisfy query for '${mode}'.`));
+            return next(new rerrors.InternalServerError(`Invalid broker configuration, could not satisfy query for '${mode}'.`));
         }
 
         if (brokerIdx === -1) {

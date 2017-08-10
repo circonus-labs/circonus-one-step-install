@@ -30,6 +30,7 @@ class Setup extends Registration {
         super(quiet);
 
         this.metricGroups = [];
+        this.bh = new Broker(this.quiet);
     }
 
     /**
@@ -37,387 +38,405 @@ class Setup extends Registration {
      * @returns {Undefined} nothing
      */
     setup() {
-        console.log(chalk.bold('Registration - setup'));
+        return new Promise((resolve, reject) => {
+            console.log(chalk.bold('Registration - setup'));
 
-        const self = this;
+            this.verifyCirconusAPI().
+                then(() => {
+                    return this.setTarget();
+                }).
+                then(() => {
+                    return this.getBrokers();
+                }).
+                then(() => {
+                    return this.saveRegConfig();
+                }).
+                then(() => {
+                    return this.fetchNADMetrics();
+                }).
+                then((metrics) => {
+                    return this.saveMetrics(metrics);
+                }).
+                then(() => {
+                    return this.fetchTemplates();
+                }).
+                then(() => {
+                    this.regConfig.setup_done = true;
 
-        this.once('verify.api', this.verifyCirconusAPI);
-        this.once('verify.api.done', () => {
-            self.emit('default.target');
-        });
-
-        this.once('default.target', this.setTarget);
-        this.once('default.target.done', () => {
-            self.emit('broker.load');
-        });
-
-        this.once('broker.load', () => {
-            console.log(chalk.blue(self.marker));
-            console.log('Loading broker information');
-
-            const bh = new Broker(self.quiet);
-
-            bh.getBrokerList((errGBL) => {
-                if (errGBL) {
-                    console.error(chalk.red('ERROR:'), 'Fetching broker list from API', errGBL);
-                    process.exit(1);
-                }
-                bh.getDefaultBrokerList((errGDBL) => {
-                    if (errGDBL) {
-                        console.error(chalk.red('ERROR:'), 'Fetching broker list from API', errGDBL);
-                        process.exit(1);
-                    }
-                    self.emit('broker.json');
+                    resolve();
+                }).
+                catch((err) => {
+                    reject(err);
                 });
-            });
         });
-
-        this.once('broker.json', this.getJsonBroker);
-        this.once('broker.json.done', () => {
-            self.emit('broker.trap');
-        });
-
-        this.once('broker.trap', this.getTrapBroker);
-        this.once('broker.trap.done', () => {
-            self.emit('save.config');
-        });
-
-        this.once('save.config', () => {
-            self.regConfig.setup_done = true;
-            self.saveRegConfig();
-            self.emit('metrics.fetch');
-        });
-
-        this.once('metrics.fetch', this.fetchNADMetrics);
-        this.once('metrics.fetch.save', this.saveMetrics);
-        this.once('metrics.fetch.done', () => {
-            self.emit('templates.fetch');
-        });
-
-        this.once('templates.fetch', this.fetchTemplates);
-        this.once('templates.fetch.done', () => {
-            self.emit('setup.done');
-        });
-
-
-        this.emit('verify.api');
     }
 
     /**
      * verify access to circonus api (api token key and api token app)
-     * @returns {Undefined} nothing
+     * @returns {Object} promise
      */
     verifyCirconusAPI() {
-        console.log(chalk.blue(this.marker));
-        console.log('Verify Circonus API access');
-
         const self = this;
 
-        const credentialTroubleshooting = `Check credentials in ${cosi.etc_dir}/cosi.json. Verify they are correct and work with the Circonus API.`;
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log('Verify Circonus API access');
 
-        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
-        api.get('/account/current', null, (code, err, account) => {
-            if (err) {
-                if (code === 403) {
-                    err.troubleshooting = credentialTroubleshooting; // eslint-disable-line no-param-reassign
-                }
-                self.emit('error', err);
+            const credentialTroubleshooting = `Check credentials in ${cosi.etc_dir}/cosi.json. Verify they are correct and work with the Circonus API.`;
 
-                return;
-            }
+            api.get('/account/current', null).
+                then((result) => {
+                    if (result.code !== 200) {
+                        const err = new Error('UNEXPECTED_API_RETURN');
 
-            if (code !== 200) {
-                const apiError = new Error(`verifyAPI - API return code: ${code} ${err} ${account}`);
+                        err.code = result.code;
+                        err.body = result.parsed_body;
+                        err.raw_body = result.raw_body;
 
-                if (code === 403) {
-                    apiError.troubleshooting = credentialTroubleshooting;
-                }
+                        if (result.code === 403) {
+                            err.troubleshooting = credentialTroubleshooting;
+                        }
 
-                self.emit('error', apiError);
-            }
+                        reject(err);
 
-            console.log(chalk.green('API key verified'), 'for account', account.name, account.description === null ? '' : `- ${account.description}`);
+                        return;
+                    }
 
-            let accountUrl = account._ui_base_url || 'your_account_url';
+                    console.log(chalk.green('API key verified'),
+                                'for account',
+                                result.parsed_body.name,
+                                result.parsed_body.description === null ? '' : `- ${result.parsed_body.description}`);
 
-            if (accountUrl.substr(-1) === '/') {
-                accountUrl = accountUrl.substr(0, accountUrl.length - 1);
-            }
+                    let accountUrl = result.parsed_body._ui_base_url || 'your_account_url';
 
-            self.regConfig.account = {
-                account_id : account._cid.replace('/account/', ''),
-                name       : account.name,
-                ui_url     : accountUrl
-            };
+                    if (accountUrl.substr(-1) === '/') {
+                        accountUrl = accountUrl.substr(0, accountUrl.length - 1);
+                    }
 
-            self.emit('verify.api.done');
+                    self.regConfig.account = {
+                        account_id : result.parsed_body._cid.replace('/account/', ''),
+                        name       : result.parsed_body.name,
+                        ui_url     : accountUrl
+                    };
+
+                    resolve();
+                }).
+                catch((err) => {
+                    if (err) {
+                        if (err.http_code === 403) {
+                            err.troubleshooting = credentialTroubleshooting; // eslint-disable-line no-param-reassign
+                        }
+                        reject(err);
+                    }
+                });
         });
     }
 
+    /**
+     * get brokers
+     * @returns {Object} promise
+     */
+    getBrokers() {
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log('Loading broker information');
+
+            this.bh.getBrokerList().
+                then(() => {
+                    return this.bh.getDefaultBrokerList();
+                }).
+                then(() => {
+                    return this.getJsonBroker();
+                }).
+                then(() => {
+                    return this.getTrapBroker();
+                }).
+                then(() => {
+                    resolve();
+                }).
+                catch((err) => {
+                    reject(err);
+                });
+        });
+    }
 
     /**
      * fetch available metrics from running nad process
-     * @returns {Undefined} nothing
+     * @returns {Object} promise
      */
     fetchNADMetrics() {
-        console.log(chalk.blue(this.marker));
-        console.log('Fetch available metrics from NAD');
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log('Fetch available metrics from NAD');
 
-        const self = this;
-        const metrics = new Metrics(cosi.agent_url);
+            const metrics = new Metrics(cosi.agent_url);
 
-        metrics.load((err) => {
-            if (err) {
-                self.emit('error', err);
+            metrics.load().
+                then(() => {
+                    console.log(chalk.green('Metrics loaded'));
 
-                return;
-            }
-            console.log(chalk.green('Metrics loaded'));
-            metrics.getMetricStats((metricStatsError, stats) => {
-                if (metricStatsError) {
-                    self.emit('error', metricStatsError);
-                }
+                    return metrics.getMetricStats();
+                }).
+                then((stats) => {
+                    let totalMetrics = 0;
 
-                let totalMetrics = 0;
-
-                for (const group in stats) {
-                    if ({}.hasOwnProperty.call(stats, group)) {
-                        console.log(`\t ${group} has ${stats[group]} metrics`);
-                        totalMetrics += stats[group];
+                    for (const group in stats) {
+                        if ({}.hasOwnProperty.call(stats, group)) {
+                            console.log(`\t ${group} has ${stats[group]} metrics`);
+                            totalMetrics += stats[group];
+                        }
                     }
-                }
 
-                console.log(`Total metrics: ${totalMetrics}`);
-                self.emit('metrics.fetch.save', metrics);
-            });
+                    console.log(`Total metrics: ${totalMetrics}`);
+                    resolve(metrics);
+                }).
+                catch((errStats) => {
+                    reject(errStats);
+                });
         });
     }
 
     /**
      * saves the metrics fetched from nad
      * @arg {Object} metrics fetched from nad
-     * @returns {Undefined} nothing
+     * @returns {Object} promise
      */
     saveMetrics(metrics) {
         assert.equal(typeof metrics, 'object', 'metrics is required');
 
-        console.log('Saving available metrics');
+        return new Promise((resolve, reject) => {
+            console.log('Saving available metrics');
 
-        const self = this;
+            metrics.getMetrics().
+                then((agentMetrics) => {
+                    fs.writeFile(
+                        this.regConfig.metricsFile,
+                        JSON.stringify(agentMetrics, null, 4), {
+                            encoding : 'utf8',
+                            flag     : 'w',
+                            mode     : 0o600
+                        },
+                        (errSave) => {
+                            if (errSave) {
+                                reject(errSave);
 
-        metrics.getMetrics((metricsError, agentMetrics) => {
-            if (metricsError) {
-                self.emit('error', metricsError);
-
-                return;
-            }
-            fs.writeFile(
-                self.regConfig.metricsFile,
-                JSON.stringify(agentMetrics, null, 4), {
-                    encoding : 'utf8',
-                    flag     : 'w',
-                    mode     : 0o600
-                },
-                (saveError) => {
-                    if (saveError) {
-                        self.emit('error', saveError);
-
-                        return;
-                    }
-                    console.log(chalk.green('Metrics saved', self.regConfig.metricsFile));
-                    self.emit('metrics.fetch.done');
-                }
-            );
+                                return;
+                            }
+                            console.log(chalk.green('Metrics saved', this.regConfig.metricsFile));
+                            resolve();
+                        }
+                    );
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 
 
     /**
      * fetch available templates from cosi-site
-     * @returns {Undefined} nothing
+     * @returns {Object} promise
      */
     fetchTemplates() {
-        console.log(chalk.blue(this.marker));
-        console.log('Fetching templates');
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log('Fetching templates');
 
-        const self = this;
+            // DO NOT force in register, if templates have been provisioned
+            // locally in the registration directory, use them rather than the cosi defaults
+            const templateFetch = new TemplateFetcher(false);
 
-        // DO NOT force in register, if templates have been provisioned, use them
-        const templateFetch = new TemplateFetcher(false);
-
-        templateFetch.all(this.quiet, (err, result) => {
-            if (err) {
-                self.emit('error', err);
-
-                return;
-            }
-            console.log(`Checked ${result.attempts}, fetched ${result.fetched}, warnings ${result.warnings}, errors ${result.errors}`);
-            self.emit('templates.fetch.done');
+            templateFetch.all(this.quiet).
+                then((result) => {
+                    console.log(`Checked ${result.attempts}, fetched ${result.fetched}, warnings ${result.warnings}, errors ${result.errors}`);
+                    resolve();
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 
 
     /**
      * get default broker for json checks
-     * @returns {Undefined} nothing
+     * @returns {Object} promise
      */
     getJsonBroker() {
-        console.log(chalk.blue(this.marker));
-        console.log('Determine default broker for json');
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log('Determine default broker for json');
 
-        const self = this;
-        const bh = new Broker(this.quiet);
-
-        bh.getDefaultBroker('json', (err, broker) => {
-            if (err) {
-                self.emit('error', err);
-
-                return;
-            }
-
-            self.regConfig.broker.json = JSON.parse(JSON.stringify(broker));
-            self.emit('broker.json.done');
+            this.bh.getDefaultBroker('json').
+                then((broker) => {
+                    this.regConfig.broker.json = JSON.parse(JSON.stringify(broker));
+                    resolve();
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 
 
     /**
      * gets the default HTTPTRAP broker
-     * @returns {Undefined} nothing
+     * @returns {Object} promise
      */
     getTrapBroker() {
-        console.log(chalk.blue(this.marker));
-        console.log('Determine default broker for trap');
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log('Determine default broker for trap');
 
-        const self = this;
-        const bh = new Broker(this.quiet);
-
-        bh.getDefaultBroker('httptrap', (err, broker) => {
-            if (err) {
-                self.emit('error', err);
-
-                return;
-            }
-
-            self.regConfig.broker.trap = JSON.parse(JSON.stringify(broker));
-            self.emit('broker.trap.done');
+            this.bh.getDefaultBroker('httptrap').
+                then((broker) => {
+                    this.regConfig.broker.trap = JSON.parse(JSON.stringify(broker));
+                    resolve();
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 
     /**
      * sets check target
-     * @returns {Undefined} nothing
+     * @returns {Object} promise
      */
     setTarget() {
         const self = this;
 
-        console.log(chalk.blue(this.marker));
-        console.log('Setting check target');
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(self.marker));
+            console.log('Setting check target');
 
-        if ({}.hasOwnProperty.call(cosi, 'cosi_host_target') && cosi.cosi_host_target !== '') {
-            console.log(chalk.green('Using target from command line:'), cosi.cosi_host_target);
-            this.regConfig.templateData.host_target = cosi.cosi_host_target;
-            this.emit('default.target.done');
-        } else if ({}.hasOwnProperty.call(cosi.custom_options, 'host_target') && cosi.custom_options.host_target) {
-            console.log(chalk.green('Found custom host_target:'), cosi.custom_options.host_target);
-            this.regConfig.templateData.host_target = cosi.custom_options.host_target;
-            this.emit('default.target.done');
-        } else if (this.agentMode === 'reverse') {
+            if ({}.hasOwnProperty.call(cosi, 'cosi_host_target') && cosi.cosi_host_target !== '') {
+                console.log(chalk.green('Using target from command line:'), cosi.cosi_host_target);
+                self.regConfig.templateData.host_target = cosi.cosi_host_target;
+                resolve();
+
+                return;
+            }
+
+            if ({}.hasOwnProperty.call(cosi.custom_options, 'host_target') && cosi.custom_options.host_target) {
+                console.log(chalk.green('Found custom host_target:'), cosi.custom_options.host_target);
+                self.regConfig.templateData.host_target = cosi.custom_options.host_target;
+                resolve();
+
+                return;
+            }
+
+            if (self.agentMode === 'reverse') {
              // this is what NAD will use to find the check to get reverse url
-            this.regConfig.templateData.host_target = os.hostname();
-            console.log(chalk.green('Reverse agent'), 'using', this.regConfig.templateData.host_target);
-            this.emit('default.target.done');
-        } else if (this.agentMode === 'revonly') {
+                self.regConfig.templateData.host_target = os.hostname();
+                console.log(chalk.green('Reverse agent'), 'using', self.regConfig.templateData.host_target);
+                resolve();
+            }
+
+            if (self.agentMode === 'revonly') {
              // this is what NAD will use to find the check to get reverse url
              // if a reverse connection fails, the broker would ordinarily resort to attempting to
              // *pull* metrics. the target needs to be non-resolvable to prevent the broker accidentally
              // pulling metrics from an unintended target that happens to be reachable
-            this.regConfig.templateData.host_target = `REV:${os.hostname()}`;
-            console.log(chalk.green(`Reverse ${chalk.bold('ONLY')} agent`), this.regConfig.templateData.host_target);
-            this.emit('default.target.done');
-        } else {
-            this._getDefaultHostIp((target) => {
-                console.log(chalk.green('Target ip/host:'), target);
-                self.regConfig.templateData.host_target = target;
-                self.emit('default.target.done');
-            });
-        }
+                self.regConfig.templateData.host_target = `REV:${os.hostname()}`;
+                console.log(chalk.green(`Reverse ${chalk.bold('ONLY')} agent`), self.regConfig.templateData.host_target);
+                resolve();
+
+                return;
+            }
+
+
+            self._getDefaultHostIp().
+                then((target) => {
+                    console.log(chalk.green('Target ip/host:'), target);
+                    self.regConfig.templateData.host_target = target;
+                    resolve();
+                }).
+                catch((err) => {
+                    reject(err);
+                });
+        });
     }
 
 
     /**
      * deterive the systems IP
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    _getDefaultHostIp(cb) {
-        this._checkAWS((awsHostname) => {
-            if (awsHostname !== null) {
-                cb(awsHostname);
+    _getDefaultHostIp() {
+        const self = this;
 
-                return;
-            }
+        return new Promise((resolve) => {
+            self._checkAWS((awsHostname) => {
+                if (awsHostname !== null) {
+                    resolve(awsHostname);
 
-            console.log('Obtaining target IP/Host from local information');
+                    return;
+                }
 
-            const networkInterfaces = os.networkInterfaces();
+                console.log('Obtaining target IP/Host from local information');
 
-            for (const iface in networkInterfaces) {
-                if ({}.hasOwnProperty.call(networkInterfaces, iface)) {
-                    for (const addr of networkInterfaces[iface]) {
-                        if (!addr.internal && addr.family === 'IPv4') {
-                            cb(addr.address);
+                const networkInterfaces = os.networkInterfaces();
 
-                            return;
+                for (const iface in networkInterfaces) {
+                    if ({}.hasOwnProperty.call(networkInterfaces, iface)) {
+                        for (const addr of networkInterfaces[iface]) {
+                            if (!addr.internal && addr.family === 'IPv4') {
+                                resolve(addr.address);
+
+                                return;
+                            }
                         }
                     }
                 }
-            }
 
-            cb('0.0.0.0');
+                resolve('0.0.0.0');
+            });
         });
     }
 
     /**
      * determine if system is running in AWS
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    _checkAWS(cb) { // eslint-disable-line class-methods-use-this
-        // ONLY make this request if dmiinfo contains 'amazon'
-        // no reason to wait for a timeout otherwise
-        if (!{}.hasOwnProperty.call(cosi, 'dmi_bios_ver') || !cosi.dmi_bios_ver.match(/amazon/i)) {
-            cb(null);
+    _checkAWS() { // eslint-disable-line class-methods-use-this
+        return new Promise((resolve) => {
+            // ONLY make this request if dmiinfo contains 'amazon'
+            // no reason to wait for a timeout otherwise
+            if (!{}.hasOwnProperty.call(cosi, 'dmi_bios_ver') || !cosi.dmi_bios_ver.match(/amazon/i)) {
+                resolve(null);
 
-            return;
-        }
+                return;
+            }
 
-        console.log('Checking AWS for target (public ip/hostname for host)');
+            console.log('Checking AWS for target (public ip/hostname for host)');
 
-        // from aws docs: http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html
-        http.get('http://169.254.169.254/latest/meta-data/public-hostname', (res) => {
-            let data = '';
+            // from aws docs: http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html
+            http.get('http://169.254.169.254/latest/meta-data/public-hostname', (res) => {
+                let data = '';
 
-            res.on('data', (chunk) => {
-                data += chunk;
-            });
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
 
-            res.on('end', () => {
-                if (res.statusCode === 200) {
-                    const hostnames = data.split(/\r?\n/); // or os.EOL but it's a web response not a file
+                res.on('end', () => {
+                    if (res.statusCode === 200) {
+                        const hostnames = data.split(/\r?\n/); // or os.EOL but it's a web response not a file
 
-                    if (hostnames.length > 0) {
-                        cb(hostnames[0]);
+                        if (hostnames.length > 0) {
+                            resolve(hostnames[0]);
 
-                        return;
+                            return;
+                        }
                     }
-                }
 
-                cb(null);
+                    resolve(null);
+                });
+            }).on('error', () => {
+                // just punt, use the default "dumb" logic
+                resolve(null);
             });
-        }).on('error', () => {
-            // just punt, use the default "dumb" logic
-            cb(null);
         });
     }
 

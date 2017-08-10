@@ -50,17 +50,7 @@ if (app.config) {
     }
 }
 
-const fetch = new Fetch(
-    cosi.cosi_url,
-    cosi.agent_url,
-    cosi.reg_dir,
-    cosi.cosi_os_type,
-    cosi.cosi_os_dist,
-    cosi.cosi_os_vers,
-    cosi.cosi_os_arch,
-    cosi.statsd_type,
-    app.force
-);
+const fetch = new Fetch(app.force);
 
 if (app.id) {
     // fetch specific template
@@ -79,35 +69,33 @@ if (app.id) {
         }
     }
 
-    fetch.template(
-        app.id,
-        (fetchError, template) => {
-            if (fetchError) {
-                if (fetchError.code === 404) {
-                    console.error(chalk.red('Unknown Template ID'), app.id, 'not found.');
-                    process.exit(1);
-                } else {
-                    console.error(fetchError);
-                    throw fetchError;
-                }
-            }
-
+    fetch.template(app.id).
+        then((template) => {
             if (template.save(templateFile, app.force)) {
                 if (!app.quiet) {
                     console.log('Saved template:', templateFile);
                 }
             }
-        }
-    );
+        }).
+        catch((err) => {
+            if (err.code === 404) {
+                console.error(chalk.red('Unknown Template ID'), app.id, 'not found.');
+            } else {
+                console.error(chalk.red('ERROR:'), err);
+            }
+            process.exit(1);
+        });
 }
 
 if (app.all) {
-    fetch.all(app.quiet, (fetchError, result) => {
-        if (!app.quiet) {
-            console.log(result);
-        }
-        if (fetchError) {
-            throw fetchError;
-        }
-    });
+    fetch.all(app.quiet).
+        then((result) => {
+            if (!app.quiet) {
+                console.log(result);
+            }
+        }).
+        catch((err) => {
+            console.error(chalk.red('ERROR:'), err);
+            process.exit(1);
+        });
 }

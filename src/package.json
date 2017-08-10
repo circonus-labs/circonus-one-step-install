@@ -1,6 +1,6 @@
 {
   "name": "cosi-site",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "license": "SEE LICENSE IN LICENSE",
   "description": "Circonus One Step Install registration API",
@@ -19,22 +19,23 @@
   },
   "main": "cosi-site.js",
   "dependencies": {
-    "bunyan": "1.8.10",
-    "commander": "2.9.0",
+    "bunyan": "1.8.12",
+    "commander": "2.11.0",
     "node-statsd": "0.1.1",
-    "restify": "4.3.0"
+    "restify": "5.0.1",
+    "restify-errors": "4.3.0"
   },
   "scripts": {
     "check": "make check",
-    "lint": "eslint --cache *.js lib/",
-    "test": "node_modules/tape/bin/tape test/*.js",
+    "lint": "node_modules/.bin/eslint --cache *.js lib/",
+    "test": "node_modules/.bin/tape test/*.js",
     "showenv": "echo \"Host system $(uname -srv)\" ; vagrant --version ; echo \"Virtualbox $(vboxmanage --version)\" ; ansible --version ; echo \"Node $(node --version)\" ; echo \"NPM $(npm --version)\" ; echo 'Global npm modules'; npm ls -g --depth=0; echo 'Local npm modules' ; npm ls --depth=0"
   },
   "devDependencies": {
-    "@maier/eslint-config-base": "^0.1.0",
+    "@maier/eslint-config-base": "0.2.0",
     "@maier/eslint-config-node": "^0.1.0",
-    "eslint": "^3.19.0",
-    "tape": "^4.6.3"
+    "eslint": "4.4.1",
+    "tape": "4.8.0"
   },
   "repository": {
     "type": "git",

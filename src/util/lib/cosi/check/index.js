@@ -165,120 +165,78 @@ module.exports = class Check {
 
     /**
      * call api to create a check from current config
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Promise} using api to create check
      */
-    create(cb) {
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
-
-        if (!this.verifyConfig(false)) {
-            cb(new Error('Invalid configuration'));
-
-            return;
-        }
-
-        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
-
-        // for retrying on certain api errors
-        let attempts = 0;
-        const maxRetry = 5;
+    create() {
         const self = this;
 
-        const apiRequest = () => {
-            api.post('/check_bundle', this, (code, errAPI, result) => { // eslint-disable-line consistent-return
-                if (errAPI) {
-                    let retry = false;
+        return new Promise((resolve, reject) => {
+            if (!self.verifyConfig(false)) {
+                reject(new Error('Invalid configuration'));
 
-                    if (errAPI === 'Could not update broker(s) with check') {
-                        retry = true;
-                    }
+                return;
+            }
 
-                    attempts += 1;
+            api.post('/check_bundle', self).
+                then((res) => {
+                    if (res.parsed_body === null || res.code !== 200) {
+                        const err = new Error();
 
-                    if (retry && attempts < maxRetry) {
-                        console.warn(chalk.yellow('Retrying failed API call:'), errAPI, `- Broker's Group ID: ${self.brokers[0].replace('/broker/', '')}`, `attempt ${attempts}.`);
-                        setTimeout(apiRequest, 1000 * attempts);
+                        err.code = res.code;
+                        err.message = 'UNEXPECTED_API_RETURN';
+                        err.body = res.parsed_body;
+                        err.raw_body = res.raw_body;
+
+                        reject(err);
 
                         return;
                     }
 
-                    const apiError = new Error();
+                    this._init(res.parsed_body);
 
-                    apiError.code = 'CIRCONUS_API_ERROR';
-                    apiError.message = errAPI;
-                    apiError.details = result;
-
-                    cb(apiError);
-
-                    return;
-                }
-
-                if (code !== 200) {
-                    const errResp = new Error();
-
-                    errResp.code = code;
-                    errResp.message = 'UNEXPECTED_API_RETURN';
-                    errResp.details = result;
-
-                    cb(errResp);
-
-                    return;
-                }
-
-                self._init(result);
-
-                cb(null, result);
-            });
-        };
-
-        apiRequest();
+                    resolve(res.parsed_body);
+                }).
+                catch((err) => {
+                    reject(err);
+                });
+        });
     }
 
 
     /**
-     * call api to update a dashboard from current config
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * call api to update a check from current config
+     * @returns {Promise} using api to update check
      */
-    update(cb) {
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
-
-        if (!this.verifyConfig(true)) {
-            cb(new Error('Invalid configuration'));
-
-            return;
-        }
-
-        const self = this;
-
-        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
-        api.put(this._cid, this, (code, errAPI, result) => {
-            if (errAPI) {
-                cb(errAPI, result);
+    update() {
+        return new Promise((resolve, reject) => {
+            if (!this.verifyConfig(true)) {
+                reject(new Error('Invalid configuration'));
 
                 return;
             }
 
-            if (result === null) {
-                console.log(code, errAPI, result);
-                process.exit(1);
-            }
+            api.put(this._cid, this).
+                then((res) => {
+                    if (res.parsed_body === null || res.code !== 200) {
+                        const err = new Error();
 
-            if (code !== 200) {
-                const errResp = new Error();
+                        err.code = res.code;
+                        err.message = 'UNEXPECTED_API_RETURN';
+                        err.body = res.parsed_body;
+                        err.raw_body = res.raw_body;
 
-                errResp.code = code;
-                errResp.message = 'UNEXPECTED_API_RETURN';
-                errResp.details = result;
+                        reject(err);
 
-                cb(errResp);
+                        return;
+                    }
 
-                return;
-            }
+                    this._init(res.parsed_body);
 
-            self._init(result);
-
-            cb(null, result);
+                    resolve(res.parsed_body);
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 

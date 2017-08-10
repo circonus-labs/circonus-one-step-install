@@ -8,7 +8,8 @@
 const path = require('path');
 
 // load modules
-const restify = require('restify');
+// const restify = require('restify');
+const rerrors = require('restify-errors');
 
 // application modules
 const packages = require(path.normalize(path.join('..', 'packages')));
@@ -59,7 +60,7 @@ class Validators {
         if (errors.length) {
             errors.push(`ref id: ${req_id}`);
 
-            return next(new restify.MissingParameterError(errors.join(', ')));
+            return next(new rerrors.MissingParameterError(errors.join(', ')));
         }
 
         const osType = req.params.type;
@@ -108,11 +109,11 @@ class Validators {
         if (errors.length) {
             errors.push(`ref id: ${req_id}`);
 
-            return next(new restify.InvalidArgumentError(errors.join(', ')));
+            return next(new rerrors.InvalidArgumentError(errors.join(', ')));
         }
 
         if (!packages.isSupported(req.params.dist, req.params.ver_info.clean, req.params.arch)) {
-            return next(new restify.NotFoundError(`${packages.getError(req.params.dist, req.params.ver_info.clean, req.params.arch)}, ref id: ${req_id}`));
+            return next(new rerrors.NotFoundError(`${packages.getError(req.params.dist, req.params.ver_info.clean, req.params.arch)}, ref id: ${req_id}`));
         }
 
         return next();
@@ -143,7 +144,7 @@ class Validators {
         if (errors.length) {
             errors.push(`ref id: ${reqId}`);
 
-            return next(new restify.MissingParameterError(errors.join(', ')));
+            return next(new rerrors.MissingParameterError(errors.join(', ')));
         }
 
         if (!req.params.mode.match(/^(push|pull|reverse|revonly)$/)) {
@@ -154,7 +155,7 @@ class Validators {
         if (errors.length) {
             errors.push(`ref id: ${reqId}`);
 
-            return next(new restify.InvalidArgumentError(errors.join(', ')));
+            return next(new rerrors.InvalidArgumentError(errors.join(', ')));
         }
 
         return next();
@@ -184,7 +185,7 @@ class Validators {
         if (errors.length) {
             errors.push(`ref id: ${reqId}`);
 
-            return next(new restify.MissingParameterError(errors.join(', ')));
+            return next(new rerrors.MissingParameterError(errors.join(', ')));
         }
 
         if (!req.params.t_cat.match(/^(check|graph|worksheet|dashboard)$/i)) {
@@ -199,7 +200,7 @@ class Validators {
         if (errors.length) {
             errors.push(`ref id: ${reqId}`);
 
-            return next(new restify.InvalidArgumentError(errors.join(', ')));
+            return next(new rerrors.InvalidArgumentError(errors.join(', ')));
         }
 
         return next();

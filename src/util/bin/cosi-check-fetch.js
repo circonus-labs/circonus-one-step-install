@@ -38,9 +38,8 @@ app.
     option('-s, --save <file>', 'save fetched check to file').
     parse(process.argv);
 
-console.log(chalk.bold(app.name()), `v${app.version()}`);
+console.error(chalk.bold(app.name()), `v${app.version()}`);
 
-let criteria = '';
 let checkType = app.check;
 
 if (checkType) {
@@ -52,27 +51,20 @@ if (checkType) {
 let circonusCheckType = checkType;
 
 if (checkType === 'system') {
-    circonusCheckType = cosi.agent_mode.toLowerCase() === 'pull' ? 'json:nad' : 'httptrap';
+    circonusCheckType = cosi.agent_mode.toLowerCase() === 'push' ? 'httptrap' : 'json:nad';
 }
 
-api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
-
 let urlPath = '/check_bundle';
-let query = { f_type: circonusCheckType };
+let search = `(active:1)(type:"${circonusCheckType}")`;
 
 if (app.display_name) {
-    query.f_display_name = app.display_name;
-    criteria = `display_name='${app.display_name}' `;
+    const tmp = `${app.display_name} ${search}`;
+
+    search = tmp;
 }
 
 if (app.target_host) {
-    query.f_target = app.target_host;
-    criteria += `target='${app.target_host}'`;
-}
-
-if (!app.display_name && !app.target_host) {
-    query.f_notes_wildcard = `cosi:register*cosi_id:${cosi.cosi_id}*`;
-    criteria = `this host's COSI ID (${cosi.cosi_id})`;
+    search += `(host:"${app.target_host}")`;
 }
 
 if (app.id) {
@@ -81,37 +73,63 @@ if (app.id) {
     } else {
         urlPath = getCid(app.id);
     }
-    query = null;
+    search = null;
+} else {
+    urlPath += `?search=${search}`;
 }
 
-api.get(urlPath, query, (code, err, result) => {
-    if (err) {
-        console.error(err, code, result);
-        throw err;
-    }
+api.get(urlPath, null).
+    then((res) => {
+        const parsed_body = res.parsed_body;
+        const code = res.code;
+        const raw_body = res.raw_body;
 
-    if (code !== 200) {
-        console.error(code);
-        console.dir(result);
-    }
+        if (code !== 200) {
+            const err = new Error('Fetching check');
 
-    if (result.length === 0) {
-        console.error(chalk.red(`No ${checkType} checks found for ${criteria}.`));
-        process.exit(1);
-    }
+            err.code = code;
+            err.parsed_body = parsed_body;
+            err.raw_body = raw_body;
 
-    if (app.save) {
-        const file = path.resolve(app.save);
+            console.error(chalk.red('ERROR'), err);
+            process.exit(1);
+        }
 
-        fs.writeFileSync(file, JSON.stringify(result, null, 4));
-        console.log(chalk.green('Saved'), `check configuration to ${file}`);
-    } else if (Array.isArray(result)) {
-        for (let i = 0; i < result.length; i++) {
-            if (result[i].type === circonusCheckType) {
-                console.dir(result[i]);
+        if (parsed_body === null) {
+            console.error(chalk.red(`No ${checkType} checks found for ${search}.`));
+            process.exit(1);
+        }
+
+        if (Array.isArray(parsed_body)) {
+            if (parsed_body.length === 0) {
+                console.error(chalk.red(`No ${checkType} checks found for ${search}.`));
+                process.exit(1);
+            }
+
+            if (parsed_body.length > 1) {
+                console.log(chalk.yellow('WARN'), `multiple checks found matching ${search}`);
+                for (const check of parsed_body) {
+                    console.log('-----');
+                    console.log(chalk.bold('ID:'), check._cid.replace('/check_bundle/', ''));
+                    console.log(chalk.bold('Name:'), check.display_name);
+                    console.log(chalk.bold('Type:'), check.type);
+                    console.log(chalk.bold('Target:'), check.target);
+                    console.log();
+                }
+                process.exit(0);
             }
         }
-    } else {
-        console.dir(result);
-    }
-});
+
+        if (app.save) {
+            const file = path.resolve(app.save);
+
+            fs.writeFileSync(file, JSON.stringify(parsed_body, null, 4));
+            console.log(chalk.green('Saved'), `check configuration to ${file}`);
+        } else {
+            console.dir(parsed_body);
+        }
+    }).
+    catch((err) => {
+        console.error(chalk.red('ERROR'), err);
+        process.exit(1);
+    });

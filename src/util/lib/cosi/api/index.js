@@ -3,335 +3,378 @@
 // license that can be found in the LICENSE file.
 
 //
-// NOTE: this module needs to be brought up to date (see nad's)
-//       no changes until switching over to promises
+// NOTE: this is a customized version of circonusapi2 for SPECIFIC use by cosi
 //
-
-/* eslint-disable */
-
-/**
- * Tiny library for interacting with Circonus' API v2
- *
- * Exported methods
- *  setup:  inital setup function to give the API your auth token an app name
- *  get, post, put, delete: docs for each method below, are proxies for the
- *                          various methods for REST calls
- *
- * Notes:
- *  callback functions take 3 args (code, error, body)
- *    code:   HTTP Response code, if null a non HTTP error occurred
- *    error:  Error message from API, null on 200 responses
- *    body:   Response body, i.e. the thing you probably want
- */
 
 'use strict';
 
 const qs = require('querystring');
 const url = require('url');
-const http = require('http');
-const https = require('https');
 const path = require('path');
 const zlib = require('zlib');
 
+const ProxyAgent = require('https-proxy-agent');
+
 const cosi = require(path.resolve(path.join(__dirname, '..')));
 
-let singleton = null;
+let instance = null;
 
-const Api = function(token, app, options) {
-    options = options || 'https://api.circonus.com/v2/';
-    if (typeof options === 'string') {
-        options = url.parse(options);
+/**
+ * getProtocolProxyURL extracts proxy setting from environment for a specific protocol
+ * @arg {String} protocol to use ^(http|https):$
+ * @returns {String|null} proxy setting
+ */
+function getProtocolProxyURL(protocol) {
+    let proxyServer = null;
+
+    if (protocol === 'http:') {
+        if ({}.hasOwnProperty.call(process.env, 'http_proxy')) {
+            proxyServer = process.env.http_proxy;
+        } else if ({}.hasOwnProperty.call(process.env, 'HTTP_PROXY')) {
+            proxyServer = process.env.HTTP_PROXY;
+        }
+    } else if (protocol === 'https:') {
+        if ({}.hasOwnProperty.call(process.env, 'https_proxy')) {
+            proxyServer = process.env.https_proxy;
+        } else if ({}.hasOwnProperty.call(process.env, 'HTTPS_PROXY')) {
+            proxyServer = process.env.HTTPS_PROXY;
+        }
     }
-    this.authtoken = token;
-    this.appname = app;
-    this.protocol = options.protocol || 'https:';
-    this.apihost = options.host || 'api.circonus.com';
-    this.apiport = options.port || 443;
-    this.apipath = options.path || '/v2/';
-    this.verbose = options.verbose;
-};
-
-/**
- * GET:
- *
- *  endpoint: (/check_bundle, /check/1, etc.)
- *  data:     object which will be converted to a query string
- *  callback: what do we call when the response from the server is complete,
- *            arguments are callback(code, error, body)
- */
-Api.prototype.get = function(endpoint, data, callback) {
-    const options = this.get_request_options('GET', endpoint, data);
-
-    this.do_request(options, callback);
-};
-
-
-/**
- * POST:
- *
- *  endpoint: specify an object collection (/check_bundle, /graph, etc.)
- *  data:     object which will be stringified to JSON and written to the server
- *  callback: what do we call when the response from the server is complete,
- *            arguments are callback(code, error, body)
- */
-Api.prototype.post = function(endpoint, data, callback) {
-    const options = this.get_request_options('POST', endpoint, data);
-
-    this.do_request(options, callback);
-};
-
-/**
- * PUT:
- *
- *  endpoint: specify an exact object (/check_bundle/1, /template/2, etc.)
- *  data:     object which will be stringified to JSON and written to the server
- *  callback: what do we call when the response from the server is complete,
- *            arguments are callback(code, error, body)
- */
-Api.prototype.put = function(endpoint, data, callback) {
-    const options = this.get_request_options('PUT', endpoint, data);
-
-    this.do_request(options, callback);
-};
-
-/**
- * DELETE:
- *
- *  endpoint: specify an exact object (/check_bundle/1, /rule_set/1_foo, etc.)
- *  callback: what do we call when the response from the server is complete,
- *            arguments are callback(code, error, body)
- */
-Api.prototype.delete = function(endpoint, callback) {
-    const options = this.get_request_options('DELETE', endpoint);
-
-    this.do_request(options, callback);
-};
-
-/**
- * This is called from the various exported functions to actually perform
- * the request.  Will retry up to 5 times in the event we get a connection
- * reset error.
- */
-Api.prototype.do_request = function(options, callback) {
-    const self = this;
-
-    if (this.verbose) {
-        console.log(`${options.method} REQUEST: ${url.format(options)}`);
+    if (proxyServer !== null && proxyServer !== '') {
+        if (!(/^http[s]?:\/\//).test(proxyServer)) {
+            proxyServer = `http://${proxyServer}`;
+        }
     }
 
-    const client = options.protocol === 'https:' ? https : http;
+    return proxyServer;
+}
 
-    const req = client.request(options, (res) => {
-        const data = [];
+class APIClient {
 
-        res.on('data', (chunk) => {
-            data.push(chunk);
-        });
+    /**
+     * Initializes the api client instance
+     */
+    constructor() {
+        if (instance !== null) {
+            return instance;
+        }
 
-        res.on('end', () => {
-            // rate limit or server-side error, try again...
-            if (res.statusCode === 429 || res.statusCode === 500) {
-                if (options.circapi.retry < options.circapi.retry_backoff.length) {
-                    setTimeout(() => {
-                        self.do_request(options, callback);
-                    }, options.circapi.retry_backoff[options.circapi.retry]);
-                    options.circapi.retry += 1;
-                } else {
-                    callback(res.statusCode, new Error(`Giving up after ${options.circapi.retry} attempts`), null, null);
+        this.api_key = cosi.api_key;
+        this.api_app = cosi.api_app;
+        this.api_url = cosi.api_url || 'https://api.circonus.com/v2/';
+
+        const url_options = url.parse(this.api_url);
+
+        if (url_options.protocol === 'https:') {
+            this.client = require('https'); // eslint-disable-line global-require
+        } else {
+            this.client = require('http'); // eslint-disable-line global-require
+        }
+
+        this.proxyServer = getProtocolProxyURL(this.client.globalAgent.protocol);
+
+        instance = this; // eslint-disable-line consistent-this
+    }
+
+    /**
+     * GET:
+     *
+     * @arg {String} endpoint (/check_bundle, /check/1, etc.)
+     * @arg {Object} data object which will be converted to a query string
+     * @returns {Object} promise
+     */
+    get(endpoint, data) {
+        return this.promise_request(this.get_request_options('GET', endpoint, data));
+    }
+
+    /**
+     * POST:
+     *
+     * @arg {String} endpoint specify an object collection (/check_bundle, /graph, etc.)
+     * @arg {Object} data object which will be stringified to JSON and written to the server
+     * @returns {Object} promise
+     */
+    post(endpoint, data) {
+        return this.promise_request(this.get_request_options('POST', endpoint, data));
+    }
+
+    /**
+     * PUT:
+     *
+     * @arg {String} endpoint specify an exact object (/check_bundle/1, /template/2, etc.)
+     * @arg {Object} data object which will be stringified to JSON and written to the server
+     * @returns {Object} promise
+     */
+    put(endpoint, data) {
+        return this.promise_request(this.get_request_options('PUT', endpoint, data));
+    }
+
+    /**
+     * DELETE:
+     *
+     * @arg {String} endpoint specify an exact object (/check_bundle/1, /rule_set/1_foo, etc.)
+     * @returns {Object} promise
+     */
+    delete(endpoint) {
+        return this.promise_request(this.get_request_options('DELETE', endpoint));
+    }
+
+    /**
+     * promise_request transforms a verb function (get,put,post,delete) into a promise
+     * @arg {Object} options for the request
+     * @returns {Object} promise
+     */
+    promise_request(options) {
+        const self = this;
+
+        return new Promise((resolve, reject) => {
+            self.do_request(options, (err, parsed_body, code, raw_body) => {
+                if (err !== null) {
+                    err.parsed_body = parsed_body; // eslint-disable-line no-param-reassign
+                    err.http_code = code; // eslint-disable-line no-param-reassign
+                    err.raw_body = raw_body; // eslint-disable-line no-param-reassign
+                    reject(err);
 
                     return;
                 }
-            }
-
-            // success, no content
-            if (res.statusCode === 204) {
-                callback(res.statusCode, null, null, null);
-
-                return;
-            }
-
-            const buffer = Buffer.concat(data);
-            const encoding = res.headers['content-encoding'];
-            let err_msg = null;
-            let body = null;
-
-            if (data.length === 0) {
-                err_msg = new Error('No data returned, 0 length body.');
-            } else if (encoding === 'gzip') {
-                try {
-                    body = zlib.gunzipSync(buffer).toString();
-                } catch (gzipErr) {
-                    err_msg = gzipErr;
-                }
-            } else if (encoding === 'deflate') {
-                try {
-                    body = zlib.deflateSync(buffer).toString();
-                } catch (deflateErr) {
-                    err_msg = deflateErr;
-                }
-            } else {
-                body = buffer.toString();
-            }
-
-            if (self.verbose) {
-                console.log(`RESPONSE ${res.statusCode} : ${body}`);
-            }
-
-            if (err_msg !== null) {
-                callback(res.statusCode, err_msg, null, body);
-
-                return;
-            }
-
-            // If this isn't a 200 level, extract the message from the body
-            if (res.statusCode < 200 || res.statusCode > 299) {
-                err_msg = new Error('An API occurred');
-                try {
-                    err_msg.detail = JSON.parse(body);
-                } catch (err) {
-                    err_msg.detail = err;
-                    err_msg.body = body;
-                }
-                if (res.statusCode === 400 && body.indexOf('Usage limit') !== -1) {
-                    err_msg.message = 'Account at or over metric limit';
-                }
-                err_msg.code = res.statusCode;
-                callback(res.statusCode, err_msg, null, body);
-
-                return;
-            }
-
-            let parsed = null;
-
-            if (body !== null && body !== '') {
-                try {
-                    parsed = JSON.parse(body);
-                } catch (parseErr) {
-                    err_msg = new Error(`Error parsing body`);
-                    err_msg.detail = parseErr;
-                    err_msg.body = body;
-                }
-            }
-
-            callback(res.statusCode, err_msg, parsed, body);
+                resolve({ code, parsed_body, raw_body });
+            });
         });
-    });
-
-    req.on('error', (err) => {
-        if (err.code === 'ECONNRESET' && options.circapi.retry < options.circapi.retry_backoff.length) {
-            setTimeout(() => {
-                self.do_request(options, callback);
-            }, options.circapi.retry_backoff[options.circapi.retry]);
-            options.circapi.retry += 1;
-        } else {
-            err.detail = options;
-            callback(null, err, null, null); // eslint-disable-line callback-return
-        }
-    });
-
-    if (options.method.toUpperCase() === 'POST' || options.method.toUpperCase() === 'PUT') {
-        const stringified = JSON.stringify(options.circapi.data);
-
-        req.write(stringified);
-        if (self.verbose) {
-            console.log(stringified);
-        }
     }
 
-    req.end();
-};
 
-/**
- * Hands back an options object suitable to use with the HTTPS class
- */
-Api.prototype.get_request_options = function(method, endpoint, data) {
-    // ensure valid url object with all required variables initialized
+    /**
+     * This is called from the various exported functions to actually perform
+     * the request.  Will retry up to 5 times in the event we get a connection
+     * reset error.
+     * @arg {Object} options for request
+     * @arg {Function} cb callback function
+     *                    called with the following parameters:
+     *                    error:       any error that occurred or null if no error
+     *                    parsed body: http response body parsed (decoded json object)
+     *                    status code: http response status code
+     *                    raw body:    http response body (raw Buffer)
+     * @returns {Undefined} nothing
+     */
+    do_request(options, cb) {
+        const self = this;
 
-    const options = cosi.getProxySettings(url.format(
-        {
-            protocol : this.protocol,
-            host     : this.apihost,
-            port     : this.apiport,
-            path     : this.apipath
+        const req = this.client.request(options, (res) => {
+            const data = [];
+
+            res.on('data', (chunk) => {
+                data.push(chunk);
+            });
+
+            res.on('end', () => {
+                // try again... on rate limit or internal (server-side, hopefully recoverable) error
+                if (res.statusCode === 429 || res.statusCode === 500) {
+                    if (options.circapi.retry < options.circapi.retry_backoff.length) {
+                        setTimeout(() => {
+                            self.do_request(options, cb);
+                        }, options.circapi.retry_backoff[options.circapi.retry]);
+                        options.circapi.retry += 1; // eslint-disable-line no-param-reassign
+
+                        return;
+                    }
+
+                    cb(
+                        new Error(`Giving up after ${options.circapi.retry} attempts`),
+                        null,
+                        res.statusCode,
+                        null);
+
+                    return;
+                }
+
+                // success, no content
+                if (res.statusCode === 204) {
+                    cb(
+                        null,
+                        null,
+                        res.statusCode,
+                        null);
+
+                    return;
+                }
+
+                const buffer = Buffer.concat(data);
+                const encoding = res.headers['content-encoding'];
+                let err_msg = null;
+                let parsed = null;
+                let body = null;
+
+                if (data.length === 0) {
+                    err_msg = new Error('No data returned, 0 length body.');
+                } else if (encoding === 'gzip') {
+                    try {
+                        body = zlib.gunzipSync(buffer).toString();
+                    } catch (gzipErr) {
+                        err_msg = gzipErr;
+                    }
+                } else if (encoding === 'deflate') {
+                    try {
+                        body = zlib.deflateSync(buffer).toString();
+                    } catch (deflateErr) {
+                        err_msg = deflateErr;
+                    }
+                } else {
+                    body = buffer.toString();
+                }
+
+                if (err_msg !== null) {
+                    cb(
+                        err_msg,
+                        null,
+                        res.statusCode,
+                        body);
+
+                    return;
+                }
+
+                // If this isn't a 200 level, extract the message from the body
+                if (res.statusCode < 200 || res.statusCode > 299) {
+                    try {
+                        err_msg = new Error('API response error');
+                        parsed = JSON.parse(body).message;
+                    } catch (err) {
+                        err_msg = new Error('An error occurred - response body could not be parsed');
+                        err_msg.detail = err.message;
+                        err_msg.body = body;
+                        err_msg.options = options;
+                    }
+                    cb(
+                        err_msg,
+                        parsed,
+                        res.statusCode,
+                        body);
+
+                    return;
+                }
+
+                err_msg = null;
+                parsed = null;
+                try {
+                    if (body) {
+                        parsed = JSON.parse(body);
+                    }
+                } catch (parseErr) {
+                    err_msg = new Error('Error parsing body');
+                    err_msg.detail = parseErr.message;
+                    err_msg.body = body;
+                }
+
+                cb(
+                    err_msg,
+                    parsed,
+                    res.statusCode,
+                    body);
+            });
+        });
+
+        req.on('error', (err) => {
+            if (err.code === 'ECONNRESET' && options.circapi.retry < options.circapi.retry_backoff.length) {
+                // sleep and try again, hopefully a recoverable error
+                setTimeout(() => {
+                    self.do_request(options, cb);
+                }, options.circapi.retry_backoff[options.circapi.retry]);
+                options.circapi.retry += 1; // eslint-disable-line no-param-reassign
+
+                return;
+            }
+
+            cb(
+                err,
+                null,
+                null,
+                null);
+        });
+
+        if (options.method.toUpperCase() === 'POST' || options.method.toUpperCase() === 'PUT') {
+            const stringified = JSON.stringify(options.circapi.data);
+
+            req.write(stringified);
         }
-    ));
+        req.end();
+    }
 
-    if ((/^v[46]/).test(process.version)) {
-        // currently 2016-10-27T16:01:42Z, these settings seem to be
-        // necessary to prevent http/https requests from intermittently
-        // emitting an end event prior to all content being received
-        // when communicating with the API. at least until the actual
-        // root cause can be determined.
+    /**
+     * Hands back an options object suitable to use with the HTTPS class
+     * @arg {String} method request method
+     * @arg {String} endpoint url path
+     * @arg {Object} data arguments for request (query or post)
+     * @returns {Object} options for request
+     */
+    get_request_options(method, endpoint, data) {
+        const options = url.parse(this.api_url);
 
-        if (!{}.hasOwnProperty.call(options, 'agent') || options.agent === false) {
-            options.agent = this.protocol === 'https:' ? new https.Agent() : new http.Agent();
+        options.method = method.toUpperCase();
+
+        options.agent = false;
+
+        options.headers = {
+            'Accept'                : 'application/json',
+            'Accept-Encoding'       : 'gzip,deflate',
+            'X-Circonus-App-Name'   : this.api_app,
+            'X-Circonus-Auth-Token' : this.api_key
+        };
+
+        options.circapi = {
+            data          : null,
+            retry         : 0,
+            retry_backoff : [
+                null,       // 0 first attempt
+                1 * 1000,   // 1, wait 1 second and try again
+                2 * 1000,   // 2, wait 2 seconds and try again
+                4 * 1000,   // 3, wait 4 seconds and try again
+                8 * 1000,   // 4, wait 8 seconds and try again
+                16 * 1000,  // 5, wait 16 seconds and try again
+                32 * 1000   // 6, wait 32 seconds and retry again then give up if it fails
+            ]
+        };
+
+        if (this.proxyServer !== null) {
+            options.agent = new ProxyAgent(this.proxyServer);
         }
 
-        options.agent.keepAlive = false;
-        options.agent.keepAliveMsecs = 0;
-        options.agent.maxSockets = 1;
-        options.agent.maxFreeSockets = 1;
-        options.agent.maxCachedSessions = 0;
-    }
+        if ((/^v[46]/).test(process.version)) {
+            // currently 2016-10-27T16:01:42Z, these settings seem to be
+            // necessary to prevent http/https requests from intermittently
+            // emitting an end event prior to all content being received
+            // when communicating with the Circonus API.
 
-    options.method = method.toUpperCase();
-    options.headers = {
-        'X-Circonus-Auth-Token' : this.authtoken,
-        'X-Circonus-App-Name'   : this.appname,
-        'Accept'                : 'application/json',
-        'Accept-Encoding'       : 'gzip,deflate'
-    };
+            if (!{}.hasOwnProperty.call(options, 'agent') || options.agent === false) {
+                options.agent = new this.client.Agent();
+            }
 
-    options.circapi = {
-        retry         : 0,
-        retry_backoff : [
-            null,       // 0 first attempt
-            1 * 1000,   // 1, wait 1 second and try again
-            2 * 1000,   // 2, wait 2 seconds and try again
-            4 * 1000,   // 3, wait 4 seconds and try again
-            8 * 1000,   // 4, wait 8 seconds and try again
-            16 * 1000,  // 5, wait 16 seconds and try again
-            32 * 1000   // 6, wait 32 seconds and retry again then give up if it fails
-        ],
-        data: null
-    };
-
-    options.circapi.data = data;
-    if (data !== null) {
-        if (options.method === 'POST' || options.method === 'PUT') {
-            options.headers['Content-Length'] = JSON.stringify(data).length;
+            options.agent.keepAlive = false;
+            options.agent.keepAliveMsecs = 0;
+            options.agent.maxSockets = 1;
+            options.agent.maxFreeSockets = 1;
+            options.agent.maxCachedSessions = 0;
         }
+
+        options.circapi.data = data || null;
+
+        if (options.circapi.data !== null) {
+            if (options.method === 'GET') {
+                if (Object.keys(options.circapi.data).length !== 0) {
+                    options.query += `?${qs.stringify(options.circapi.data)}`;
+                }
+            } else if (options.method === 'POST' || options.method === 'PUT') {
+                options.headers['Content-Length'] = JSON.stringify(options.circapi.data).length;
+            }
+        }
+
+        if (endpoint.match(/^\//)) {
+            endpoint = endpoint.substring(1); // eslint-disable-line no-param-reassign
+        }
+
+        options.path += endpoint;
+
+        return options;
     }
 
-    if (endpoint.match(/^\//)) {
-        endpoint = endpoint.substring(1);
-    }
+}
 
-    options.path += endpoint;
-    if (options.method === 'GET' && data !== null && Object.keys(data).length !== 0) {
-        options.path += `?${qs.stringify(data)}`;
-    }
-
-    options.pathname = options.path;
-
-    return options;
-};
-
-exports.API = Api;
-
-/* support legacy API */
-exports.setup = function(token, app, options) {
-    singleton = new Api(token, app, options);
-};
-exports.get = function(endpoint, data, callback) {
-    singleton.get(endpoint, data, callback);
-};
-exports.post = function(endpoint, data, callback) {
-    singleton.post(endpoint, data, callback);
-};
-exports.put = function(endpoint, data, callback) {
-    singleton.put(endpoint, data, callback);
-};
-exports.delete = function(endpoint, callback) {
-    singleton.delete(endpoint, callback);
-};
+module.exports = new APIClient();

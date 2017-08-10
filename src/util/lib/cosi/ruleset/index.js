@@ -140,132 +140,111 @@ module.exports = class RuleSet {
 
     /**
      * create a new ruleset
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing
+     * @returns {Object} promise
      */
-    create(cb) {
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
-
-        if (!this.verifyConfig(false)) {
-            cb(new Error('Invalid configuration'));
-
-            return;
-        }
-
-        const self = this;
-
-        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
-        api.post('/rule_set', this, (code, errAPI, result) => {
-            if (errAPI) {
-                const apiError = new Error();
-
-                apiError.code = 'CIRCONUS_API_ERROR';
-                apiError.message = errAPI;
-                apiError.details = result;
-
-                cb(apiError);
+    create() {
+        return new Promise((resolve, reject) => {
+            if (!this.verifyConfig(false)) {
+                reject(new Error('Invalid configuration'));
 
                 return;
             }
 
-            if (code !== 200) {
-                const errResp = new Error();
+            api.post('/rule_set', this).
+                then((res) => {
+                    if (res.parsed_body === null || res.code !== 200) {
+                        const err = new Error();
 
-                errResp.code = code;
-                errResp.message = 'UNEXPECTED_API_RETURN';
-                errResp.details = result;
+                        err.code = res.code;
+                        err.message = 'UNEXPECTED_API_RETURN';
+                        err.body = res.parsed_body;
+                        err.raw_body = res.raw_body;
 
-                cb(errResp);
+                        reject(err);
 
-                return;
-            }
+                        return;
+                    }
 
-            self._init(result);
+                    this._init(res.parsed_body);
 
-            cb(null, result);
+                    resolve(res.parsed_body);
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 
 
     /**
      * update an existing ruleset
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing
+     * @returns {Object} promise
      */
-    update(cb) {
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
-
-        if (!this.verifyConfig(true)) {
-            cb(new Error('Invalid configuration'));
-
-            return;
-        }
-
-        const self = this;
-
-        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
-        api.put(this._cid, this, (code, errAPI, result) => {
-            if (errAPI) {
-                cb(errAPI, result);
+    update() {
+        return new Promise((resolve, reject) => {
+            if (!this.verifyConfig(true)) {
+                reject(new Error('Invalid configuration'));
 
                 return;
             }
 
-            if (code !== 200) {
-                const errResp = new Error();
+            api.put(this._cid, this).
+                then((res) => {
+                    if (res.parsed_body === null || res.code !== 200) {
+                        const err = new Error();
 
-                errResp.code = code;
-                errResp.message = 'UNEXPECTED_API_RETURN';
-                errResp.details = result;
+                        err.code = res.code;
+                        err.message = 'UNEXPECTED_API_RETURN';
+                        err.body = res.parsed_body;
+                        err.raw_body = res.raw_body;
 
-                cb(errResp);
+                        reject(err);
 
-                return;
-            }
+                        return;
+                    }
 
-            self._init(result);
+                    this._init(res.parsed_body);
 
-            cb(null, result);
+                    resolve(res.parsed_body);
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 
     /**
      * delete an existing ruleset
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing
+     * @returns {Object} promise
      */
-    delete(cb) {
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
-
-        if (!this.verifyConfig(true)) {
-            cb(new Error('Invalid configuration'));
-
-            return;
-        }
-
-        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
-        api.delete(this._cid, (code, errAPI, result) => {
-            if (errAPI) {
-                cb(errAPI, result);
+    delete() {
+        return new Promise((resolve, reject) => {
+            if (!this.verifyConfig(true)) {
+                reject(new Error('Invalid configuration'));
 
                 return;
             }
 
-            if (code !== 204) {
-                const errResp = new Error();
+            api.delete(this._cid).
+                then((res) => {
+                    if (res.parsed_body === null || res.code !== 200) {
+                        const err = new Error();
 
-                errResp.code = code;
-                errResp.message = 'UNEXPECTED_API_RETURN';
-                if (result !== null) {
-                    errResp.details = result;
-                }
+                        err.code = res.code;
+                        err.message = 'UNEXPECTED_API_RETURN';
+                        err.body = res.parsed_body;
+                        err.raw_body = res.raw_body;
 
-                cb(errResp);
+                        reject(err);
 
-                return;
-            }
+                        return;
+                    }
 
-            cb(null, true);
+                    resolve(res.parsed_body);
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 

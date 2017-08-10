@@ -95,53 +95,51 @@ function deleteItem(item, keepTemplates, cb) {
     };
 
     console.log(chalk.bold('Checking'), `${itemName} ${itemURL}`);
-    api.get(itemURL, null, (getCode, getError, getResult) => { // eslint-disable-line consistent-return
-        if (getError !== null) {
-            if ({}.hasOwnProperty.call(getError, 'detail') && getError.detail.message.indexOf('not found') !== -1) {
+    api.get(itemURL, null).
+        then((res) => {
+            if (res.code === 404 && (res.raw_body && res.raw_body.indexOf('requested object was not found') !== -1)) {
                 console.log(`\t${itemURL}`, chalk.bold('not found'), '- cleaning up orphaned files.');
                 cb(cleaner());
 
                 return;
             }
-            console.error(chalk.red('ERROR'), 'An API error occurred', getError);
-            cb(getError);
 
-            return;
-        }
-
-        if (getCode === 404 && (getResult.code && getResult.code === 'ObjectError.InstanceNotFound')) {
-            console.log(`\t${itemURL}`, chalk.bold('not found'), '- cleaning up orphaned files.');
-            cb(cleaner());
-
-            return;
-        }
-
-        if (getCode < 200 || getCode > 299) { // eslint-disable-line no-magic-numbers
-            console.error(chalk.red('API RESULT CODE'), `API ${getCode}`, getError, getResult);
-            cb(getError);
-
-            return;
-        }
-
-        console.log(chalk.bold('\tDeleting'), `${itemName} ${itemURL}`);
-
-        api.delete(itemURL, (code, apiError, result) => {
-            if (apiError) {
-                console.error(chalk.red('API ERROR'), `API ${code}`, apiError, result);
-                console.error('Attempt to run the command again. Contact support if the error persists.');
-                process.exit(1);
-            }
-
-            if (code < 200 || code > 299) { // eslint-disable-line no-magic-numbers
-                console.error(chalk.red('API RESULT CODE'), `API ${code}`, apiError, result);
-                cb(apiError);
+            if (res.code < 200 || res.code > 299) {
+                console.error(chalk.red('API RESULT CODE'), res.code, res.parsed_body);
+                cb(res.parsed_body);
 
                 return;
             }
 
-            cb(cleaner());
+            console.log(chalk.bold('\tDeleting'), `${itemName} ${itemURL}`);
+
+            api.delete(itemURL).
+                then((res2) => {
+                    if (res2.code < 200 || res2.code > 299) {
+                        console.error(chalk.red('API RESULT CODE'), res2.code, res2.parsed_body);
+                        cb(res2.parsed_body);
+
+                        return;
+                    }
+
+                    cb(cleaner());
+                }).
+                catch((err) => {
+                    console.error(chalk.red('API ERROR'), err);
+                    console.error('Attempt to run the command again. Contact support if the error persists.');
+                    process.exit(1);
+                });
+        }).
+        catch((err) => {
+            if ({}.hasOwnProperty.call(err, 'raw_body') && err.raw_body.indexOf('requested object was not found') !== -1) {
+                console.log(`\t${itemURL}`, chalk.bold('not found'), '- cleaning up orphaned files.');
+                cb(cleaner());
+
+                return;
+            }
+            console.error(chalk.red('ERROR'), 'An API error occurred', err);
+            cb(err);
         });
-    });
 }
 
 
@@ -287,13 +285,6 @@ app.
     parse(process.argv);
 
 // main
-
-if (!app.all && !app.check && !app.graph && !app.worksheet) {
-    console.error(chalk.red('No option(s) provided, at least one (-c, -g, -w, or -a) is required.'));
-    app.help();
-}
-
-api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
 
 const items = [];
 

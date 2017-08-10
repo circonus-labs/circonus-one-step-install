@@ -314,7 +314,12 @@ __detect_os() {
             cosi_os_dist="OSX"
             ;;
         (FreeBSD|BSD)
-            cosi_os_dist="BSD"
+            log "\tAttempt ${cosi_os_type} detection"
+            if [[ -x /bin/freebsd-version ]]; then
+                cosi_os_type="BSD"
+                cosi_os_dist="FreeBSD"
+                cosi_os_vers=$(/bin/freebsd-version | cut -d '-' -f 1)
+            fi
             ;;
         (AIX)
             cosi_os_dist="AIX"
@@ -422,7 +427,7 @@ __download_package() {
     # do what we can to validate agent package url
     #
     if [[ -n "${package_url:-}" ]]; then
-        [[ "$package_url" =~ ^http[s]?://[^/]+/.*\.(rpm|deb)$ ]] || fail "COSI agent package url does not match URL pattern (^http[s]?://[^/]+/.*\.(rpm|deb)$)"
+        [[ "$package_url" =~ ^http[s]?://[^/]+/.*\.(rpm|deb|tar\.gz)$ ]] || fail "COSI agent package url does not match URL pattern (^http[s]?://[^/]+/.*\.(rpm|deb)$)"
     else
         fail "Invalid COSI agent package url"
     fi
@@ -483,6 +488,17 @@ __install_agent() {
             pkg_cmd="pkg"
             pkg_cmd_args="install ${cosi_agent_package_info[2]}"
             ;;
+        (FreeBSD|BSD)
+            if [[ ${#cosi_agent_package_info[@]} -ne 2 ]]; then
+                fail "Invalid Agent package information ${cosi_agent_package_info[@]}, expected 'url file_name'"
+            fi
+            __download_package
+            package_file="${cosi_cache_dir}/${cosi_agent_package_info[1]}"
+            log "Installing agent package ${package_file}"
+            [[ ! -f "$package_file" ]] && fail "Unable to find package '$package_file'"
+            pkg_cmd="tar"
+            pkg_cmd_args="-zxf ${package_file} -C /"
+            ;;
         (*)
             fail "Unable to determine package installation command for ${cosi_os_dist}. Please set package_install_cmd in config file to continue."
             ;;
@@ -506,6 +522,26 @@ __install_agent() {
 
     $pkg_cmd $pkg_cmd_args 2>&1 | tee -a $cosi_install_log
     [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "installing ${package_file} '${pkg_cmd} ${pkg_cmd_args}'"
+
+    # reset the agent directory after nad has been installed
+    # for the first time.
+    [[ -d "${base_dir}/nad" ]] && agent_dir="${base_dir}/nad"
+
+    # plugin fixups
+    local plugin_dir="${agent_dir}/etc/node-agent.d"
+    log "Checking $plugin_dir"
+    if [[ -d $plugin_dir ]]; then
+        local plugin="${plugin_dir}/diskstats.sh"
+        log "Checking $plugin"
+        if [[ -h $plugin ]]; then
+            # diskstats.sh installed by default on linux
+            # but required /proc files not always present.
+            [[ -f /proc/mdstat && -f /proc/diskstats ]] || {
+                log "requirements missing, removing $plugin"
+                rm $plugin
+            }
+        fi
+    fi
 
     # callout hook placeholder (POST)
     if [[ -n "${agent_post_hook:-}" && -x "${agent_post_hook}" ]]; then
@@ -602,6 +638,14 @@ __start_agent() {
             /etc/init.d/nad start
         elif [[ -s /var/svc/manifest/network/circonus/nad.xml ]]; then
             svcadm enable nad
+        elif [[ -s /etc/rc.d/nad ]]; then
+            if [[ -s /etc/rc.conf ]]; then
+                # treat as FreeBSD
+                # enable it if there is no nad_enable setting
+                [[ $(grep -cE '^nad_enable' /etc/rc.conf) -eq 0 ]] && echo 'nad_enable="YES"' >> /etc/rc.conf
+                # start it if it is enabled
+                [[ $(grep -c 'nad_enable="YES"' /etc/rc.conf) -eq 1 ]] && service nad start
+            fi
         else
             fail "Agent installed, unable to determine how to start it (unrecognized init system)."
         fi
@@ -698,8 +742,14 @@ __fetch_cosi_utils() {
     fi
 
     log "Fixing cosi util shebangs..."
+    local sed_args=""
+    if [[ "$cosi_os_type" =~ FreeBSD ]]; then
+        sed_args="-i ''"
+    else
+        sed_args="-i''"
+    fi
     for f in $(ls -1 /opt/circonus/cosi/bin/{cosi,circonus}*); do
-        sed -e "s#%%NODE_BIN%%#$node_bin#" -i"" $f
+        sed -e "s#%%NODE_BIN%%#$node_bin#" $sed_args $f
     done
 
 }
@@ -746,8 +796,9 @@ cosi_initialize() {
     # internal variables (after sourcing config file, prevent unintentional overrides)
     #
     base_dir="/opt/circonus"
-
     agent_dir="${base_dir}"
+    [[ -d "${base_dir}/nad" ]] && agent_dir="${base_dir}/nad"
+
     bin_dir="${base_dir}/bin"
     etc_dir="${cosi_dir}/etc"
     reg_dir="${cosi_dir}/registration"
@@ -961,8 +1012,13 @@ cosi_register() {
         echo
         log "Enabling ${cosi_agent_mode} mode for agent"
         if [[ -x "$install_nadreverse" ]]; then
-            $install_nadreverse | tee -a $cosi_install_log
-            [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "Errors encountered during NAD ${cosi_agent_mode} configuration."
+            if [[ -x /bin/freebsd-version ]]; then
+                $install_nadreverse
+                [[ $? -eq 0 ]] || fail "Errors encountered during NAD ${cosi_agent_mode} configuration."
+            else
+                $install_nadreverse | tee -a $cosi_install_log
+                [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "Errors encountered during NAD ${cosi_agent_mode} configuration."
+            fi
         else
             fail "Agent mode is ${cosi_agent_mode}, nadreverse installer not found."
         fi

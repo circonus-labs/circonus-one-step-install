@@ -7,7 +7,6 @@
 'use strict';
 
 const path = require('path');
-const fs = require('fs');
 
 const app = require('commander');
 const chalk = require('chalk');
@@ -18,7 +17,6 @@ const Check = require(path.join(cosi.lib_dir, 'check'));
 app.
     version(cosi.app_version).
     usage('[options] <config_file>').
-    option('-f, --force', 'force overwrite, if output exists [false]').
     option('-o, --output <file>', 'output file [stdout]').
     parse(process.argv);
 
@@ -33,25 +31,15 @@ if (app.args.length === 0) {
 const cfgFile = path.resolve(app.args[0]);
 const check = new Check(cfgFile);
 
-check.create((err, result) => {
-    if (err) {
-        console.error(chalk.red(`Error: ${err.code} -- ${err.message}`));
-        if (err.details) {
-            console.error(err.details.join('\n'));
+check.create().
+    then((created) => {
+        if (app.output) {
+            check.save(app.output, true);
+        } else {
+            console.dir(created);
         }
-        console.dir(err);
+    }).
+    catch((err) => {
+        console.error(chalk.red('ERROR:'), err);
         process.exit(1);
-    }
-
-    if (app.output) {
-        const opts = {
-            encoding : 'utf8',
-            flag     : app.force ? 'w' : 'wx',
-            mode     : 0o644
-        };
-
-        fs.writeFileSync(app.output, JSON.stringify(result, null, 4), opts);
-    } else {
-        console.log(result);
-    }
-});
+    });

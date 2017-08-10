@@ -42,176 +42,174 @@ class Checks extends Registration {
 
     /**
      * start the check creation process
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    create(cb) {
-        console.log(chalk.bold('\nRegistration - checks'));
+    create() {
+        return new Promise((resolve, reject) => {
+            console.log(chalk.bold('\nRegistration - checks'));
 
-        const self = this;
+            this.configSystemCheck().
+                then(() => {
+                    return this.createSystemCheck();
+                }).
+                then((check) => {
+                    this._setCheckMeta('system', check);
 
-        this.once('check.config', this.configSystemCheck);
-        this.once('check.config.done', () => {
-            self.emit('check.create');
+                    return this.finalizeSystemCheck();
+                }).
+                then(() => {
+                    if (!this.regConfig.group.enabled) {
+                        resolve();
+
+                        return null;
+                    }
+
+                    return this.configGroupCheck();
+                }).
+                then(() => {
+                    if (!this.regConfig.group.enabled) {
+                        return null;
+                    }
+
+                    return this.createGroupCheck();
+                }).
+                then((check) => {
+                    if (!this.regConfig.group.enabled) {
+                        return null;
+                    }
+                    if (check === null) {
+                        this.emit('error', new Error('null group check'));
+
+                        return null;
+                    }
+
+                    this._setCheckMeta('group', check);
+
+                    return this.finalizeGroupCheck();
+                }).
+                then(() => {
+                    resolve();
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
-
-        this.once('check.create', this.createSystemCheck);
-        this.once('check.create.done', (check) => {
-            self._setCheckMeta('system', check);
-            self.emit('check.finalize');
-        });
-
-        this.once('check.finalize', this.finalizeSystemCheck);
-        this.once('check.finalize.done', () => {
-            if (self.regConfig.group.enabled) {
-                self.emit('group.config');
-            } else {
-                self.emit('checks.done');
-            }
-        });
-
-        if (this.regConfig.group.enabled) {
-            this.once('group.config', this.configGroupCheck);
-            this.once('group.config.done', () => {
-                self.emit('group.create');
-            });
-
-            this.once('group.create', this.createGroupCheck);
-            this.once('group.create.done', (check) => {
-                self._setCheckMeta('group', check);
-                self.emit('group.finalize');
-            });
-
-            this.once('group.finalize', this.finalizeGroupCheck);
-            this.once('group.finalize.done', () => {
-                self.emit('checks.done');
-            });
-        }
-
-        this.once('checks.done', () => {
-            if (typeof cb === 'function') {
-                cb(); // eslint-disable-line callback-return
-            }
-        });
-
-        this.emit('check.config');
     }
 
     /**
      * update a check
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    update(cb) { // eslint-disable-line max-statements
-        console.log(chalk.blue(this.marker));
-        console.log('Updating system check');
+    update() { // eslint-disable-line max-statements
+        const self = this;
 
-        const regFile = path.resolve(cosi.reg_dir, 'registration-check-system.json');
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log('Updating system check');
 
-        if (!this._fileExists(regFile)) {
-            this.emit('error', new Error(`System check registration file not found ${regFile}`));
+            const regFile = path.resolve(cosi.reg_dir, 'registration-check-system.json');
 
-            return;
-        }
+            if (!self._fileExists(regFile)) {
+                reject(new Error(`System check registration file not found ${regFile}`));
 
-        console.log(chalk.bold('\tRegistration found'), `using ${regFile}`);
+                return;
+            }
 
-        const check = new Check(regFile);
-        const checkMetrics = check.metrics;
-        const visualMetrics = this._extractMetricsFromVisuals();
-        let updateCheck = false;
+            console.log(chalk.bold('\tRegistration found'), `using ${regFile}`);
 
-        console.log(chalk.bold('\tChecking metrics'), 'from visuals against currently active metrics');
-        for (let i = 0; i < visualMetrics.length; i++) {
-            let active = false;
+            const check = new Check(regFile);
+            const checkMetrics = check.metrics;
+            const visualMetrics = self._extractMetricsFromVisuals();
+            let updateCheck = false;
 
-            for (let j = 0; j < checkMetrics.length; j++) {
-                if (checkMetrics[j].name === visualMetrics[i].name) {
-                    active = true;
-                    break;
+            console.log(chalk.bold('\tChecking metrics'), 'from visuals against currently active metrics');
+            for (let i = 0; i < visualMetrics.length; i++) {
+                let active = false;
+
+                for (let j = 0; j < checkMetrics.length; j++) {
+                    if (checkMetrics[j].name === visualMetrics[i].name) {
+                        active = true;
+                        break;
+                    }
+                }
+                if (!active) {
+                    console.log(chalk.bold('\t\tFound'), `new metric ${visualMetrics[i].name}`);
+                    updateCheck = true;
+                    // not breaking on first new metric, so we have a list in log of all new metrics
                 }
             }
-            if (!active) {
-                console.log(chalk.bold('\t\tFound'), `new metric ${visualMetrics[i].name}`);
-                updateCheck = true;
-                // not breaking on first new metric, so we have a list in log of all new metrics
-            }
-        }
 
-        if (updateCheck) {
-            check.metrics = visualMetrics;
-        }
-
-        // check for new metric tags
-        const metricTagFile = path.resolve(path.join(cosi.reg_dir, 'metric-tags.json'));
-
-        if (this._fileExists(metricTagFile)) {
-            let metricTags = {};
-
-            try {
-                metricTags = require(metricTagFile); // eslint-disable-line global-require
-            } catch (ignoreErr) {
-                // ignore
+            if (updateCheck) {
+                check.metrics = visualMetrics;
             }
 
-            console.log(chalk.bold('\tChecking metric tags'), `from ${metricTagFile}`);
+            // check for new metric tags
+            const metricTagFile = path.resolve(path.join(cosi.reg_dir, 'metric-tags.json'));
 
-            for (let i = 0; i < check.metrics.length; i++) {
-                const metricName = check.metrics[i].name;
+            if (this._fileExists(metricTagFile)) {
+                let metricTags = {};
 
-                if (!Array.isArray(check.metrics[i].tags)) {
-                    check.metrics[i].tags = [];
+                try {
+                    metricTags = require(metricTagFile); // eslint-disable-line global-require
+                } catch (ignoreErr) {
+                    // ignore
                 }
 
-                if ({}.hasOwnProperty.call(metricTags, metricName)) {
-                    const currTags = check.metrics[i].tags.join(',');
+                console.log(chalk.bold('\tChecking metric tags'), `from ${metricTagFile}`);
 
-                    for (let j = 0; j < metricTags[metricName].length; j++) {
-                        const tag = metricTags[metricName][j];
+                for (let i = 0; i < check.metrics.length; i++) {
+                    const metricName = check.metrics[i].name;
 
-                        if (currTags.indexOf(tag) === -1) { // eslint-disable-line max-depth
-                            console.log('\t\tFound', `new tag for ${metricName}, adding ${tag}`);
-                            check.metrics[i].tags.push(tag);
-                            updateCheck = true;
+                    if (!Array.isArray(check.metrics[i].tags)) {
+                        check.metrics[i].tags = [];
+                    }
+
+                    if ({}.hasOwnProperty.call(metricTags, metricName)) {
+                        const currTags = check.metrics[i].tags.join(',');
+
+                        for (let j = 0; j < metricTags[metricName].length; j++) {
+                            const tag = metricTags[metricName][j];
+
+                            if (currTags.indexOf(tag) === -1) { // eslint-disable-line max-depth
+                                console.log('\t\tFound', `new tag for ${metricName}, adding ${tag}`);
+                                check.metrics[i].tags.push(tag);
+                                updateCheck = true;
+                            }
                         }
                     }
                 }
             }
-        }
 
-        if (!updateCheck) {
-            console.log(chalk.green('\tSKIPPING'), 'check update, no new metrics or metric tags found');
-            this.emit('check.update.done');
-            cb();
-
-            return;
-        }
-
-        const self = this;
-
-        console.log(chalk.bold(`\tUpdating system check`), 'new metrics found');
-        if (!{}.hasOwnProperty.call(check, 'metric_limit')) {
-            check.metric_limit = 0;
-        }
-        check.update((err, result) => {
-            if (err !== null) {
-                self.emit('error', err);
+            if (!updateCheck) {
+                console.log(chalk.green('\tSKIPPING'), 'check update, no new metrics or metric tags found');
+                resolve();
 
                 return;
             }
-            try {
-                fs.writeFileSync(regFile, JSON.stringify(result, null, 4), {
-                    encoding : 'utf8',
-                    flag     : 'w',
-                    mode     : 0o644
+
+            console.log(chalk.bold(`\tUpdating system check`), 'new metrics found');
+            if (!{}.hasOwnProperty.call(check, 'metric_limit')) {
+                check.metric_limit = 0;
+            }
+            check.update().
+                then((result) => {
+                    try {
+                        fs.writeFileSync(regFile, JSON.stringify(result, null, 4), {
+                        encoding : 'utf8',
+                        flag     : 'w',
+                        mode     : 0o644
+                        });
+                    } catch (errSave) {
+                        reject(errSave);
+
+                        return;
+                    }
+                    console.log(chalk.green('\tSaved'), `updated registration to file ${regFile}`);
+                    resolve();
+                }).
+                catch((err) => {
+                    reject(err);
                 });
-            } catch (saveError) {
-                self.emit('error', saveError);
-
-                return;
-            }
-            console.log(chalk.green('\tSaved'), `updated registration to file ${regFile}`);
-            cb();
         });
     }
 
@@ -222,7 +220,7 @@ class Checks extends Registration {
     _extractMetricsFromVisuals() { // eslint-disable-line class-methods-use-this
         const activeMetrics = [];
 
-        console.log(chalk.bold('Collecting required metrics from registered visuals'));
+        console.log(chalk.bold('\tCollecting required metrics from registered visuals'));
 
         const files = fs.readdirSync(cosi.reg_dir);
 
@@ -347,206 +345,204 @@ class Checks extends Registration {
 
     /**
      * configure system check
-     * @returns {Undefined} nothing, emits event
+     * @returns {Object} promise
      */
     configSystemCheck() {
-        console.log(chalk.blue(this.marker));
-        console.log(`Configuring system check`);
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log(`Configuring system check`);
 
-        const id = 'check-system';
-        const configFile = path.resolve(path.join(cosi.reg_dir, `config-${id}.json`));
-        const templateFile = configFile.replace('config-', 'template-');
+            const id = 'check-system';
+            const configFile = path.resolve(path.join(cosi.reg_dir, `config-${id}.json`));
+            const templateFile = configFile.replace('config-', 'template-');
 
-        if (this._fileExists(configFile)) {
-            console.log('\tCheck configuration already exists.', configFile);
-            this.emit('check.config.done');
+            if (this._fileExists(configFile)) {
+                console.log('\tCheck configuration already exists.', configFile);
+                resolve();
 
-            return;
-        }
+                return;
+            }
 
-        const template = new Template(templateFile);
-        const check = template.check;
+            const template = new Template(templateFile);
+            const check = template.check;
 
-        check.type = this.agentCheckType;
+            check.type = this.agentCheckType;
 
-        // set the broker receiving for pulling metrics
+            // set the broker receiving for pulling metrics
 
-        if (this.agentMode === 'push') {
-            check.brokers = [
-                this.regConfig.broker.trap._cid
-            ];
-            check.config = {
+            if (this.agentMode === 'push') {
+                check.brokers = [ this.regConfig.broker.trap._cid ];
+                check.config = {
                 asynch_metrics : 'true',
                 secret         : crypto.
                     randomBytes(2048).
                     toString('hex').
                     substr(0, 16)
-            };
-        } else {
-            check.brokers = [
-                this.regConfig.broker.json._cid
-            ];
-            check.config.url = cosi.agent_url;
-        }
-
-        // some check types fail if there is not at least one metric...
-        // add the activated metrics
-        check.metrics = [
-            {
-                name   : 'cosi_placeholder',
-                status : 'active',
-                type   : 'numeric'
+                };
+            } else {
+                check.brokers = [ this.regConfig.broker.json._cid ];
+                check.config.url = cosi.agent_url;
             }
-        ];
 
-        // set the notes with cosi signature
-        check.notes = this.regConfig.cosiNotes;
+            // some check types fail if there is not at least one metric...
+            // add the activated metrics
+            check.metrics = [ {
+                    name   : 'cosi_placeholder',
+                    status : 'active',
+                    type   : 'numeric'
+            } ];
 
-        this._setTags(check, id);
-        this._setCustomCheckOptions(check, id);
+            // set the notes with cosi signature
+            check.notes = this.regConfig.cosiNotes;
 
-        // save the configuration
-        try {
-            fs.writeFileSync(
+            this._setTags(check, id);
+            this._setCustomCheckOptions(check, id);
+
+            // save the configuration
+            try {
+                fs.writeFileSync(
                 configFile,
                 JSON.stringify(check, null, 4), {
                     encoding : 'utf8',
                     flag     : 'w',
                     mode     : 0o644
                 });
-        } catch (err) {
-            this.emit('error', err);
+            } catch (err) {
+                reject(err);
 
-            return;
-        }
+                return;
+            }
 
-        console.log(chalk.green('\tSaved configuration'), configFile);
-        this.emit('check.config.done');
+            console.log(chalk.green('\tSaved configuration'), configFile);
+            resolve();
+        });
     }
 
 
     /**
      * create system check
-     * @returns {Undefined} nothing, emits event
+     * @returns {Object} promise
      */
     createSystemCheck() {
-        console.log(chalk.blue(this.marker));
-        console.log('Creating system check');
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log('Creating system check');
 
-        const self = this;
-        const regFile = path.resolve(path.join(cosi.reg_dir, 'registration-check-system.json'));
-        const cfgFile = regFile.replace('registration-', 'config-');
+            const self = this;
+            const regFile = path.resolve(path.join(cosi.reg_dir, 'registration-check-system.json'));
+            const cfgFile = regFile.replace('registration-', 'config-');
 
-        if (this._fileExists(regFile)) {
-            console.log(chalk.bold('\tRegistration exists'), `using ${regFile}`);
-            this.emit('check.create.done', new Check(regFile));
-
-            return;
-        }
-
-        if (!this._fileExists(cfgFile)) {
-            this.emit('error', new Error(`Missing system check configuration file '${cfgFile}'`));
-
-            return;
-        }
-
-        const check = new Check(cfgFile);
-
-        if (check.verifyConfig()) {
-            console.log('\tValid check config');
-        }
-
-        console.log('\tSending check configuration to Circonus API');
-
-        check.create((err) => {
-            if (err) {
-                self.emit('error', err);
+            if (this._fileExists(regFile)) {
+                console.log(chalk.bold('\tRegistration exists'), `using ${regFile}`);
+                resolve(new Check(regFile));
 
                 return;
             }
 
-            console.log(`\tSaving registration ${regFile}`);
-            check.save(regFile, true);
+            if (!this._fileExists(cfgFile)) {
+                reject(new Error(`Missing system check configuration file '${cfgFile}'`));
 
-            console.log(chalk.green('\tCheck created:'), `${self.regConfig.account.ui_url}${check._checks[0].replace('check', 'checks')}`);
-            self.emit('check.create.done', check);
+                return;
+            }
+
+            const check = new Check(cfgFile);
+
+            if (check.verifyConfig()) {
+                console.log('\tValid check config');
+            }
+
+            console.log('\tSending check configuration to Circonus API');
+
+            check.create().
+                then(() => {
+                    console.log(`\tSaving registration ${regFile}`);
+                    check.save(regFile, true);
+
+                    console.log(chalk.green('\tCheck created:'), `${self.regConfig.account.ui_url}${check._checks[0].replace('check', 'checks')}`);
+                    resolve(check);
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 
 
     /**
      * finalize system check
-     * @returns {Undefined} nothing, emits event
+     * @returns {Object} promise
      */
     finalizeSystemCheck() {
-        console.log(chalk.blue(this.marker));
-        console.log(`Finalizing system check`);
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log(`Finalizing system check`);
 
-        if (this.agentMode === 'pull') {
-            console.log(chalk.green('OK'), 'no additional configuration needed for pull mode agent');
-            this.emit('check.finalize.done');
+            if (this.agentMode === 'pull') {
+                console.log(chalk.green('OK'), 'no additional configuration needed for pull mode agent');
+                resolve();
 
-            return;
-        }
+                return;
+            }
 
-        const bundle_id = this.checks.system.bundle_id;
-        const submit_url = this.checks.system.submit_url;
+            const bundle_id = this.checks.system.bundle_id;
+            const submit_url = this.checks.system.submit_url;
 
-        if (bundle_id === null || submit_url === null) {
-            this.emit('error', new Error('Check meta data not initialized for system check'));
+            if (bundle_id === null || submit_url === null) {
+                reject(new Error('Check meta data not initialized for system check'));
 
-            return;
-        }
+                return;
+            }
 
-        let cfgFile = null;
-        let cfg = null;
-        let msgItem = null;
+            let cfgFile = null;
+            let cfg = null;
+            let msgItem = null;
 
-        if (this.agentMode === 'push') {
-            msgItem = 'NAD Push'; // console.log(`\tCreating NAD Push configuration ${npCfgFile}`);
-            cfgFile = path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'circonus-nadpush.json'));
-            cfg = JSON.stringify({
-                agent_url         : cosi.agent_url,
-                broker_servername : this._getTrapBrokerCn(submit_url),
-                check_url         : submit_url,
-                group             : cosi.cosi_os_dist.toLowerCase() === 'ubuntu' ? 'nogroup' : 'nobody',
-                user              : 'nobody'
-            }, null, 4);
-        } else if (this.agentMode === 'reverse') {
-            const plugin_dir = path.resolve(path.join(cosi.nad_etc_dir, 'node-agent.d'));
+            if (this.agentMode === 'push') {
+                msgItem = 'NAD Push'; // console.log(`\tCreating NAD Push configuration ${npCfgFile}`);
+                cfgFile = path.resolve(path.join(cosi.cosi_dir, '..', 'etc', 'circonus-nadpush.json'));
+                cfg = JSON.stringify({
+                    agent_url         : cosi.agent_url,
+                    broker_servername : this._getTrapBrokerCn(submit_url),
+                    check_url         : submit_url,
+                    group             : cosi.cosi_os_dist.toLowerCase() === 'ubuntu' ? 'nogroup' : 'nobody',
+                    user              : 'nobody'
+                }, null, 4);
+            } else if (this.agentMode === 'reverse') {
+                const plugin_dir = path.resolve(path.join(cosi.nad_etc_dir, 'node-agent.d'));
 
-            msgItem = 'NAD Reverse'; // console.log(`\tSaving NAD Reverse configuration ${nadCfgFile}`);
-            cfgFile = path.resolve(path.join(cosi.etc_dir, 'circonus-nadreversesh'));
-            cfg = [
-                'nadrev_listen_address="127.0.0.1:2609"',
-                'nadrev_enable=1',
-                `nadrev_plugin_dir=${plugin_dir}`,
-                `nadrev_check_id="${bundle_id}"`,
-                `nadrev_key="${cosi.api_key}"`
-            ].join('\n');
-        }
+                msgItem = 'NAD Reverse'; // console.log(`\tSaving NAD Reverse configuration ${nadCfgFile}`);
+                cfgFile = path.resolve(path.join(cosi.etc_dir, 'circonus-nadreversesh'));
+                cfg = [
+                    'nadrev_listen_address="127.0.0.1:2609"',
+                    'nadrev_enable=1',
+                    `nadrev_plugin_dir=${plugin_dir}`,
+                    `nadrev_check_id="${bundle_id}"`,
+                    `nadrev_key="${cosi.api_key}"`
+                ].join('\n');
+            }
 
-        if (cfgFile === null || cfg === null || msgItem === null) {
-            this.emit('error', new Error('Finalize misconfigured, one or more required settings are invalid'));
+            if (cfgFile === null || cfg === null || msgItem === null) {
+                reject(new Error('Finalize misconfigured, one or more required settings are invalid'));
 
-            return;
-        }
+                return;
+            }
 
-        console.log(`\tCreating ${msgItem} configuration`);
-        try {
-            fs.writeFileSync(cfgFile, cfg, {
-                encoding : 'utf8',
-                flag     : 'w',
-                mode     : 0o644
-            });
-            console.log(chalk.green('\tSaved'), `${msgItem} configuration ${cfgFile}`);
-        } catch (err) {
-            this.emit('error', err);
+            console.log(`\tCreating ${msgItem} configuration`);
+            try {
+                fs.writeFileSync(cfgFile, cfg, {
+                    encoding : 'utf8',
+                    flag     : 'w',
+                    mode     : 0o644
+                });
+                console.log(chalk.green('\tSaved'), `${msgItem} configuration ${cfgFile}`);
+            } catch (err) {
+                reject(err);
 
-            return;
-        }
+                return;
+            }
 
-        this.emit('check.finalize.done');
+            resolve();
+        });
     }
 
 
@@ -559,152 +555,154 @@ class Checks extends Registration {
 
     /**
      * configure group check
-     * @returns {Undefined} nothing, emits event
+     * @returns {Object} promise
      */
     configGroupCheck() {
-        console.log(chalk.blue(this.marker));
-        console.log(`Configuring Group check`);
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log(`Configuring Group check`);
 
-        if (!this.regConfig.group.enabled) {
-            console.log('\tGroup check disabled, skipping.');
-            this.emit('group.config.done');
+            if (!this.regConfig.group.enabled) {
+                console.log('\tGroup check disabled, skipping.');
+                this.emit('group.config.done');
 
-            return;
-        }
+                return;
+            }
 
-        const id = 'check-group';
-        const configFile = path.resolve(path.join(cosi.reg_dir, `config-${id}.json`));
-        const templateFile = configFile.replace('config-', 'template-');
+            const id = 'check-group';
+            const configFile = path.resolve(path.join(cosi.reg_dir, `config-${id}.json`));
+            const templateFile = configFile.replace('config-', 'template-');
 
-        if (this._fileExists(configFile)) {
-            console.log('\tCheck configuration already exists.', configFile);
-            this.emit('group.config.done');
+            if (this._fileExists(configFile)) {
+                console.log('\tCheck configuration already exists.', configFile);
+                resolve();
 
-            return;
-        }
+                return;
+            }
 
-        const template = new Template(templateFile);
-        const check = template.check;
-        const hash = crypto.createHash('sha256');
+            const template = new Template(templateFile);
+            const check = template.check;
+            const hash = crypto.createHash('sha256');
 
-        check.type = 'httptrap';
+            check.type = 'httptrap';
 
-        // set the broker receiving for pulling metrics
-        check.brokers = [
-            this.regConfig.broker.trap._cid.replace('/broker/', '')
-        ];
+            // set the broker receiving for pulling metrics
+            check.brokers = [ this.regConfig.broker.trap._cid.replace('/broker/', '') ];
 
-        // add *ONLY* if there are no metrics defined in the template.
-        if (!{}.hasOwnProperty.call(check, 'metrics') || !Array.isArray(check.metrics)) {
-            check.metrics = [];
-        }
+            // add *ONLY* if there are no metrics defined in the template.
+            if (!{}.hasOwnProperty.call(check, 'metrics') || !Array.isArray(check.metrics)) {
+                check.metrics = [];
+            }
 
-        // set the notes with cosi signature
-        check.notes = this.regConfig.cosiNotes;
+            // set the notes with cosi signature
+            check.notes = this.regConfig.cosiNotes;
 
-        this._setTags(check, id);
-        this._setCustomCheckOptions(check, id);
+            this._setTags(check, id);
+            this._setCustomCheckOptions(check, id);
 
-        // we want a consistent check definition so that when other members of the group
-        // POST the check definition the *ONE* already created is returned.
-        // e.g. display_name, target, tags, etc.
-        //
-        // update the hash after the target is set
-        hash.update(check.target);
+            // we want a consistent check definition so that when other members of the group
+            // POST the check definition the *ONE* already created is returned.
+            // e.g. display_name, target, tags, etc.
+            //
+            // update the hash after the target is set
+            hash.update(check.target);
 
-        check.config = {
-            asynch_metrics : 'false', // NOTE must be false for per metric _fl settings to function correctly
-            secret         : hash.
-                digest('hex').
-                substr(0, 16)
-        };
+            check.config = {
+                asynch_metrics : 'false', // NOTE must be false for per metric _fl settings to function correctly
+                secret         : hash.
+                    digest('hex').
+                    substr(0, 16)
+            };
 
-        check.tags.push(`@group:${this.regConfig.group.id}`);
+            check.tags.push(`@group:${this.regConfig.group.id}`);
 
-        // save the configuration
-        try {
-            fs.writeFileSync(
+            // save the configuration
+            try {
+                fs.writeFileSync(
                 configFile,
                 JSON.stringify(check, null, 4), {
                     encoding : 'utf8',
                     flag     : 'w',
                     mode     : 0o644
                 });
-        } catch (err) {
-            this.emit('error', err);
+            } catch (err) {
+                reject(err);
 
-            return;
-        }
+                return;
+            }
 
-        console.log(chalk.green('\tSaved configuration'), configFile);
-        this.emit('group.config.done');
+            console.log(chalk.green('\tSaved configuration'), configFile);
+            resolve();
+        });
     }
 
 
     /**
      * create group check
-     * @returns {Undefined} nothing, emits event
+     * @returns {Object} promise
      */
     createGroupCheck() {
-        console.log(chalk.blue(this.marker));
-        console.log('Creating trap check for Group');
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log('Creating trap check for Group');
 
-        if (!this.regConfig.group.enabled) {
-            console.log('\tGroup check disabled, skipping.');
-            this.emit('group.create.done');
-
-            return;
-        }
-
-        const self = this;
-        const regFile = path.resolve(path.join(cosi.reg_dir, 'registration-check-group.json'));
-        const cfgFile = regFile.replace('registration-', 'config-');
-
-        if (this._fileExists(regFile)) {
-            console.log(chalk.bold('\tRegistration exists'), `using ${regFile}`);
-            this.emit('group.create.done', new Check(regFile));
-
-            return;
-        }
-
-        if (!this._fileExists(cfgFile)) {
-            this.emit('error', new Error(`Missing group check configuration file '${cfgFile}'`));
-
-            return;
-        }
-
-        const check = new Check(cfgFile);
-
-        if (check.verifyConfig()) {
-            console.log('\tValid check config');
-        }
-
-        console.log('\tSending check configuration to Circonus API');
-
-        check.create((err) => {
-            if (err) {
-                self.emit('error', err);
+            if (!this.regConfig.group.enabled) {
+                console.log('\tGroup check disabled, skipping.');
+                resolve(null);
 
                 return;
             }
 
-            console.log(`\tSaving registration ${regFile}`);
-            check.save(regFile);
-            console.log(chalk.green('\tCheck created:'), `${self.regConfig.account.ui_url}${check._checks[0].replace('/check/', '/checks/')}`);
-            self.emit('group.create.done', check);
+            const self = this;
+            const regFile = path.resolve(path.join(cosi.reg_dir, 'registration-check-group.json'));
+            const cfgFile = regFile.replace('registration-', 'config-');
+
+            if (this._fileExists(regFile)) {
+                console.log(chalk.bold('\tRegistration exists'), `using ${regFile}`);
+                resolve(new Check(regFile));
+
+                return;
+            }
+
+            if (!this._fileExists(cfgFile)) {
+                reject(new Error(`Missing group check configuration file '${cfgFile}'`));
+
+                return;
+            }
+
+            const check = new Check(cfgFile);
+
+            if (check.verifyConfig()) {
+                console.log('\tValid check config');
+            }
+
+            console.log('\tSending check configuration to Circonus API');
+
+            check.create().
+                then(() => {
+                    console.log(`\tSaving registration ${regFile}`);
+                    check.save(regFile);
+                    console.log(chalk.green('\tCheck created:'), `${self.regConfig.account.ui_url}${check._checks[0].replace('/check/', '/checks/')}`);
+                    resolve(check);
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 
 
     /**
      * finalize group check
-     * @returns {Undefined} nothing, emits event
+     * @returns {Object} promise
      */
     finalizeGroupCheck() {
-        console.log(chalk.blue(this.marker));
-        console.log(`Finalizing group check`);
+        return new Promise((resolve) => {
+            console.log(chalk.blue(this.marker));
+            console.log(`Finalizing group check`);
 
-        this.emit('group.finalize.done');
+            resolve();
+        });
     }
 
 

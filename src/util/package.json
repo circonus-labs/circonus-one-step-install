@@ -1,31 +1,31 @@
 {
   "name": "cosi-cli",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Circonus One Step Install utility",
   "private": true,
   "author": "matt maier (https://github.com/maier)",
   "license": "GPL-3.0",
   "dependencies": {
-    "chalk": "1.1.3",
-    "commander": "2.9.0",
+    "chalk": "2.1.0",
+    "commander": "2.11.0",
     "connection-tester": "0.1.2",
     "dot": "1.1.2",
-    "https-proxy-agent": "1.0.0",
-    "ora": "1.2.0",
+    "https-proxy-agent": "2.1.0",
+    "ora": "1.3.0",
     "sprintf-js": "1.1.1"
   },
   "devDependencies": {
-    "@maier/eslint-config-base": "^0.1.0",
+    "@maier/eslint-config-base": "0.2.0",
     "@maier/eslint-config-node": "^0.1.0",
     "@maier/eslint-config-node-cmd": "^0.1.0",
-    "eslint": "^3.19.0",
-    "tape": "^4.6.3"
+    "eslint": "4.4.1",
+    "tape": "4.8.0"
   },
   "scripts": {
     "build": "make build",
     "package": "make package",
-    "lint": "eslint bin/*.js lib/**/*.js",
-    "test": "tape test/*.js",
+    "lint": "node_modules/.bin/eslint bin/*.js lib/**/*.js",
+    "test": "node_modules/.bin/tape test/*.js",
     "showenv": "echo \"Host system $(uname -srv)\" ; vagrant --version ; echo \"Virtualbox $(vboxmanage --version)\" ; ansible --version ; echo \"Node $(node --version)\" ; echo 'Global npm modules'; npm ls -g --depth=0; echo 'Local npm modules' ; npm ls --depth=0"
   },
   "repository": {

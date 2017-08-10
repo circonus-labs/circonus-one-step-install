@@ -6,6 +6,7 @@
 
 RED=$(tput setaf 1)
 GREEN=$(tput setaf 2)
+YELLOW=$(tput setaf 4)
 NORMAL=$(tput sgr0)
 BOLD=$(tput bold)
 
@@ -81,7 +82,7 @@ function restart_nad {
             fail "Error restarting NAD, see log"
         }
     elif [[ -f /etc/rc.d/nad ]]; then
-        service restart nad
+        service nad restart
         [[ $? -eq 0 ]] || {
             fail "Error restarting NAD, see log"
         }
@@ -95,34 +96,51 @@ function restart_nad {
     fi
 }
 
+# used by nadreverse_install
+function start_nad {
+    if [[ -f /lib/systemd/system/nad.service ]]; then
+        systemctl start nad
+        [[ $? -eq 0 ]] || {
+            fail "Error starting NAD, see log"
+        }
+    elif [[ -f /etc/init/nad.conf ]]; then
+        initctl start nad
+        [[ $? -eq 0 ]] || {
+            fail "Error starting NAD, see log"
+        }
+    elif [[ -f /etc/init.d/nad ]]; then
+        service nad start
+        [[ $? -eq 0 ]] || {
+            fail "Error starting NAD, see log"
+        }
+    elif [[ -f /etc/rc.d/nad ]]; then
+        service nad start
+        [[ $? -eq 0 ]] || {
+            fail "Error starting NAD, see log"
+        }
+    elif [[ -f /var/svc/manifest/network/circonus/nad.xml ]]; then
+        svcadm start nad
+        [[ $? -eq 0 ]] || {
+            fail "Error starting NAD, see log"
+        }
+    else
+        fail "Unknown system type '$(uname -s)', unable to determine how to restart NAD"
+    fi
+}
+
 # used by nadreverse_uninstall
 function stop_nad {
     if [[ -f /lib/systemd/system/nad.service ]]; then
         systemctl stop nad
-        [[ $? -eq 0 ]] || {
-            fail "Error stopping NAD, see log"
-        }
     elif [[ -f /etc/init/nad.conf ]]; then
         initctl stop nad
-        [[ $? -eq 0 ]] || {
-            fail "Error stopping NAD, see log"
-        }
     elif [[ -f /etc/init.d/nad ]]; then
         service nad stop
-        [[ $? -eq 0 ]] || {
-            fail "Error stopping NAD, see log"
-        }
     elif [[ -f /etc/rc.d/nad ]]; then
-        service stop nad
-        [[ $? -eq 0 ]] || {
-            fail "Error stopping NAD, see log"
-        }
+        service nad stop
     elif [[ -f /var/svc/manifest/network/circonus/nad.xml ]]; then
         # omnios svcadm doesn't have start/stop only enable/disable
         svcadm disable nad
-        [[ $? -eq 0 ]] || {
-            fail "Error stopping NAD, see log"
-        }
     else
         fail "Unknown system type '$(uname -s)', unable to determine how to restart NAD"
     fi
@@ -161,7 +179,7 @@ function disable_nad {
             fail "Error disabling NAD, see log"
         }
     elif [[ -f /etc/rc.d/nad ]]; then
-        service stop nad
+        service nad stop
         [[ $? -eq 0 ]] || {
             fail "Error stopping NAD, see log"
         }

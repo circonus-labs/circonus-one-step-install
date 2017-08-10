@@ -41,134 +41,135 @@ class Graphs extends Registration {
 
     /**
      * start the graph creation process
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    create(cb) {
-        console.log(chalk.bold('\nRegistration - graphs'));
+    create() {
+        return new Promise((resolve, reject) => {
+            console.log(chalk.bold('\nRegistration - graphs'));
 
-        const self = this;
+            this.loadCheckMeta().
+                then(() => {
+                    return this.loadMetrics();
+                }).
+                then(() => {
+                    return this.findTemplates();
+                }).
+                then(() => {
+                    if (this.templates.length < 1) {
+                        reject(new Error('No graph templates found'));
 
-        this.once('checks.load', () => {
+                        return null;
+                    }
+
+                    return this.configGraphs();
+                }).
+                then(() => {
+                    return this.createGraphs();
+                }).
+                then(() => {
+                    return this.finalizeGraphs();
+                }).
+                then(() => {
+                    resolve();
+                }).
+                catch((err) => {
+                    reject(err);
+                });
+        });
+    }
+
+    /**
+     * load check meta data
+     * @returns {Object} promise
+     */
+    loadCheckMeta() {
+        return new Promise((resolve, reject) => {
             console.log(chalk.blue(this.marker));
             console.log('Loading check meta data');
 
             const checks = new Checks();
 
-            self.checkMeta = checks.getMeta();
-            if (self.checkMeta === null) {
-                self.emit('error', new Error('Unable to load check meta data'));
-            }
-            console.log(chalk.green('Loaded'), 'check meta data');
-            self.emit('metrics.load');
-        });
-
-        this.once('metrics.load', this.loadMetrics);
-        this.once('metrics.load.done', () => {
-            self.emit('templates.find');
-        });
-
-        this.once('templates.find', this.findTemplates);
-        this.once('templates.find.done', () => {
-            if (self.templates.length < 1) {
-                self.emit('error', new Error('No graph templates identified'));
+            this.checkMeta = checks.getMeta();
+            if (this.checkMeta === null) {
+                reject(new Error('Unable to load check meta data'));
 
                 return;
             }
-            self.emit('graphs.config');
+            console.log(chalk.green('Loaded'), 'check meta data');
+            resolve();
         });
-
-        this.once('graphs.config', this.configGraphs);
-        this.once('graphs.config.done', () => {
-            self.emit('graphs.create');
-        });
-
-        this.once('graphs.create', this.createGraphs);
-        this.once('graphs.create.done', () => {
-            self.emit('graphs.finalize');
-        });
-
-        this.once('graphs.finalize', () => {
-            // noop at this point
-            self.emit('graphs.done');
-        });
-
-        this.once('graphs.done', () => {
-            if (typeof cb === 'function') {
-                cb(); // eslint-disable-line callback-return
-            }
-        });
-
-        this.emit('checks.load');
     }
 
 
     /**
      * find graph templates
-     * @returns {Undefined} nothing, emits event
+     * @returns {Object} promise
      */
     findTemplates() {
-        console.log(chalk.blue(this.marker));
-        console.log('Identifying graph templates');
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log('Identifying graph templates');
 
-        const self = this;
+            templateList(cosi.reg_dir).
+                then((templates) => {
+                    this.templates = [];
 
-        templateList(cosi.reg_dir, (listError, templates) => {
-            if (listError) {
-                self.emit('error', listError);
+                    for (const template of templates) {
+                        const templateType = template.config.type;
+                        const templateId = template.config.id;
 
-                return;
-            }
+                        if (templateType !== 'graph') {
+                            continue;
+                        }
 
-            self.templates = [];
+                        console.log(`\tFound ${templateType}-${templateId} ${template.file}`);
 
-            for (const template of templates) {
-                const templateType = template.config.type;
-                const templateId = template.config.id;
-
-                if (templateType !== 'graph') {
-                    continue;
-                }
-
-                console.log(`\tFound ${templateType}-${templateId} ${template.file}`);
-
-                if ({}.hasOwnProperty.call(self.metrics, templateId)) {
-                    self.templates.push(templateId);
-                } else {
-                    console.log(`\t${chalk.yellow('Skipping')} ${templateType}-${templateId}, no metrics found for '${templateId}'.`);
-                }
-            }
-
-            self.emit('templates.find.done');
+                        if ({}.hasOwnProperty.call(this.metrics, templateId)) {
+                            this.templates.push(templateId);
+                        } else {
+                            console.log(`\t${chalk.yellow('Skipping')} ${templateType}-${templateId}, no metrics found for '${templateId}'.`);
+                        }
+                    }
+                    resolve();
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 
 
     /**
      * configure graphs
-     * @returns {Undefined} nothing, emits event
+     * @returns {Object} promise
      */
     configGraphs() {
-        console.log(chalk.blue(this.marker));
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
 
-        const self = this;
-        const graphs = this.templates;
+            const graphs = this.templates;
 
-        this.on('config.graph', this.configGraph);
+            this.on('config.graph.next', () => {
+                const graphId = graphs.shift();
 
-        this.on('config.graph.next', () => {
-            const graphId = graphs.shift();
+                if (typeof graphId === 'undefined') {
+                    this.removeAllListeners('config.graph.next');
+                    resolve();
 
-            if (typeof graphId === 'undefined') {
-                self.removeAllListeners('config.graph');
-                self.removeAllListeners('config.graph.next');
-                self.emit('graphs.config.done');
-            } else {
-                self.emit('config.graph', graphId);
-            }
+                    return;
+                }
+
+                this.configGraph(graphId).
+                    then(() => {
+                        this.emit('config.graph.next');
+                    }).
+                    catch((err) => {
+                        reject(err);
+                    });
+            });
+
+            this.emit('config.graph.next');
         });
-
-        this.emit('config.graph.next');
     }
 
 
@@ -180,21 +181,23 @@ class Graphs extends Registration {
     configGraph(graphId) {
         assert.equal(typeof graphId, 'string', 'graphId is required');
 
-        const templateFile = path.resolve(path.join(cosi.reg_dir, `template-graph-${graphId}.json`));
-        const template = new Template(templateFile);
+        return new Promise((resolve) => {
+            const templateFile = path.resolve(path.join(cosi.reg_dir, `template-graph-${graphId}.json`));
+            const template = new Template(templateFile);
 
-        console.log(`Configuring graphs for ${graphId}`);
-        console.log(`\tUsing template ${templateFile}`);
+            console.log(`Configuring graphs for ${graphId}`);
+            console.log(`\tUsing template ${templateFile}`);
 
-        for (let graphIdx = 0; graphIdx < template.graphs.length; graphIdx++) {
-            if (template.variable_metrics) {
-                this.configVariableGraph(template, graphIdx);
-            } else {
-                this.configStaticGraph(template, graphIdx);
+            for (let graphIdx = 0; graphIdx < template.graphs.length; graphIdx++) {
+                if (template.variable_metrics) {
+                    this.configVariableGraph(template, graphIdx);
+                } else {
+                    this.configStaticGraph(template, graphIdx);
+                }
             }
-        }
 
-        this.emit('config.graph.next');
+            resolve();
+        });
     }
 
 
@@ -311,81 +314,96 @@ class Graphs extends Registration {
 
     /**
      * managing creating all graphs
-     * @returns {Undefined} nothing, emits event
+     * @returns {Object} promise
      */
     createGraphs() {
-        const self = this;
-        const graphConfigs = [];
+        return new Promise((resolve, reject) => {
+            const self = this;
+            const graphConfigs = [];
 
-        try {
-            const files = fs.readdirSync(cosi.reg_dir);
+            try {
+                const files = fs.readdirSync(cosi.reg_dir);
 
-            for (const file of files) {
-                if (file.match(/^config-graph-/)) {
-                    graphConfigs.push(path.resolve(path.join(cosi.reg_dir, file)));
+                for (const file of files) {
+                    if (file.match(/^config-graph-/)) {
+                        graphConfigs.push(path.resolve(path.join(cosi.reg_dir, file)));
+                    }
                 }
-            }
-        } catch (err) {
-            this.emit('error', err);
-
-            return;
-        }
-
-        this.on('create.graph', this.createGraph);
-
-        this.on('create.graph.next', () => {
-            const configFile = graphConfigs.shift();
-
-            if (typeof configFile === 'undefined') {
-                self.removeAllListeners('create.graph');
-                self.removeAllListeners('create.graph.next');
-                self.emit('graphs.done');
-            } else {
-                self.emit('create.graph', configFile);
-            }
-        });
-
-        this.emit('create.graph.next');
-    }
-
-
-    /**
-     * create specific graph
-     * @arg {String} cfgFile for graph
-     * @returns {Undefined} nothing, emits event
-     */
-    createGraph(cfgFile) {
-        assert.strictEqual(typeof cfgFile, 'string', 'cfgFile is required');
-
-        console.log(chalk.blue(this.marker));
-        console.log('Creating graph', cfgFile);
-
-        const regFile = cfgFile.replace('config-', 'registration-');
-
-        if (this._fileExists(regFile)) {
-            console.log(chalk.bold('\tRegistration exists'), `using ${regFile}`);
-            this.emit('create.graph.next');
-
-            return;
-        }
-
-        console.log('\tSending graph configuration to Circonus API');
-
-        const graph = new Graph(cfgFile);
-        const self = this;
-
-        graph.create((err) => {
-            if (err) {
-                self.emit('error', err);
+            } catch (err) {
+                reject(err);
 
                 return;
             }
 
-            console.log(`\tSaving registration ${regFile}`);
-            graph.save(regFile);
+            this.on('create.graph.next', () => {
+                const configFile = graphConfigs.shift();
 
-            console.log(chalk.green('\tGraph created:'), `${self.regConfig.account.ui_url}/trending/graphs/view/${graph._cid.replace('/graph/', '')}`);
-            self.emit('create.graph.next');
+                if (typeof configFile === 'undefined') {
+                    self.removeAllListeners('create.graph');
+                    self.removeAllListeners('create.graph.next');
+                    resolve();
+
+                    return;
+                }
+
+                self.createGraph(configFile).
+                    then(() => {
+                        this.emit('create.graph.next');
+                    }).
+                    catch((err) => {
+                        reject(err);
+                    });
+            });
+
+            this.emit('create.graph.next');
+        });
+    }
+
+    /**
+     * finalize graphs
+     * @returns {Object} promise
+     */
+    finalizeGraphs() { // eslint-disable-line class-methods-use-this
+        // NOP for now
+        return Promise.resolve();
+    }
+
+    /**
+     * create specific graph
+     * @arg {String} cfgFile for graph
+     * @returns {Object} promise
+     */
+    createGraph(cfgFile) {
+        assert.strictEqual(typeof cfgFile, 'string', 'cfgFile is required');
+
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log('Creating graph', cfgFile);
+
+            const regFile = cfgFile.replace('config-', 'registration-');
+
+            if (this._fileExists(regFile)) {
+                console.log(chalk.bold('\tRegistration exists'), `using ${regFile}`);
+                resolve();
+
+                return;
+            }
+
+            console.log('\tSending graph configuration to Circonus API');
+
+            const graph = new Graph(cfgFile);
+
+            graph.create().
+                then(() => {
+                    console.log(`\tSaving registration ${regFile}`);
+                    graph.save(regFile);
+
+                    console.log(chalk.green('\tGraph created:'), `${this.regConfig.account.ui_url}/trending/graphs/view/${graph._cid.replace('/graph/', '')}`);
+                    resolve();
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 

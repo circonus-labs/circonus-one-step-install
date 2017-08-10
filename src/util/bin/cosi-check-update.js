@@ -30,16 +30,12 @@ if (app.args.length === 0) {
 const cfgFile = path.resolve(app.args[0]);
 const check = new Check(cfgFile);
 
-check.update((err, result) => {
-    if (err) {
-        console.error(chalk.red(`Error: ${err.code} -- ${err.message}`));
-        if (err.details) {
-            console.error(err.details.join('\n'));
-        }
-        console.dir(err);
+check.update().
+    then((updated) => {
+        check.save(cfgFile, true);
+        console.log(chalk.green('Updated'), updated.display_name);
+    }).
+    catch((err) => {
+        console.error(chalk.red('ERROR:'), err);
         process.exit(1);
-    }
-
-    check.save(cfgFile, true);
-    console.log(chalk.green('Updated'), result.display_name);
-});
+    });

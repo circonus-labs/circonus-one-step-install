@@ -40,18 +40,17 @@ function createRulesets(rulesets) {
             console.log('Sending', cfg_file, 'to Circonus API.');
             const ruleset = new Ruleset(cfg_file);
 
-            ruleset.create((errCreate) => {
-                if (errCreate) {
-                    console.error(chalk.red(`Error: ${errCreate.code} -- ${errCreate.message}`));
-                    if (errCreate.details) {
-                        console.error(errCreate.details);
+            ruleset.create().
+                then((result) => {
+                    if (result) {
+                        ruleset.save(reg_file, true);
+                        console.log(chalk.green('Saved'), reg_file);
                     }
-                    console.dir(errCreate);
-                } else {
-                    ruleset.save(reg_file, true);
-                    console.log(chalk.green('Saved'), reg_file);
-                }
-            });
+                }).
+                catch((err) => {
+                    console.log(chalk.red('ERROR:'), err);
+                    process.exit(1);
+                });
         }
     }
 }
@@ -63,22 +62,13 @@ app.
 
 console.log(chalk.bold(app.name()), `v${app.version()}`);
 
-process.on('createRuleSets', createRulesets);
-
 if (app.config) {
-    const rulesets = [ path.resolve(app.config) ];
-
-    process.emit('createRuleSets', rulesets);
+    createRulesets([ path.resolve(app.config) ]);
 } else {
     fs.readdir(cosi.ruleset_dir, (err, files) => {
         if (err) {
             console.error(chalk.red('ERROR'), 'reading ruleset directory.', err);
             process.exit(1);
-        }
-
-        if (files.length === 0) {
-            console.log(chalk.yellow('WARN'), `no rulesets found in ${cosi.ruleset_dir}`);
-            process.exit(0);
         }
 
         const rulesets = [];
@@ -93,6 +83,11 @@ if (app.config) {
             }
         }
 
-        process.emit('createRuleSets', rulesets);
+        if (rulesets.length === 0) {
+            console.log(chalk.yellow('WARN'), `no rulesets found in ${cosi.ruleset_dir}`);
+            process.exit(0);
+        }
+
+        createRulesets(rulesets);
     });
 }

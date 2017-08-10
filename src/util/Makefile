@@ -10,13 +10,15 @@ UTILS	:= cosi-util.tar.gz
 # 'no' = old node, transpile down/back to ES5
 ES6NODE	?= yes
 
+NPM=$(shell { command -v yarn || command -v npm; } 2>/dev/null)
+
 install:
 	@echo "There is no 'default' target, try 'package' or 'dev-install'"
 
 $(UTILS): $(BIN_SRC) $(LIB_SRC) package.json Makefile $(STATSD)
 	-rm -rf build
 	mkdir build
-	test -d node_modules || yarn
+	test -d node_modules || $(NPM) install
 ifeq ($(ES6NODE), yes)
 	install -d build/bin
 	cp bin/*.js build/bin/.
@@ -45,7 +47,7 @@ endif
 	install -m 0700 lib/cosi/plugins/cassandra/nad-disable.sh build/lib/cosi/plugins/cassandra/.
 	install package.json build/.
 	# yarn is MUCH faster than npm
-	cd build && yarn install --production
+	cd build && $(NPM) install --production
 	install Makefile build/.
 	install README.md build/.
 	install LICENSE build/.
@@ -62,7 +64,7 @@ check:
 	npm-check --skip-unused --production
 
 init:
-	test -d node_modules || yarn
+	test -d node_modules || $(NPM) install
 
 .PHONY: clean
 clean:

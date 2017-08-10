@@ -16,7 +16,9 @@
         "exclude": null,
         "include": [
             "^sd[a-z]$",
-            "^xvd[a-z]$"
+            "^xvd[a-z]$",
+            "^ad[a-z][0-9]+$",
+            "^da[0-9]+$"
         ]
     },
     "graphs": [

@@ -227,142 +227,147 @@ module.exports = class Graph {
 
     /**
      * call api to create a graph from current config
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    create(cb) {
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
-
-        if (!this.verifyConfig(false)) {
-            cb(new Error('Invalid configuration'));
-
-            return;
-        }
-
-        const self = this;
-
-        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
-        api.post('/graph', this, (code, errAPI, result) => {
-            if (errAPI) {
-                const apiError = new Error();
-
-                apiError.code = 'CIRCONUS_API_ERROR';
-                apiError.message = errAPI;
-                apiError.details = result;
-                cb(apiError);
+    create() {
+        return new Promise((resolve, reject) => {
+            if (!this.verifyConfig(false)) {
+                reject(new Error('Invalid configuration'));
 
                 return;
             }
 
-            if (code !== 200) {
-                const errResp = new Error();
+            api.post('/graph', this).
+                then((res) => {
+                    if (res.parsed_body === null || res.code !== 200) {
+                        const err = new Error();
 
-                errResp.code = code;
-                errResp.message = 'UNEXPECTED_API_RETURN';
-                errResp.details = result;
-                cb(errResp);
+                        err.code = res.code;
+                        err.message = 'UNEXPECTED_API_RETURN';
+                        err.body = res.parsed_body;
+                        err.raw_body = res.raw_body;
 
-                return;
-            }
+                        reject(err);
 
-            self._init(result);
+                        return;
+                    }
 
-            cb(null, result);
+                    this._init(res.parsed_body);
+
+                    resolve(res.parsed_body);
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 
 
     /**
      * call api to update a graph from current config
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    update(cb) {
+    update() {
         assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
 
-        if (!this.verifyConfig(true)) {
-            cb(new Error('Invalid configuration'));
-
-            return;
-        }
-
-        const self = this;
-
-        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
-        api.put(this._cid, this, (code, errAPI, result) => {
-            if (errAPI) {
-                cb(errAPI, result);
+        return new Promise((resolve, reject) => {
+            if (!this.verifyConfig(true)) {
+                reject(new Error('Invalid configuration'));
 
                 return;
             }
 
-            if (code !== 200) {
-                const errResp = new Error();
+            api.put(this._cid, this).
+                then((res) => {
+                    if (res.parsed_body === null || res.code !== 200) {
+                        const err = new Error();
 
-                errResp.code = code;
-                errResp.message = 'UNEXPECTED_API_RETURN';
-                errResp.details = result;
-                cb(errResp);
+                        err.code = res.code;
+                        err.message = 'UNEXPECTED_API_RETURN';
+                        err.body = res.parsed_body;
+                        err.raw_body = res.raw_body;
 
-                return;
-            }
+                        reject(err);
 
-            self._init(result);
+                        return;
+                    }
 
-            cb(null, result);
+                    this._init(res.parsed_body);
+
+                    resolve(res.parsed_body);
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 
     /**
      * call api to delete a graph from current config
      * note the current config must contain a `_cid` attribute
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    remove(cb) {
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
-
-        const self = this;
-
-        if (!{}.hasOwnProperty.call(this, '_cid')) {
-            cb(new Error('Invalid graph config, no _cid attribute'));
-
-            return;
-        }
-
-        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
-        api.get(self._cid, null, (getCode, getError, getResult) => { // eslint-disable-line consistent-return
-            if (getCode === 404 && (getResult.code && getResult.code === 'ObjectError.InstanceNotFound')) {
-                console.log(`\t${self._cid}`, chalk.bold('not found'));
-                cb(null);
+    remove() {
+        return new Promise((resolve, reject) => {
+            if (!{}.hasOwnProperty.call(this, '_cid')) {
+                reject(new Error('Invalid graph config, no _cid attribute'));
 
                 return;
             }
 
-            if (getCode < 200 || getCode > 299) { // eslint-disable-line no-magic-numbers
-                console.error(chalk.red('API RESULT CODE'), `API ${getCode}`, getError, getResult);
-                cb(getError);
+            api.get(this._cid, null).
+                then((res) => {
+                    if (res.code === 404 && (res.parsed_body.code && res.parsed_body.code === 'ObjectError.InstanceNotFound')) {
+                        console.log(`\t${this._cid}`, chalk.bold('not found'));
+                        resolve(null);
 
-                return;
-            }
+                        return false;
+                    }
 
-            console.log(chalk.bold('\tDeleting'), `Graph ${self._cid}`);
+                    if (res.parsed_body === null || (res.code < 200 || res.code > 299)) {
+                        const err = new Error();
 
-            api.delete(self._cid, (code, errAPI, result) => {
-                if (errAPI) {
-                    cb(errAPI, result);
+                        err.code = res.code;
+                        err.message = 'UNEXPECTED_API_RETURN';
+                        err.body = res.parsed_body;
+                        err.raw_body = res.raw_body;
 
-                    return;
-                }
+                        reject(err);
 
-                if (code < 200 || code > 299) { // eslint-disable-line no-magic-numbers
-                    console.error(chalk.red('API RESULT CODE'), `API ${code}`, errAPI, result);
-                    cb(`unexpected code: ${code}`, result);
+                        return false;
+                    }
 
-                    return;
-                }
-                cb(null, result);
-            });
+                    return true;
+                }).
+                then((ok) => {
+                    if (!ok) {
+                        return;
+                    }
+                    console.log(chalk.bold('\tDeleting'), `Graph ${this._cid}`);
+
+                    api.delete(this._cid).
+                        then((result) => {
+                            if (result.parsed_body === null || (result.code < 200 || result.code > 299)) {
+                                const err = new Error();
+
+                                err.code = result.code;
+                                err.message = 'UNEXPECTED_API_RETURN';
+                                err.body = result.parsed_body;
+                                err.raw_body = result.raw_body;
+
+                                reject(err);
+
+                                return;
+                            }
+                            resolve(result.parsed_body);
+                        }).
+                        catch((err) => {
+                            reject(err);
+                        });
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 

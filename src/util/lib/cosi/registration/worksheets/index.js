@@ -34,216 +34,204 @@ class Worksheets extends Registration {
 
     /**
      * create a new worksheet
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    create(cb) {
-        console.log(chalk.bold('\nRegistration - worksheets'));
+    create() {
+        return new Promise((resolve, reject) => {
+            console.log(chalk.bold('\nRegistration - worksheets'));
 
-        const self = this;
-
-        this.once('worksheets.config', this.configWorksheets);
-        this.once('worksheets.config.done', () => {
-            self.emit('worksheets.create');
+            this.configWorksheets().
+                then(() => {
+                    return this.createWorksheets();
+                }).
+                then(() => {
+                    return this.finalizeWorksheets();
+                }).
+                then(() => {
+                    resolve();
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
-
-        this.once('worksheets.create', this.createWorksheets);
-        this.once('worksheets.create.done', () => {
-            self.emit('worksheets.finalize');
-        });
-
-        this.once('worksheets.finalize', () => {
-            // noop at this point
-            self.emit('worksheets.done');
-        });
-
-        this.once('worksheets.done', () => {
-            if (typeof cb === 'function') {
-                cb(); // eslint-disable-line callback-return
-            }
-        });
-
-        this.emit('worksheets.config');
     }
 
     /**
      * configure worksheet
-     * @returns {Undefined} nothing
+     * @returns {Object} promise
      */
     configWorksheets() {
-        console.log(chalk.blue(this.marker));
-        console.log(`Configuring Worksheets`);
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log(`Configuring Worksheets`);
 
-        const id = 'worksheet-system';
-        const configFile = path.resolve(cosi.reg_dir, `config-${id}.json`);
-        const templateFile = configFile.replace('config-', 'template-');
+            const id = 'worksheet-system';
+            const configFile = path.resolve(cosi.reg_dir, `config-${id}.json`);
+            const templateFile = configFile.replace('config-', 'template-');
 
-        if (this._fileExists(configFile)) {
-            console.log(chalk.bold('\tConfiguration exists'), configFile);
-            this.emit('worksheets.config.done');
+            if (this._fileExists(configFile)) {
+                console.log(chalk.bold('\tConfiguration exists'), configFile);
+                resolve();
 
-            return;
-        }
+                return;
+            }
 
-        const template = new Template(templateFile);
-        const config = template.config;
+            const template = new Template(templateFile);
+            const config = template.config;
 
-        config.smart_queries = [
-            {
+            config.smart_queries = [ {
                 name  : 'Circonus One Step Install',
                 order : [],
                 query : `(notes:"${this.regConfig.cosiNotes}*")`
+            } ];
+
+            config.notes = this.regConfig.cosiNotes;
+            this._setTags(config, id);
+            this._setCustomWorksheetOptions(config, id);
+
+            try {
+                fs.writeFileSync(configFile, JSON.stringify(config, null, 4), {
+                    encoding : 'utf8',
+                    flag     : 'w',
+                    mode     : 0o644
+                });
+            } catch (err) {
+                reject(err);
+
+                return;
             }
-        ];
 
-        config.notes = this.regConfig.cosiNotes;
-        this._setTags(config, id);
-        this._setCustomWorksheetOptions(config, id);
-
-        try {
-            fs.writeFileSync(configFile, JSON.stringify(config, null, 4), {
-                encoding : 'utf8',
-                flag     : 'w',
-                mode     : 0o644
-            });
-        } catch (err) {
-            this.emit('error', err);
-
-            return;
-        }
-
-        console.log('\tSaved configuration', configFile);
-        this.emit('worksheets.config.done');
+            console.log('\tSaved configuration', configFile);
+            resolve();
+        });
     }
 
 
     /**
      * create worksheet
-     * @returns {Undefined} nothing
+     * @returns {Object} promise
      */
     createWorksheets() {
-        console.log(chalk.blue(this.marker));
-        console.log('Creating Worksheets');
+        return new Promise((resolve, reject) => {
+            console.log(chalk.blue(this.marker));
+            console.log('Creating Worksheets');
 
-        const self = this;
-        const regFile = path.resolve(cosi.reg_dir, 'registration-worksheet-system.json');
-        const cfgFile = regFile.replace('registration-', 'config-');
+            const regFile = path.resolve(cosi.reg_dir, 'registration-worksheet-system.json');
+            const cfgFile = regFile.replace('registration-', 'config-');
 
-        if (this._fileExists(regFile)) {
-            console.log(chalk.bold('\tRegistration exists'), regFile);
-            this.emit('worksheets.create.done');
-
-            return;
-        }
-
-        if (!this._fileExists(cfgFile)) {
-            this.emit('error', new Error(`Missing worksheet configuration file '${cfgFile}'`));
-
-            return;
-        }
-
-        const worksheet = new Worksheet(cfgFile);
-
-        if (worksheet.verifyConfig()) {
-            console.log('\tValid worksheet config');
-        }
-
-        this._findWorksheet(worksheet.title, (findErr, regConfig) => {
-            if (findErr !== null) {
-                self.emit('error', findErr);
+            if (this._fileExists(regFile)) {
+                console.log(chalk.bold('\tRegistration exists'), regFile);
+                resolve();
 
                 return;
             }
 
-            if (regConfig !== null) {
-                console.log(`\tSaving registration ${regFile}`);
-                try {
-                    fs.writeFileSync(regFile, JSON.stringify(regConfig, null, 4), {
-                        encoding : 'utf8',
-                        flag     : 'w',
-                        mode     : 0o644
-                    });
-                } catch (saveErr) {
-                    self.emit('error', saveErr);
-
-                    return;
-                }
-
-                console.log(
-                    chalk.green('\tWorksheet:'),
-                    `${self.regConfig.account.ui_url}/trending/worksheets/${regConfig._cid.replace('/worksheet/', '')}`);
-                self.emit('worksheets.create.done');
+            if (!this._fileExists(cfgFile)) {
+                reject(new Error(`Missing worksheet configuration file '${cfgFile}'`));
 
                 return;
             }
 
-            console.log('\tSending worksheet configuration to Circonus API');
+            const worksheet = new Worksheet(cfgFile);
 
-            worksheet.create((err) => {
-                if (err) {
-                    self.emit('error', err);
+            if (worksheet.verifyConfig()) {
+                console.log('\tValid worksheet config');
+            }
 
-                    return;
-                }
+            this._findWorksheet(worksheet.title).
+                then((regConfig) => {
+                    if (regConfig === null) {
+                        console.log('\tSending worksheet configuration to Circonus API');
 
-                console.log(`\tSaving registration ${regFile}`);
-                worksheet.save(regFile, true);
+                        return worksheet.create();
+                    }
 
-                console.log(
-                    chalk.green('\tWorksheet created:'),
-                    `${self.regConfig.account.ui_url}/trending/worksheets/${worksheet._cid.replace('/worksheet/', '')}`);
-                self.emit('worksheets.create.done');
-            });
+                    console.log(`\tWorksheet found via API, saving registration ${regFile}`);
+                    try {
+                        fs.writeFileSync(regFile, JSON.stringify(regConfig, null, 4), {
+                            encoding : 'utf8',
+                            flag     : 'w',
+                            mode     : 0o644
+                        });
+                    } catch (errSave) {
+                        reject(errSave);
+
+                        return null;
+                    }
+
+                    console.log(
+                        chalk.green('\tWorksheet:'),
+                        `${this.regConfig.account.ui_url}/trending/worksheets/${regConfig._cid.replace('/worksheet/', '')}`);
+
+                    return null;
+                }).
+                then((cfg) => {
+                    if (cfg !== null) {
+                        console.log(`\tSaving registration ${regFile}`);
+                        worksheet.save(regFile, true);
+
+                        console.log(
+                            chalk.green('\tWorksheet created:'),
+                            `${this.regConfig.account.ui_url}/trending/worksheets/${worksheet._cid.replace('/worksheet/', '')}`);
+                    }
+                    resolve();
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
+    }
+
+    /**
+     * finalize worksheet(s)
+     * @returns {Object} promise
+     */
+    finalizeWorksheets() { // eslint-disable-line class-methods-use-this
+         // NOP for now
+        return Promise.resolve();
     }
 
     /**
      * find a specific worksheet
      * @arg {String} title of worksheet
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    _findWorksheet(title, cb) { // eslint-disable-line class-methods-use-this
-        if (title === null) {
-            cb(new Error('Invalid worksheet title'));
-
-            return;
-        }
-
-        console.log(`\tChecking API for existing worksheet with title '${title}'`);
-
-        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
-        api.get('/worksheet', { f_title: title }, (code, errAPI, result) => {
-            if (errAPI) {
-                const apiError = new Error();
-
-                apiError.code = 'CIRCONUS_API_ERROR';
-                apiError.message = errAPI;
-                apiError.details = result;
-                cb(apiError);
+    _findWorksheet(title) { // eslint-disable-line class-methods-use-this
+        return new Promise((resolve, reject) => {
+            if (title === null) {
+                reject(new Error('Invalid worksheet title'));
 
                 return;
             }
+            console.log(`\tChecking API for existing worksheet with title '${title}'`);
 
-            if (code !== 200) {
-                const errResp = new Error();
+            api.get('/worksheet', { f_title: title }).
+                then((res) => {
+                    if (res.parsed_body === null || res.code !== 200) {
+                        const err = new Error();
 
-                errResp.code = code;
-                errResp.message = 'UNEXPECTED_API_RETURN';
-                errResp.details = result;
-                cb(errResp);
+                        err.code = res.code;
+                        err.message = 'UNEXPECTED_API_RETURN';
+                        err.body = res.parsed_body;
+                        err.raw_body = res.raw_body;
 
-                return;
-            }
+                        reject(err);
 
-            if (Array.isArray(result) && result.length > 0) {
-                console.log(chalk.green('\tFound'), `${result.length} existing worksheet(s) with title '${title}'`);
-                cb(null, result[0]);
+                        return;
+                    }
 
-                return;
-            }
+                    if (Array.isArray(res.parsed_body) && res.parsed_body.length > 0) {
+                        console.log(chalk.green('\tFound'), `${res.parsed_body.length} existing worksheet(s) with title '${title}'`);
+                        resolve(res.parsed_body[0]);
 
-            cb(null, null);
+                        return;
+                    }
+
+                    resolve(null);
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 
@@ -311,14 +299,6 @@ class Worksheets extends Registration {
                 cfg.tags[i] = this._expand(cfg.tags[i], data); // eslint-disable-line no-param-reassign
             }
         }
-    }
-
-    /**
-     * placeholder, noop
-     * @returns {Undefined} nothing
-     */
-    finalizeWorksheets() { // eslint-disable-line class-methods-use-this, no-empty-function
-
     }
 
 }
