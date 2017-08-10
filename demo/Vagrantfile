@@ -1,6 +1,5 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
-# rubocop:disable Metrics/LineLength
 # rubocop:disable Metrics/BlockLength
 
 require 'digest/sha1'
@@ -182,7 +181,7 @@ Vagrant.configure(2) do |config|
     # Debian 7.11 (wheezy)
     #
     host_sig = Digest::SHA1.hexdigest("#{`hostname`}-cosi-d7")[0..8]
-    config.vm.define 'd7', autostart: false do |d7|
+    config.vm.define 'deb7', autostart: false do |d7|
         d7.vm.box = 'maier/debian-7.11.0-x86_64'
         d7.vm.hostname = "cosi-d7-#{host_sig}"
         d7.vm.network 'private_network', ip: '192.168.100.51'
@@ -209,7 +208,7 @@ Vagrant.configure(2) do |config|
     # Debian 8.7 (jessie)
     #
     host_sig = Digest::SHA1.hexdigest("#{`hostname`}-cosi-d8")[0..8]
-    config.vm.define 'd8', autostart: false do |d8|
+    config.vm.define 'deb8', autostart: false do |d8|
         d8.vm.box = 'maier/debian-8.7.0-x86_64'
         d8.vm.hostname = "cosi-d8-#{host_sig}"
         d8.vm.network 'private_network', ip: '192.168.100.52'
@@ -218,6 +217,33 @@ Vagrant.configure(2) do |config|
             s.inline = "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
         end
         d8.vm.provision 'shell', inline: <<-SHELL
+            # add alias for cosi-site, so it will "resolve"
+            echo "#{site_ip} cosi-site" >> /etc/hosts
+            echo " "
+            echo " "
+            echo "run: [ curl 'http://cosi-site/install' | bash -s -- --key ... --app ... --cosiurl 'http://cosi-site/' ]"
+            echo ">>>>> API KEY REQUIRED!!!"
+            echo ">>>>> API APP REQUIRED!!!"
+            echo ">>>>> --cosiurl points to the 'site' VM created above, elide to use the default (https://onestep.circonus.com)"
+            echo "Obtain valid API key and app values from https://login.circonus.com/user/tokens -- click (i) next to the token to use"
+            echo " "
+            echo " "
+        SHELL
+    end
+
+    #
+    # Debian 9.1 (stretch)
+    #
+    host_sig = Digest::SHA1.hexdigest("#{`hostname`}-cosi-d9")[0..8]
+    config.vm.define 'deb9', autostart: false do |d9|
+        d9.vm.box = 'maier/debian-9.1.0-x86_64'
+        d9.vm.hostname = "cosi-d9-#{host_sig}"
+        d9.vm.network 'private_network', ip: '192.168.100.53'
+        d9.vm.provision 'fix-no-tty', type: 'shell' do |s|
+            s.privileged = false
+            s.inline = "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
+        end
+        d9.vm.provision 'shell', inline: <<-SHELL
             # add alias for cosi-site, so it will "resolve"
             echo "#{site_ip} cosi-site" >> /etc/hosts
             echo " "
