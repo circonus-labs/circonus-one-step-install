@@ -42,26 +42,26 @@ if (!app.quiet) {
 }
 
 
-templateList(cosi.reg_dir, (err, list) => {
-    if (err) {
-        console.log('template list', list, err);
+templateList(cosi.reg_dir).
+    then((list) => {
+        if (list.length === 0) {
+            console.error(chalk.red('No templates found'));
+            process.exit(1);
+        }
+
+        if (!app.quiet) {
+            emitLine();
+        }
+
+        for (const template of list) {
+            emitLine(
+                template.config.id,
+                template.config.type,
+                template.config.description
+            );
+        }
+    }).
+    catch((err) => {
+        console.log('template list', err);
         process.exit(1);
-    }
-
-    if (list.length === 0) {
-        console.error(chalk.red('No templates found'));
-        process.exit(1);
-    }
-
-    if (!app.quiet) {
-        emitLine();
-    }
-
-    for (const template of list) {
-        emitLine(
-            template.id,
-            template.type,
-            template.description
-        );
-    }
-});
+    });
