@@ -1,6 +1,6 @@
 {
     "type": "graph",
-    "id": "use_disk",
+    "id": "diskstats",
     "description": "Disk Utilization Summary",
     "version": "0.1.0",
     "notes": [],
