@@ -619,7 +619,7 @@ class Graphs extends Registration {
             cfg[opt] = this._expand(cfg[opt], data); // eslint-disable-line no-param-reassign
         }
 
-        // expand templats in C:AQL statements
+        // expand templates in C:AQL statements
         for (let dpIdx = 0; dpIdx < cfg.datapoints.length; dpIdx++) {
             const dp = cfg.datapoints[dpIdx];
 
@@ -631,13 +631,11 @@ class Graphs extends Registration {
             }
         }
 
-        // set guide for graph-load template (uses #cpus)
-        if (id === 'graph-load' && cfg.guides.length > 0) {
-            for (let i = 0; i < cfg.guides.length; i++) {
-                if (cfg.guides[i].data_formula.indexOf('{{') !== -1) {
-                    console.log(`\tInterpolating data_formula ${cfg.guides[i].data_formula} of ${cfg.guides[i].name} guide`);
-                    cfg.guides[i].data_formula = this._expand(cfg.guides[i].data_formula, data); // eslint-disable-line no-param-reassign
-                }
+        // expand templates in guide data_formulas
+        for (let i = 0; i < cfg.guides.length; i++) {
+            if (cfg.guides[i].data_formula.indexOf('{{') !== -1) {
+                console.log(`\tInterpolating data_formula ${cfg.guides[i].data_formula} of ${cfg.guides[i].name} guide`);
+                cfg.guides[i].data_formula = this._expand(cfg.guides[i].data_formula, data); // eslint-disable-line no-param-reassign
             }
         }
 

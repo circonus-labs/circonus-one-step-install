@@ -819,8 +819,7 @@ class Config extends Registration {
             }
         }
 
-        // expand templates in guiedes
-        // used by e.g. graph-cpu template (uses #cpus)
+        // expand templates in guide data_formulas
         for (let i = 0; i < cfg.guides.length; i++) {
             if (cfg.guides[i].data_formula.indexOf('{{') !== -1) {
                 console.log(`\tInterpolating data_formula ${cfg.guides[i].data_formula} of ${cfg.guides[i].name} guide`);
