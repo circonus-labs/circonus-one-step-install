@@ -1054,7 +1054,12 @@ cosi_register() {
     "${cosi_dir}/bin/cosi" worksheet list --long
 
     echo
-    echo "To see any of these lists again in the future run, ${cosi_dir}/bin/cosi (graph|check|worksheet) list --long"
+    pass "--- Dashboard created ---"
+    log "running: '${cosi_dir}/bin/cosi dashboard list --long'"
+    "${cosi_dir}/bin/cosi" dashboard list --long
+
+    echo
+    echo "To see any of these lists again in the future run, ${cosi_dir}/bin/cosi (graph|check|worksheet|dashboard) list --long"
     echo
 }
 
