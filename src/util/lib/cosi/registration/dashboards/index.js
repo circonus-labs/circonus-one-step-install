@@ -307,23 +307,26 @@ class Dashboards extends Registration {
             config.title = this._expand(config.title, data);
 
             console.log(`\tConfiguring graph widgets`);
-            for (let i = config.widgets.length - 1; i >= 0; i--) {
-                const widget = config.widgets[i];
-
+            config.widgets = config.widgets.map((widget) => {
                 if (widget.type !== 'graph') {
-                    continue;
+                    return widget; // pass on unchanged
                 }
 
                 const graphIdx = this._findWidgetGraph(widget, metaData);
 
                 if (graphIdx === -1) {
                     console.log(chalk.yellow('\tWARN'), 'No graph found for', widget.widget_id, 'with tag', widget.tags);
-                    continue;
+                    return false; // delete from list
                 }
+
+                // configure widget
                 widget.settings.graph_id = this.graphs[graphIdx].id;
                 widget.settings.label = this._expand(widget.settings.label, data);
-                delete widget.tags; // tags property used to match graphs, remove before submission
-            }
+                delete widget.tags; // The tags property is only used to match graphs, remove it before submission
+                return widget;
+            }).filter((widget) => {
+                return widget; // remove deleted widgets
+            });
 
             console.log(`\tConfiguring gauge widgets`);
             for (let i = config.widgets.length - 1; i >= 0; i--) {
