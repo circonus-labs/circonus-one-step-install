@@ -654,15 +654,18 @@ class Dashboards extends Registration {
      */
     _findWidgetGraph(widget, metaData) {
         for (let graphIdx = 0; graphIdx < this.graphs.length; graphIdx++) {
+            const graph = this.graphs[graphIdx];
             for (let j = 0; j < widget.tags.length; j++) {
-                if (this.graphs[graphIdx].tags.indexOf(widget.tags[j]) !== -1) {
+                const tag = widget.tags[j];
+                if (graph.tags.indexOf(tag) !== -1) { // graph contains tag?
                     return graphIdx;
                 }
                 for (let sgIdx = 0; sgIdx < metaData.sys_graphs.length; sgIdx++) {
-                    if (metaData.sys_graphs[sgIdx].dashboard_tag !== widget.tags[j]) {
+                    const sys_graph = metaData.sys_graphs[sgIdx];
+                    if (sys_graph.dashboard_tag !== tag) {
                         continue;
                     }
-                    if (this.graphs[graphIdx].instance_name === metaData.sys_graphs[sgIdx].instance_name) {
+                    if (graph.instance_name === sys_graph.instance_name) {
                         return graphIdx;
                     }
                 }
