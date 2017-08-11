@@ -819,13 +819,12 @@ class Config extends Registration {
             }
         }
 
-        // set guide for graph-load template (uses #cpus)
-        if (id === 'graph-load' && cfg.guides.length > 0) {
-            for (let i = 0; i < cfg.guides.length; i++) {
-                if (cfg.guides[i].data_formula.indexOf('{{') !== -1) {
-                    console.log(`\tInterpolating data_formula ${cfg.guides[i].data_formula} of ${cfg.guides[i].name} guide`);
-                    cfg.guides[i].data_formula = this._expand(cfg.guides[i].data_formula, data); // eslint-disable-line no-param-reassign
-                }
+        // expand templates in guiedes
+        // used by e.g. graph-cpu template (uses #cpus)
+        for (let i = 0; i < cfg.guides.length; i++) {
+            if (cfg.guides[i].data_formula.indexOf('{{') !== -1) {
+                console.log(`\tInterpolating data_formula ${cfg.guides[i].data_formula} of ${cfg.guides[i].name} guide`);
+                cfg.guides[i].data_formula = this._expand(cfg.guides[i].data_formula, data); // eslint-disable-line no-param-reassign
             }
         }
     }
