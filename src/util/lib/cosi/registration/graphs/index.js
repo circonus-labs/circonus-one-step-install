@@ -308,11 +308,14 @@ class Graphs extends Registration {
 
         const graphId = `${template.type}-${template.id}`;
 
-        // compile list of all metrics
         const self = this;
-        var metrics = [];
-        Object.keys(self.metrics).forEach(function(id){
-            metrics = metrics.concat(Object.keys(self.metrics[id]).map((val) => { return `${id}\`${val}`; }));
+
+        // compile list of all metrics
+        const metrics = [];
+        Object.keys(self.metrics).forEach((id) => {
+            Object.keys(self.metrics[id]).forEach((val) => {
+                metrics.push(`${id}\`${val}`);
+            });
         });
 
         const indexer = new Indexer();
