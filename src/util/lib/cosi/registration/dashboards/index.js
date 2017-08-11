@@ -242,7 +242,7 @@ class Dashboards extends Registration {
             console.log(chalk.blue(this.marker));
             console.log(`Configuring dasbhoard`);
 
-            const templateMatch = template.file.match(/^template-dashboard-([^-]+)(.*)\.json$/);
+            const templateMatch = template.file.match(/^template-dashboard-([^-]+)(?:-(.*))?\.json$/);
 
             if (templateMatch === null) {
                 reject(new Error(`Invalid template, no instance found. ${template.file}`));
@@ -250,8 +250,8 @@ class Dashboards extends Registration {
                 return;
             }
 
-            const dashboardID = `${templateMatch[1]}-${templateMatch[2]}`;
-            const dashboardInstance = templateMatch[2].substr(1) || null;
+            const dashboardInstance = templateMatch[2] || 0;
+            const dashboardID = `${templateMatch[1]}-${dashboardInstance}`;
             const templateFile = path.resolve(path.join(cosi.reg_dir, template.file));
             const configFile = templateFile.replace('template-', 'config-');
 
