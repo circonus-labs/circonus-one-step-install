@@ -327,6 +327,7 @@ class Graphs extends Registration {
                 metrics.push(`${id}\`${val}`);
             });
         });
+        metrics.sort();
 
         const indexer = new Indexer();
         const datapoints_filled = [];
