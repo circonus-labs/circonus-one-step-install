@@ -207,9 +207,16 @@ class Graphs extends Registration {
             console.log(`\tUsing template ${templateFile}`);
 
             for (let graphIdx = 0; graphIdx < template.graphs.length; graphIdx++) {
-                if (template.variable_metrics) {
+                const graph = template.graphs[graphIdx];
+                if (graph.variable === undefined && template.variable_metrics) {
+                    graph.variable = true;
+                    graph.filter = template.filter;
+                }
+                if (graph.variable) {
                     this.configVariableGraph(template, graphIdx);
                 } else {
+                    delete graph.variable;
+                    delete graph.filter;
                     this.configStaticGraph(template, graphIdx);
                 }
             }
@@ -262,6 +269,9 @@ class Graphs extends Registration {
 
             this._setTags(graph, graphId);
             this._setCustomGraphOptions(graph, graphId);
+
+            delete graph.variable;
+            delete graph.filter;
 
             try {
                 fs.writeFileSync(cfgFile, JSON.stringify(graph, null, 4), {
@@ -361,6 +371,8 @@ class Graphs extends Registration {
                     console.log(`\tNo matches found for ${dp.metric_name}`);
                 }
             } else { // not variable: pass on as is
+                delete dp.variable;
+                delete dp.filter;
                 datapoints_filled.push(dp);
             }
         }
@@ -506,8 +518,10 @@ class Graphs extends Registration {
 
         const variableMetrics = {};
 
+        const graph = template.graphs[graphIdx];
+
         // cherry pick metrics actually needed
-        for (let dpIdx = 0; dpIdx < template.graphs[graphIdx].datapoints.length; dpIdx++) {
+        for (let dpIdx = 0; dpIdx < graph.datapoints.length; dpIdx++) {
             const dp = template.graphs[graphIdx].datapoints[dpIdx];             // "metric_name": "fs`([^`]+)`df_used_percent"
 
             for (const metric of metrics) {
@@ -517,10 +531,10 @@ class Graphs extends Registration {
                     const item = parts[1];                                      // eg /sys/fs/cgroup
                     let keepMetric = true;                                      // default, keep all metrics
 
-                    if (template.filter) {                                      // apply filters, if configured in template
-                        if (template.filter.include && Array.isArray(template.filter.include)) { // eslint-disable-line max-depth
+                    if (graph.filter) {                                      // apply filters, if configured in template
+                        if (graph.filter.include && Array.isArray(graph.filter.include)) { // eslint-disable-line max-depth
                             keepMetric = false;
-                            for (const filter of template.filter.include) { // eslint-disable-line max-depth
+                            for (const filter of graph.filter.include) { // eslint-disable-line max-depth
                                 if (item.match(filter) !== null) { // eslint-disable-line max-depth
                                     keepMetric = true;
                                     break;
@@ -528,8 +542,8 @@ class Graphs extends Registration {
                             }
                         }
 
-                        if (keepMetric && template.filter.exclude && Array.isArray(template.filter.exclude)) { // eslint-disable-line max-depth, max-len
-                            for (const filter of template.filter.exclude) { // eslint-disable-line max-depth
+                        if (keepMetric && graph.filter.exclude && Array.isArray(graph.filter.exclude)) { // eslint-disable-line max-depth, max-len
+                            for (const filter of graph.filter.exclude) { // eslint-disable-line max-depth
                                 if (item.match(filter) !== null) { // eslint-disable-line max-depth
                                     keepMetric = false;
                                     break;
