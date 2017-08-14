@@ -223,7 +223,7 @@
                 "origin": "g0",
                 "height": 1,
                 "settings": {
-                    "markup": "<ul><li>Correctable ECC events</li><li>CPU faults</li></ul>",
+                    "markup": "<ul><li>Check `perf(1)` for processor specific error events</li></ul>",
                     "title": "CPU Errors"
                 },
                 "type": "html",
@@ -236,7 +236,7 @@
                 "origin": "g1",
                 "height": 1,
                 "settings": {
-                    "markup": "<ul><li>physical failures (dmesg)</li><li>failed malloc()s</li></ul><br><br>Saturation is missing OOM Killer events (dmesg)",
+                    "markup": "<ul><li>Check dmesg for physical failures</li><li>Check failed malloc()'s with SystemTab</li></ul>",
                     "title": "Memory Errors"
                 },
                 "type": "html",
@@ -273,7 +273,7 @@
                 "origin": "g3",
                 "height": 1,
                 "settings": {
-                    "markup": "<ul><li>/sys/devices/../ioerr_cnt (not available)</li><li>smartctl (not available)</li><li>tracing of the IO subsystem (TBD ?)</li></ul>",
+                    "markup": "<ul><li>Check /sys/devices/../ioerr_cnt</li><li>Check smartctl</li><li>Trace the IO subsystem for error response codes</li></ul>",
                     "title": "Disk Errors"
                 },
                 "type": "html",
