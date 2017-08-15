@@ -9,7 +9,7 @@
     },
     "derive": null,
     "link": null,
-    "metric_name": "load`1min",
+    "metric_name": "loadavg`1",
     "metric_type": "numeric",
     "notes": "run queue exceeds number of cpus on this 1 cpu system for last 5 consecutive minutes.",
     "parent": null,
