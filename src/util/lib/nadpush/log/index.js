@@ -1,21 +1,22 @@
-/*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers */
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-"use strict";
+'use strict';
 
-module.exports.info = function(msg) {
+module.exports.info = (msg) => {
     const dte = new Date();
 
     console.log(`${dte.toISOString()} INFO ${msg}`);
 };
 
-module.exports.warn = function(msg) {
+module.exports.warn = (msg) => {
     const dte = new Date();
 
     console.warn(`${dte.toISOString()} WARN ${msg}`);
 };
 
-module.exports.error = function(msg) {
+module.exports.error = (msg) => {
     const dte = new Date();
 
     console.error(`${dte.toISOString()} ERROR ${msg}`);

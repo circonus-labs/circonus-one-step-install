@@ -1,47 +1,50 @@
-/*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers, no-process-exit, camelcase, no-process-env */
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-"use strict";
+'use strict';
 
-const path = require("path");
-const url = require("url");
-const util = require("util");
-const ProxyAgent = require("https-proxy-agent");
+const path = require('path');
+const url = require('url');
+const util = require('util');
+const ProxyAgent = require('https-proxy-agent');
 
-const options = require("commander");
+const options = require('commander');
 
-const CERT_URL = "http://login.circonus.com/pki/ca.crt";
-const DEFAULT_CONFIG_FILE = "/opt/circonus/etc/circonus-nadpush.json";
-const DEFAULT_GROUP = "nobody";
-const DEFAULT_NAD_URL = "http://127.0.0.1:2609/";
+const CERT_URL = 'http://login.circonus.com/pki/ca.crt';
+const DEFAULT_CONFIG_FILE = '/opt/circonus/etc/circonus-nadpush.json';
+const DEFAULT_GROUP = 'nobody';
+const DEFAULT_NAD_URL = 'http://127.0.0.1:2609/';
 const DEFAULT_POLL_INTERVAL = 60;
 const DEFAULT_REQUEST_TIMEOUT = 15;
 const DEFAULT_SILENT = false;
-const DEFAULT_USER = "nobody";
+const DEFAULT_USER = 'nobody';
 const DEFAULT_VERBOSE = false;
 
 let instance = null;
 
+/**
+ * getProxySettings extracts any proxy set in the environment
+ * @arg {String} urlProtocol protocol for url
+ * @returns {String} setting or NULL
+ */
 function getProxySettings(urlProtocol) {
     let proxyServer = null;
 
-    if (urlProtocol === "http:") {
-        if (process.env.hasOwnProperty("http_proxy")) {
+    if (urlProtocol === 'http:') {
+        if ({}.hasOwnProperty.call(process.env, 'http_proxy')) {
             proxyServer = process.env.http_proxy;
-        }
-        else if (process.env.hasOwnProperty("HTTP_PROXY")) {
+        } else if ({}.hasOwnProperty.call(process.env, 'HTTP_PROXY')) {
             proxyServer = process.env.HTTP_PROXY;
         }
-    }
-    else if (urlProtocol === "https:") {
-        if (process.env.hasOwnProperty("https_proxy")) {
+    } else if (urlProtocol === 'https:') {
+        if ({}.hasOwnProperty.call(process.env, 'https_proxy')) {
             proxyServer = process.env.https_proxy;
-        }
-        else if (process.env.hasOwnProperty("HTTPS_PROXY")) {
+        } else if ({}.hasOwnProperty.call(process.env, 'HTTPS_PROXY')) {
             proxyServer = process.env.HTTPS_PROXY;
         }
     }
-    if (proxyServer !== null && proxyServer !== "") {
+    if (proxyServer !== null && proxyServer !== '') {
         if (!proxyServer.match(/^http[s]?:\/\//)) {
             proxyServer = `http://${proxyServer}`;
         }
@@ -51,15 +54,20 @@ function getProxySettings(urlProtocol) {
 }
 
 class Settings {
-    constructor() {
+
+    /**
+     * create new settrings Object
+     * @returns {Object} settings
+     */
+    constructor() { // eslint-disable-line complexity, max-statements
         if (instance !== null) {
             return instance;
         }
 
-        instance = this; //eslint-disable-line consistent-this
+        instance = this; // eslint-disable-line consistent-this
 
-        this.name = "circonus-nadpush";
-        this.version = "1.0.0";
+        this.name = 'circonus-nadpush';
+        this.version = '1.0.0';
         this.cert_file = null;
         this.cert_url = null;
         this.check_url = null;
@@ -76,17 +84,17 @@ class Settings {
         // parse command line options
         options.
             version(this.version).
-            option("-c, --config <path>", util.format("JSON configuration file [none] e.g. %s", DEFAULT_CONFIG_FILE), null).
-            option("-i, --interval <n>", util.format("Polling interval [%d] seconds", DEFAULT_POLL_INTERVAL), null).
-            option("-t, --timeout <n>", util.format("Request timeout [%d] seconds", DEFAULT_POLL_INTERVAL), null).
-            option("-u, --user <user>", util.format("User to run daemon as [%s]", DEFAULT_USER), null).
-            option("-g, --group <group>", util.format("Group to run daemon as [%s]", DEFAULT_GROUP), null).
-            option("--nad_url <url>", util.format("NAD URL [%s]", DEFAULT_NAD_URL), null).
-            option("--check_url <url>", "HTTPTRAP check URL [none]", null).
-            option("--cert_url <url>", util.format("Broker CA certificate URL [%s]", CERT_URL), null).
-            option("--cert_file <path>", "Broker CA certificate file [none]", null).
-            option("-v, --verbose", "Output more verbose log lines [false] verbose takes precedence over silent.", null).
-            option("-s, --silent", "Output no messages at all [false]. Use to silence output re:sent metrics.", null).
+            option('-c, --config <path>', util.format('JSON configuration file [none] e.g. %s', DEFAULT_CONFIG_FILE), null).
+            option('-i, --interval <n>', util.format('Polling interval [%d] seconds', DEFAULT_POLL_INTERVAL), null).
+            option('-t, --timeout <n>', util.format('Request timeout [%d] seconds', DEFAULT_POLL_INTERVAL), null).
+            option('-u, --user <user>', util.format('User to run daemon as [%s]', DEFAULT_USER), null).
+            option('-g, --group <group>', util.format('Group to run daemon as [%s]', DEFAULT_GROUP), null).
+            option('--nad_url <url>', util.format('NAD URL [%s]', DEFAULT_NAD_URL), null).
+            option('--check_url <url>', 'HTTPTRAP check URL [none]', null).
+            option('--cert_url <url>', util.format('Broker CA certificate URL [%s]', CERT_URL), null).
+            option('--cert_file <path>', 'Broker CA certificate file [none]', null).
+            option('-v, --verbose', 'Output more verbose log lines [false] verbose takes precedence over silent.', null).
+            option('-s, --silent', 'Output no messages at all [false]. Use to silence output re:sent metrics.', null).
             parse(process.argv);
 
         // load config, if specified
@@ -95,8 +103,7 @@ class Settings {
         if (options.config !== null) {
             try {
                 config = require(path.resolve(options.config)); // eslint-disable-line global-require
-            }
-            catch (err) {
+            } catch (err) {
                 // fail, if a config file is specified and there is an error loading it
                 console.error(err);
                 process.exit(1);
@@ -120,7 +127,7 @@ class Settings {
         const check_url = options.check_url || config.check_url || null;
 
         if (check_url === null) {
-            console.error("A valid Circonus HTTPTRAP check submission URL is required, on command line or in a configuration file.");
+            console.error('A valid Circonus HTTPTRAP check submission URL is required, on command line or in a configuration file.');
             options.outputHelp();
             process.exit(1);
         }
@@ -142,11 +149,10 @@ class Settings {
         }
 
         if (this.check_url === null) {
-            console.error("A valid Circonus HTTPTRAP check submission URL is required, on command line or in a configuration file.");
+            console.error('A valid Circonus HTTPTRAP check submission URL is required, on command line or in a configuration file.');
             options.outputHelp();
             process.exit(1);
-        }
-        else {
+        } else {
             this.send_req_opts = url.parse(this.check_url);
             const proxyServer = getProxySettings(this.send_req_opts.protocol);
 
@@ -154,10 +160,10 @@ class Settings {
                 this.send_req_opts.agent = new ProxyAgent(proxyServer);
                 this.send_req_opts.timeout = 15 * 1000;
             }
-            this.send_req_opts.method = "PUT";
+            this.send_req_opts.method = 'PUT';
             this.send_req_opts.headers = {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
+                'Accept'       : 'application/json',
+                'Content-Type' : 'application/json'
             };
             this.send_req_opts.ca = [];
             // adding support to leverage CN/external_hostname to avoid
@@ -172,11 +178,11 @@ class Settings {
         const cmdline = process.argv.slice(2);
 
         cmdline.unshift(this.name);
-        process.title = cmdline.join(" ");
+        process.title = cmdline.join(' ');
 
         // drop privileges (on non-windows platforms)
         if (this.user !== null) {
-            if (process.platform !== "win32") {
+            if (process.platform !== 'win32') {
                 if (this.group !== null) {
                     process.setgid(this.group);
                 }
@@ -186,6 +192,7 @@ class Settings {
 
         return instance;
     }
+
 }
 
 module.exports = new Settings();

@@ -1,53 +1,60 @@
-/*eslint-env node, es6 */
-/*eslint-disable no-magic-numbers */
-"use strict";
+// Copyright 2016 Circonus, Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-const http = require("http");
-const https = require("https");
-const fs = require("fs");
+'use strict';
+
+const http = require('http');
+const https = require('https');
+const fs = require('fs');
 
 //
 // broker ca certificate loader
 //
-module.exports.load = function(certFile, certURL, cb) { //eslint-disable-line consistent-return
-
+module.exports.load = (certFile, certURL, cb) => {
     if (certFile === null && certURL === null) {
-        return cb(new Error("Need file or URL to load Broker CA cert."));
+        cb(new Error('Need file or URL to load Broker CA cert.'));
+
+        return;
     }
 
     if (certFile !== null) {
         try {
             const cert = fs.readFileSync(certFile);
 
-            return cb(null, cert);
-        }
-        catch (err) {
-            return cb(err);
+            cb(null, cert);
+
+            return;
+        } catch (err) {
+            cb(err);
+
+            return;
         }
     }
 
     if (certURL !== null) {
-        const client = certURL.protocol === "https:" ? https : http;
+        const client = certURL.protocol === 'https:' ? https : http;
 
         client.get(certURL, (res) => {
-            let data = "";
+            let data = '';
 
-            res.on("data", (chunk) => {
+            res.on('data', (chunk) => {
                 data += chunk;
             });
 
-            res.on("end", () => {
+            res.on('end', () => {
                 if (res.statusCode !== 200) {
-                    return cb(new Error(`Error fetching CA cert (${certURL.href}) ${data}`));
-                }
-                return cb(null, data);
-            });
+                    cb(new Error(`Error fetching CA cert (${certURL.href}) ${data}`));
 
-        }).on("error", (err) => {
-            return cb(err);
+                    return;
+                }
+
+                cb(null, data);
+            });
+        }).on('error', (err) => {
+            cb(err);
         });
     }
-
 };
 
 
