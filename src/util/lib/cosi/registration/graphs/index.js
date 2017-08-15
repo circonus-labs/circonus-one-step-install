@@ -329,7 +329,6 @@ class Graphs extends Registration {
         });
         metrics.sort();
 
-        const indexer = new Indexer();
         const datapoints_filled = [];
         for (let i = 0; i < graph.datapoints.length; i++) {
             const dp = graph.datapoints[i];
@@ -339,35 +338,44 @@ class Graphs extends Registration {
 
             if (dp.variable) {
                 var match_count = 0;
-                // remove property before sending the object to the Circonus API
-                delete dp.variable;
+
                 // fill in matching datapoints
                 for (const metric of metrics) {
                     const match = metric.match(dp.metric_name);
                     if(match) {
+
+                        // create a function, so we can bail out early
                         (function() {
                             match_count++;
-                            if (dp.filter) { // apply filters
+
+                            // apply filters
+                            if (dp.filter) {
                                 const dp_filter = dp.filter;
-                                delete dp.filter;
                                 for (const filter of dp_filter.exclude) {
-                                    if (metric.match(filter)) return;
+                                    if (metric.match(filter)) {
+                                        return; // bail
+                                    }
                                 }
                             }
+
+                            // store a copy
                             console.log(`\tFilling in datapoint ${metric}`);
                             const dp_copy = JSON.parse(JSON.stringify(dp));
                             dp_copy.metric_name = metric;
-                            dp_copy.name = self._expand(dp_copy.name, {
-                                match : match,
-                                metric : metric
-                            });
-                            dp_copy.stack = Number(self._expand(String(dp_copy.stack), {
-                                match_idx : indexer.index(match[1])
-                            }));
+
+                            // stash a copy of the matched string for use in template creation
+                            // not very clean, but it works.
+                            dp_copy.match = match[1];
+
                             datapoints_filled.push(dp_copy);
                         })();
                     }
                 }
+
+                // remove property before sending the object to the Circonus API
+                delete dp.variable;
+                delete dp.filter;
+
                 if (match_count == 0) {
                     console.log(`\tNo matches found for ${dp.metric_name}`);
                 }
@@ -634,16 +642,32 @@ class Graphs extends Registration {
             cfg[opt] = this._expand(cfg[opt], data); // eslint-disable-line no-param-reassign
         }
 
-        // expand templates in C:AQL statements
+        const indexer = new Indexer();
+
+        // expand templates in datapoints
         for (let dpIdx = 0; dpIdx < cfg.datapoints.length; dpIdx++) {
             const dp = cfg.datapoints[dpIdx];
 
+            // extend data for datapoint templates
+            const metric_data = Object.create(data);
+            metric_data['match'] = dp.match;
+            metric_data['match_idx'] = indexer.index(dp.match);
+            metric_data['metric'] = dp.metric_name;
+            delete dp.match; // clean up dp.match before sending the object to the API
+
+            // expand CAQL statements
             if ({}.hasOwnProperty.call(dp, 'caql')) {
                 if (dp.metric_name === null && dp.caql !== null) {
                     console.log(`\tInterpolating C:AQL statement ${dp.caql} for metric ${dp.metric_name}`);
                     cfg.datapoints[dpIdx].caql = this._expand(dp.caql, data); // eslint-disable-line no-param-reassign
                 }
             }
+
+            // expand metric names
+            dp.name = this._expand(dp.name, metric_data);
+
+            // expand stack index
+            dp.stack = Number(this._expand(String(dp.stack), metric_data));
         }
 
         // expand templates in guide data_formulas
@@ -661,6 +685,7 @@ class Graphs extends Registration {
                 cfg.tags[i] = this._expand(cfg.tags[i], data); // eslint-disable-line no-param-reassign
             }
         }
+
     }
 
 }
