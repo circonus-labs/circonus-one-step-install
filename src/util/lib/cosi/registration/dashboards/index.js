@@ -286,9 +286,9 @@ class Dashboards extends Registration {
 
             for (let i = 0; i < metaData.sys_graphs.length; i++) {
                 metaData.sys_graphs[i].instance_name = [
-                metaData.sys_graphs[i].metric_group,
-                metaData.sys_graphs[i].graph_instance === null ? 0 : metaData.sys_graphs[i].graph_instance,
-                metaData.sys_graphs[i].metric_item
+                    metaData.sys_graphs[i].metric_group,
+                    metaData.sys_graphs[i].graph_instance === null ? 0 : metaData.sys_graphs[i].graph_instance,
+                    metaData.sys_graphs[i].metric_item
                 ].join('-');
             }
 
