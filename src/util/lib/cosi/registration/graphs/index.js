@@ -372,10 +372,6 @@ class Graphs extends Registration {
                     }
                 }
 
-                // remove property before sending the object to the Circonus API
-                delete dp.variable;
-                delete dp.filter;
-
                 if (match_count == 0) {
                     console.log(`\tNo matches found for ${dp.metric_name}`);
                 }
@@ -653,7 +649,6 @@ class Graphs extends Registration {
             metric_data['match'] = dp.match;
             metric_data['match_idx'] = indexer.index(dp.match);
             metric_data['metric'] = dp.metric_name;
-            delete dp.match; // clean up dp.match before sending the object to the API
 
             // expand CAQL statements
             if ({}.hasOwnProperty.call(dp, 'caql')) {
@@ -664,10 +659,24 @@ class Graphs extends Registration {
             }
 
             // expand metric names
-            dp.name = this._expand(dp.name, metric_data);
+            if (dp.name.indexOf('{{') !== -1) {
+                dp.name = this._expand(dp.name, metric_data);
+            }
 
             // expand stack index
-            dp.stack = Number(this._expand(String(dp.stack), metric_data));
+            if (dp.stack && String(dp.stack).indexOf('{{') !== -1) {
+                dp.stack = Number(this._expand(String(dp.stack), metric_data));
+            }
+
+            // expand data_formulas
+            if (dp.data_formula && dp.data_formula.indexOf('{{') !== -1) {
+                dp.data_formula = this._expand(dp.data_formula, metric_data);
+            }
+
+            // remove sneaked-in properties in dp
+            delete dp.variable;
+            delete dp.filter;
+            delete dp.match;
         }
 
         // expand templates in guide data_formulas
