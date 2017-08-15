@@ -364,8 +364,7 @@ class Graphs extends Registration {
                             dp_copy.metric_name = metric;
 
                             // stash a copy of the matched string for use in template creation
-                            // not very clean, but it works.
-                            dp_copy.match = match[1];
+                            dp_copy.match = match;
 
                             datapoints_filled.push(dp_copy);
                         })();
