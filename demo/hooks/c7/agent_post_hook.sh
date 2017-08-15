@@ -5,23 +5,14 @@ set -eu
 plugin_dir="/opt/circonus/nad/etc/node-agent.d"
 [[ ! -d "$plugin_dir" ]] && { echo "Unable to find NAD plugin directory '${plugin_dir}'"; exit 1; }
 
-linux_dir="${plugin_dir}/linux"
-[[ ! -d "$linux_dir" ]] && { echo "Unable to find NAD Linux plugin directory '${linux_dir}'"; exit 1; }
-
-# install additional nad plugins
+# install/enable additional nad plugins
 
 cd $plugin_dir
 
-# install nad memory plugin
-echo "Install NAD memory usage metrics plugin"
-mkdir -v nadmemory
-cp -v /vagrant/hooks/c7/nadmemory.js "${plugin_dir}/nadmemory/nadmemory.js"
-ln -s nadmemory/nadmemory.js .
-
-echo "Install load.sh for CentOS 7"
-curl -sSL "https://raw.githubusercontent.com/maier/circonus-nad-plugins/master/linux/load.sh" -o "${linux_dir}/load.sh"
-chmod 755 "${linux_dir}/load.sh"
-ln -s linux/load.sh .
+echo "Enabling loadavg (if needed)"
+if [[ -f common/loadavg.elf ]]; then
+    [[ -h loadavg.elf ]] || ln -s common/loadavg.elf
+fi
 
 set +e
 service nad restart
@@ -32,7 +23,6 @@ sleep 2
 
 echo "Installing example rulesets"
 mkdir -pv /opt/circonus/cosi/rulesets
-cp -v /vagrant/hooks/c7/ruleset-load.json /opt/circonus/cosi/rulesets/load.json
 cp -v /vagrant/hooks/c7/ruleset-analytic-example.json /opt/circonus/cosi/rulesets/cpu-idle.json
 
 ## END
