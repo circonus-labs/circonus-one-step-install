@@ -1,6 +1,6 @@
 {
   "name": "cosi-site",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "private": true,
   "license": "SEE LICENSE IN LICENSE",
   "description": "Circonus One Step Install registration API",
