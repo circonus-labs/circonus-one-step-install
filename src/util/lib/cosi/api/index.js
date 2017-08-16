@@ -8,7 +8,6 @@
 
 'use strict';
 
-const qs = require('querystring');
 const url = require('url');
 const path = require('path');
 const zlib = require('zlib');
@@ -306,7 +305,32 @@ class APIClient {
      * @returns {Object} options for request
      */
     get_request_options(method, endpoint, data) {
-        const options = url.parse(this.api_url);
+        // Create a basic request object for the URL which merges the base api url, the passed
+        // endpoint and data (for query, if applicable) - then add the settings for this
+        // specific request to the resulting object.
+        // An overlayed request object parsed directly from api_url does not always work correctly.
+        // This method ensures that path/pathname, host/hostname, etc. get set correctly.
+        const base_opts = url.parse(this.api_url);
+        const tmp_opts = {
+            host     : base_opts.host,
+            pathname : base_opts.pathname,
+            protocol : base_opts.protocol
+        };
+
+        if (data !== null) {
+            if (method === 'GET' && Object.keys(data).length > 0) {
+                tmp_opts.query = data;
+            }
+        }
+
+        if (endpoint.match(/^\//)) {
+            endpoint = endpoint.substring(1); // eslint-disable-line no-param-reassign
+        }
+
+        tmp_opts.pathname += endpoint;
+
+        // create the actual options to use for the request
+        const options = url.parse(url.format(tmp_opts));
 
         options.method = method.toUpperCase();
 
@@ -333,6 +357,8 @@ class APIClient {
             ]
         };
 
+        options.circapi.data = data || null;
+
         if (this.proxyServer !== null) {
             options.agent = new ProxyAgent(this.proxyServer);
         }
@@ -354,23 +380,11 @@ class APIClient {
             options.agent.maxCachedSessions = 0;
         }
 
-        options.circapi.data = data || null;
-
         if (options.circapi.data !== null) {
-            if (options.method === 'GET') {
-                if (Object.keys(options.circapi.data).length !== 0) {
-                    options.query += `?${qs.stringify(options.circapi.data)}`;
-                }
-            } else if (options.method === 'POST' || options.method === 'PUT') {
+            if (options.method === 'POST' || options.method === 'PUT') {
                 options.headers['Content-Length'] = JSON.stringify(options.circapi.data).length;
             }
         }
-
-        if (endpoint.match(/^\//)) {
-            endpoint = endpoint.substring(1); // eslint-disable-line no-param-reassign
-        }
-
-        options.path += endpoint;
 
         return options;
     }

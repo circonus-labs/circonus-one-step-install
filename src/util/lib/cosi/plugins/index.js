@@ -63,7 +63,7 @@ class Plugin extends Events {
         this.dashboardPrefix = null;    // set/override in subclass (if different from name)
         this.graphPrefix = null;        // set/override in subclass (if different from name)
         this.globalMetadata = {};       // add any global vars which should show up during registration (same level as host_* vars)
-                                        // note: these values will be visible to *all* visuals not just the plugin visuals
+        // note: globalMetadata values are available to *all* visuals not just the plugin visuals (watch names)
         this.state = {                  // override in subclass with result of enablePlugin
             enabled: false
         };

@@ -1,6 +1,6 @@
 {
   "name": "cosi-cli",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "Circonus One Step Install utility",
   "private": true,
   "author": "matt maier (https://github.com/maier)",
@@ -24,7 +24,7 @@
   "scripts": {
     "build": "make build",
     "package": "make package",
-    "lint": "node_modules/.bin/eslint bin/*.js lib/**/*.js",
+    "lint": "node_modules/.bin/eslint --cache bin/*.js lib/",
     "test": "node_modules/.bin/tape test/*.js",
     "showenv": "echo \"Host system $(uname -srv)\" ; vagrant --version ; echo \"Virtualbox $(vboxmanage --version)\" ; ansible --version ; echo \"Node $(node --version)\" ; echo 'Global npm modules'; npm ls -g --depth=0; echo 'Local npm modules' ; npm ls --depth=0"
   },

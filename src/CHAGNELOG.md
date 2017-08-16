@@ -1,3 +1,13 @@
+### 2.1.0 2017-08-15
+
+* fix api request object
+* update demo for current nad
+* es6/lint nadpush
+* upd npm lint command in package.json
+* remove obsolete files
+* simplify c7 agent hook demo
+* use Vagrantfile path to load configs in demo
+
 ### 2.0.1 2017-08-10
 
 * fix template list (promises, config ref)

@@ -195,9 +195,9 @@ class Checks extends Registration {
                 then((result) => {
                     try {
                         fs.writeFileSync(regFile, JSON.stringify(result, null, 4), {
-                        encoding : 'utf8',
-                        flag     : 'w',
-                        mode     : 0o644
+                            encoding : 'utf8',
+                            flag     : 'w',
+                            mode     : 0o644
                         });
                     } catch (errSave) {
                         reject(errSave);
@@ -373,11 +373,11 @@ class Checks extends Registration {
             if (this.agentMode === 'push') {
                 check.brokers = [ this.regConfig.broker.trap._cid ];
                 check.config = {
-                asynch_metrics : 'true',
-                secret         : crypto.
-                    randomBytes(2048).
-                    toString('hex').
-                    substr(0, 16)
+                    asynch_metrics : 'true',
+                    secret         : crypto.
+                        randomBytes(2048).
+                        toString('hex').
+                        substr(0, 16)
                 };
             } else {
                 check.brokers = [ this.regConfig.broker.json._cid ];
@@ -387,9 +387,9 @@ class Checks extends Registration {
             // some check types fail if there is not at least one metric...
             // add the activated metrics
             check.metrics = [ {
-                    name   : 'cosi_placeholder',
-                    status : 'active',
-                    type   : 'numeric'
+                name   : 'cosi_placeholder',
+                status : 'active',
+                type   : 'numeric'
             } ];
 
             // set the notes with cosi signature
@@ -401,12 +401,12 @@ class Checks extends Registration {
             // save the configuration
             try {
                 fs.writeFileSync(
-                configFile,
-                JSON.stringify(check, null, 4), {
-                    encoding : 'utf8',
-                    flag     : 'w',
-                    mode     : 0o644
-                });
+                    configFile,
+                    JSON.stringify(check, null, 4), {
+                        encoding : 'utf8',
+                        flag     : 'w',
+                        mode     : 0o644
+                    });
             } catch (err) {
                 reject(err);
 
@@ -619,12 +619,12 @@ class Checks extends Registration {
             // save the configuration
             try {
                 fs.writeFileSync(
-                configFile,
-                JSON.stringify(check, null, 4), {
-                    encoding : 'utf8',
-                    flag     : 'w',
-                    mode     : 0o644
-                });
+                    configFile,
+                    JSON.stringify(check, null, 4), {
+                        encoding : 'utf8',
+                        flag     : 'w',
+                        mode     : 0o644
+                    });
             } catch (err) {
                 reject(err);
 

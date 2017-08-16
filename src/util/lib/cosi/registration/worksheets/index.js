@@ -187,7 +187,7 @@ class Worksheets extends Registration {
      * @returns {Object} promise
      */
     finalizeWorksheets() { // eslint-disable-line class-methods-use-this
-         // NOP for now
+        // NOP for now
         return Promise.resolve();
     }
 
