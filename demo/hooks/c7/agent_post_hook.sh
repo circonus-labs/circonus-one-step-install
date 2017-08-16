@@ -23,7 +23,6 @@ sleep 2
 
 echo "Installing example rulesets"
 mkdir -pv /opt/circonus/cosi/rulesets
-cp -v /vagrant/hooks/c7/ruleset-load.json /opt/circonus/cosi/rulesets/load.json
 cp -v /vagrant/hooks/c7/ruleset-analytic-example.json /opt/circonus/cosi/rulesets/cpu-idle.json
 
 ## END
