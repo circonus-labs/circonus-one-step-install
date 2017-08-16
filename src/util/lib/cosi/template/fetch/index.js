@@ -150,8 +150,8 @@ class Fetch extends Events {
 
             metrics.getGroups().
                 then((groups) => {
-                // list of all templates applicable to this host
-                    const wantTemplates = [ 'check-system', 'worksheet-system' ];
+                    // list of all templates applicable to this host
+                    const wantTemplates = [ 'check-system', 'worksheet-system', 'dashboard-system' ];
 
                     if (this.enable_group_check) {
                         wantTemplates.push('check-group');

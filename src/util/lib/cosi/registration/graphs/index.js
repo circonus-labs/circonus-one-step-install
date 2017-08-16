@@ -17,6 +17,24 @@ const Template = require(path.resolve(path.join(cosi.lib_dir, 'template')));
 const templateList = require(path.resolve(path.join(cosi.lib_dir, 'template', 'list')));
 const Graph = require(path.resolve(path.join(cosi.lib_dir, 'graph')));
 
+/*
+ * Maintains integer indices for objects
+ */
+class Indexer {
+    constructor() {
+        this.store = {};
+        this.count = 0;
+    }
+    index(o) {
+        if(!this.store[o]) {
+            this.count += 1;
+            this.store[o] = this.count;
+        }
+        return this.count;
+    }
+}
+
+
 class Graphs extends Registration {
 
     /**
@@ -189,9 +207,16 @@ class Graphs extends Registration {
             console.log(`\tUsing template ${templateFile}`);
 
             for (let graphIdx = 0; graphIdx < template.graphs.length; graphIdx++) {
-                if (template.variable_metrics) {
+                const graph = template.graphs[graphIdx];
+                if (graph.variable === undefined && template.variable_metrics) {
+                    graph.variable = true;
+                    graph.filter = template.filter;
+                }
+                if (graph.variable) {
                     this.configVariableGraph(template, graphIdx);
                 } else {
+                    delete graph.variable;
+                    delete graph.filter;
                     this.configStaticGraph(template, graphIdx);
                 }
             }
@@ -245,6 +270,9 @@ class Graphs extends Registration {
             this._setTags(graph, graphId);
             this._setCustomGraphOptions(graph, graphId);
 
+            delete graph.variable;
+            delete graph.filter;
+
             try {
                 fs.writeFileSync(cfgFile, JSON.stringify(graph, null, 4), {
                     encoding : 'utf8',
@@ -290,9 +318,69 @@ class Graphs extends Registration {
 
         const graphId = `${template.type}-${template.id}`;
 
+        const self = this;
+
+        // compile list of all metrics
+        const metrics = [];
+        Object.keys(self.metrics).forEach((id) => {
+            Object.keys(self.metrics[id]).forEach((val) => {
+                metrics.push(`${id}\`${val}`);
+            });
+        });
+        metrics.sort();
+
+        const datapoints_filled = [];
         for (let i = 0; i < graph.datapoints.length; i++) {
-            graph.datapoints[i].check_id = this.checkMeta.system.id;
+            const dp = graph.datapoints[i];
+
+            // insert check ID
+            dp.check_id = this.checkMeta.system.id;
+
+            if (dp.variable) {
+                var match_count = 0;
+
+                // fill in matching datapoints
+                for (const metric of metrics) {
+                    const match = metric.match(dp.metric_name);
+                    if(match) {
+
+                        // create a function, so we can bail out early
+                        (function() {
+                            match_count++;
+
+                            // apply filters
+                            if (dp.filter) {
+                                const dp_filter = dp.filter;
+                                for (const filter of dp_filter.exclude) {
+                                    if (metric.match(filter)) {
+                                        return; // bail
+                                    }
+                                }
+                            }
+
+                            // store a copy
+                            console.log(`\tFilling in datapoint ${metric}`);
+                            const dp_copy = JSON.parse(JSON.stringify(dp));
+                            dp_copy.metric_name = metric;
+
+                            // stash a copy of the matched string for use in template creation
+                            dp_copy.match = match;
+
+                            datapoints_filled.push(dp_copy);
+                        })();
+                    }
+                }
+
+                if (match_count == 0) {
+                    console.log(`\tNo matches found for ${dp.metric_name}`);
+                }
+            } else { // not variable: pass on as is
+                delete dp.variable;
+                delete dp.filter;
+                datapoints_filled.push(dp);
+            }
         }
+        graph.datapoints = datapoints_filled;
 
         this._setTags(graph, graphId);
         this._setCustomGraphOptions(graph, graphId);
@@ -425,6 +513,8 @@ class Graphs extends Registration {
         assert.equal(typeof template, 'object', 'template is required');
         assert.equal(typeof graphIdx, 'number', 'graphIdx is required');
 
+        const self = this;
+
         // flat list of full metric names metric_group`metric_name (fs`/sys/fs/cgroup`df_used_percent)
         const metrics = Object.keys(this.metrics[template.id]).map((val) => {
             return `${template.id}\`${val}`;
@@ -432,8 +522,10 @@ class Graphs extends Registration {
 
         const variableMetrics = {};
 
+        const graph = template.graphs[graphIdx];
+
         // cherry pick metrics actually needed
-        for (let dpIdx = 0; dpIdx < template.graphs[graphIdx].datapoints.length; dpIdx++) {
+        for (let dpIdx = 0; dpIdx < graph.datapoints.length; dpIdx++) {
             const dp = template.graphs[graphIdx].datapoints[dpIdx];             // "metric_name": "fs`([^`]+)`df_used_percent"
 
             for (const metric of metrics) {
@@ -443,10 +535,10 @@ class Graphs extends Registration {
                     const item = parts[1];                                      // eg /sys/fs/cgroup
                     let keepMetric = true;                                      // default, keep all metrics
 
-                    if (template.filter) {                                      // apply filters, if configured in template
-                        if (template.filter.include && Array.isArray(template.filter.include)) { // eslint-disable-line max-depth
+                    if (graph.filter) {                                      // apply filters, if configured in template
+                        if (graph.filter.include && Array.isArray(graph.filter.include)) { // eslint-disable-line max-depth
                             keepMetric = false;
-                            for (const filter of template.filter.include) { // eslint-disable-line max-depth
+                            for (const filter of graph.filter.include) { // eslint-disable-line max-depth
                                 if (item.match(filter) !== null) { // eslint-disable-line max-depth
                                     keepMetric = true;
                                     break;
@@ -454,8 +546,8 @@ class Graphs extends Registration {
                             }
                         }
 
-                        if (keepMetric && template.filter.exclude && Array.isArray(template.filter.exclude)) { // eslint-disable-line max-depth, max-len
-                            for (const filter of template.filter.exclude) { // eslint-disable-line max-depth
+                        if (keepMetric && graph.filter.exclude && Array.isArray(graph.filter.exclude)) { // eslint-disable-line max-depth, max-len
+                            for (const filter of graph.filter.exclude) { // eslint-disable-line max-depth
                                 if (item.match(filter) !== null) { // eslint-disable-line max-depth
                                     keepMetric = false;
                                     break;
@@ -545,25 +637,52 @@ class Graphs extends Registration {
             cfg[opt] = this._expand(cfg[opt], data); // eslint-disable-line no-param-reassign
         }
 
-        // expand templats in C:AQL statements
+        const indexer = new Indexer();
+
+        // expand templates in datapoints
         for (let dpIdx = 0; dpIdx < cfg.datapoints.length; dpIdx++) {
             const dp = cfg.datapoints[dpIdx];
 
+            // extend data for datapoint templates
+            const metric_data = Object.create(data);
+            metric_data['match'] = dp.match;
+            metric_data['match_idx'] = indexer.index(dp.match);
+            metric_data['metric_name'] = dp.metric_name;
+
+            // expand CAQL statements
             if ({}.hasOwnProperty.call(dp, 'caql')) {
                 if (dp.metric_name === null && dp.caql !== null) {
                     console.log(`\tInterpolating C:AQL statement ${dp.caql} for metric ${dp.metric_name}`);
                     cfg.datapoints[dpIdx].caql = this._expand(dp.caql, data); // eslint-disable-line no-param-reassign
                 }
             }
+
+            // expand metric names
+            if (dp.name && dp.name.indexOf('{{') !== -1) {
+                dp.name = this._expand(dp.name, metric_data);
+            }
+
+            // expand stack index
+            if (dp.stack && String(dp.stack).indexOf('{{') !== -1) {
+                dp.stack = Number(this._expand(String(dp.stack), metric_data));
+            }
+
+            // expand data_formulas
+            if (dp.data_formula && dp.data_formula.indexOf('{{') !== -1) {
+                dp.data_formula = this._expand(dp.data_formula, metric_data);
+            }
+
+            // remove sneaked-in properties in dp
+            delete dp.variable;
+            delete dp.filter;
+            delete dp.match;
         }
 
-        // set guide for graph-load template (uses #cpus)
-        if (id === 'graph-load' && cfg.guides.length > 0) {
-            for (let i = 0; i < cfg.guides.length; i++) {
-                if (cfg.guides[i].data_formula.indexOf('{{') !== -1) {
-                    console.log(`\tInterpolating data_formula ${cfg.guides[i].data_formula} of ${cfg.guides[i].name} guide`);
-                    cfg.guides[i].data_formula = this._expand(cfg.guides[i].data_formula, data); // eslint-disable-line no-param-reassign
-                }
+        // expand templates in guide data_formulas
+        for (let i = 0; i < cfg.guides.length; i++) {
+            if (cfg.guides[i].data_formula.indexOf('{{') !== -1) {
+                console.log(`\tInterpolating data_formula ${cfg.guides[i].data_formula} of ${cfg.guides[i].name} guide`);
+                cfg.guides[i].data_formula = this._expand(cfg.guides[i].data_formula, data); // eslint-disable-line no-param-reassign
             }
         }
 
@@ -574,6 +693,7 @@ class Graphs extends Registration {
                 cfg.tags[i] = this._expand(cfg.tags[i], data); // eslint-disable-line no-param-reassign
             }
         }
+
     }
 
 }
