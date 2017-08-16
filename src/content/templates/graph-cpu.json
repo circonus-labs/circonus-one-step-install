@@ -20,8 +20,8 @@
                     "hidden": false,
                     "legend_formula": "=round(VAL,2)",
                     "metric_name": "cpu`kernel",
+                    "name" : "{{=cosi.metric_name}}",
                     "metric_type": "numeric",
-                    "name": "CPU :: System",
                     "stack": 0
                 },
                 {
@@ -35,8 +35,8 @@
                     "hidden": false,
                     "legend_formula": "=round(VAL,2)",
                     "metric_name": "cpu`intr",
+                    "name" : "{{=cosi.metric_name}}",
                     "metric_type": "numeric",
-                    "name": "CPU :: Interrupt",
                     "stack": 0
                 },
                 {
@@ -50,8 +50,8 @@
                     "hidden": false,
                     "legend_formula": "=round(VAL,2)",
                     "metric_name": "cpu`user",
+                    "name" : "{{=cosi.metric_name}}",
                     "metric_type": "numeric",
-                    "name": "CPU :: User",
                     "stack": 0
                 },
                 {
@@ -65,8 +65,8 @@
                     "hidden": false,
                     "legend_formula": null,
                     "metric_name": "cpu`wait_io",
+                    "name" : "{{=cosi.metric_name}}",
                     "metric_type": "numeric",
-                    "name": "CPU :: IO Wait",
                     "stack": 0
                 },
                 {
@@ -80,8 +80,8 @@
                     "hidden": false,
                     "legend_formula": null,
                     "metric_name": "cpu`idle",
+                    "name" : "{{=cosi.metric_name}}",
                     "metric_type": "numeric",
-                    "name": "CPU :: Idle",
                     "stack": 0
                 }
             ],
@@ -112,7 +112,7 @@
                     "check_id": null,
                     "metric_type": "numeric",
                     "stack": null,
-                    "name": "cpu`procs_runnable (normalized)",
+                    "name" : "{{=cosi.metric_name}} (normalized)",
                     "axis": "l",
                     "data_formula": "=(VAL-{{=cosi.num_cpus}})/{{=cosi.num_cpus}}",
                     "color": "#693287",
@@ -131,8 +131,8 @@
                     "data_formula": "=VAL/{{=cosi.num_cpus}}",
                     "color": "#7B4D94",
                     "alpha": "0.3",
-                    "name": "loadavg`1M (normalized)",
-                    "metric_name" : "loadavg`1min",
+                    "metric_name": "loadavg`1min",
+                    "name" : "{{=cosi.metric_name}} (normalized)",
                     "hidden": false,
                     "derive": "gauge"
                 }

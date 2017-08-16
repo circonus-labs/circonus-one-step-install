@@ -647,7 +647,7 @@ class Graphs extends Registration {
             const metric_data = Object.create(data);
             metric_data['match'] = dp.match;
             metric_data['match_idx'] = indexer.index(dp.match);
-            metric_data['metric'] = dp.metric_name;
+            metric_data['metric_name'] = dp.metric_name;
 
             // expand CAQL statements
             if ({}.hasOwnProperty.call(dp, 'caql')) {
@@ -658,7 +658,7 @@ class Graphs extends Registration {
             }
 
             // expand metric names
-            if (dp.name.indexOf('{{') !== -1) {
+            if (dp.name && dp.name.indexOf('{{') !== -1) {
                 dp.name = this._expand(dp.name, metric_data);
             }
 

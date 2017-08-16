@@ -28,14 +28,14 @@
                     "alpha": "0.3",
                     "axis": "l",
                     "check_id": null,
-                    "color": "#465d8f",
+                    "color": "#657aa6",
                     "data_formula": "=VAL/10",
                     "derive": "counter",
                     "hidden": false,
                     "legend_formula": "=round(auto(VAL,2))",
                     "metric_name": "^diskstats`([^`]+)`io_ms$",
                     "metric_type": "numeric",
-                    "name": "Disk {{=cosi.match[1]}} :: Utilization",
+                    "name": "{{=cosi.metric_name}}",
                     "stack": null
                 }
             ]
@@ -70,7 +70,7 @@
                     "legend_formula": "=round(auto(VAL,2))",
                     "metric_name": "^diskstats`([^`]+)`io_ms_weighted$",
                     "metric_type": "numeric",
-                    "name": "{{=cosi.match[1]}} :: average queue size",
+                    "name": "diskstats`{{=cosi.match[1]}}`avg-qz (average queue size, computed)",
                     "stack": null
                 }
             ]

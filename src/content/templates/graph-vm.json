@@ -12,7 +12,7 @@
                     "legend_formula": null,
                     "color": "#657aa6",
                     "stack": 0,
-                    "name": "Memory :: Used",
+                    "name": "vm`meminfo`MemUsed (computed)",
                     "hidden": false,
                     "axis": "l",
                     "data_formula": "=D-A-B-C"
@@ -21,7 +21,7 @@
                     "legend_formula": null,
                     "color": "#b5c52d",
                     "stack": 0,
-                    "name": "Memory :: Free",
+                    "name": "vm`meminfo`MemFree",
                     "hidden": false,
                     "axis": "l",
                     "data_formula": "=C"
@@ -30,12 +30,20 @@
                     "legend_formula": null,
                     "color": "#94a024",
                     "stack": 0,
-                    "name": "Memory :: Caches + Buffers",
+                    "name": "vm`meminfo`Buffers",
                     "hidden": false,
                     "axis": "l",
-                    "data_formula": "=A+B"
+                    "data_formula": "=A"
+                },
+                {
+                    "legend_formula": null,
+                    "color": "#c9db32",
+                    "stack": 0,
+                    "name": "vm`meminfo`Caches",
+                    "hidden": false,
+                    "axis": "l",
+                    "data_formula": "=B"
                 }
-
             ],
             "datapoints": [
                 {
@@ -121,7 +129,7 @@
                     "legend_formula": "=round(bytes(VAL),2)",
                     "metric_name": "vm`swap`used",
                     "metric_type": "numeric",
-                    "name": "Swap :: Used",
+                    "name": "{{=cosi.metric_name}}",
                     "stack": 0
                 },
                 {
@@ -133,7 +141,7 @@
                     "legend_formula": null,
                     "check_id": null,
                     "stack": null,
-                    "name": "Memory :: Page Scanning Activity",
+                    "name": "{{=cosi.metric_name}}",
                     "data_formula": null,
                     "color": "#693287",
                     "hidden": false
