@@ -13,7 +13,7 @@ const app = require('commander');
 const cosi = require(path.resolve(path.join(__dirname, '..', 'lib', 'cosi')));
 
 app.
-    version(cosi.version).
+    version(cosi.app_version).
     command('fetch', 'fetch default templates from COSI site').
     command('list', 'list local templates for check(s)/graph(s)').
     parse(process.argv);

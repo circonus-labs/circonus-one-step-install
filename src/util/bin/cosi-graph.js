@@ -13,7 +13,7 @@ const app = require('commander');
 const cosi = require(path.resolve(path.join(__dirname, '..', 'lib', 'cosi')));
 
 app.
-    version(cosi.version).
+    version(cosi.app_version).
     command('create', 'create a graph using a local config').
     command('list', 'list local graphs for host').
     command('update', 'update a graph using a modified local config').
