@@ -10,7 +10,7 @@
             "composites": [
                 {
                     "legend_formula": null,
-                    "color": "#465d8f",
+                    "color": "#657aa6",
                     "stack": 0,
                     "name": "Memory :: Used",
                     "hidden": false,
@@ -19,7 +19,7 @@
                 },
                 {
                     "legend_formula": null,
-                    "color": "#dcef39",
+                    "color": "#b5c52d",
                     "stack": 0,
                     "name": "Memory :: Free",
                     "hidden": false,
@@ -28,7 +28,7 @@
                 },
                 {
                     "legend_formula": null,
-                    "color": "#b5c52d",
+                    "color": "#94a024",
                     "stack": 0,
                     "name": "Memory :: Caches + Buffers",
                     "hidden": false,
@@ -122,20 +122,6 @@
                     "metric_name": "vm`swap`used",
                     "metric_type": "numeric",
                     "name": "Swap :: Used",
-                    "stack": 0
-                },
-                {
-                    "alpha": "0.3",
-                    "axis": "l",
-                    "check_id": null,
-                    "color": "#dcef39",
-                    "data_formula": null,
-                    "derive": "gauge",
-                    "hidden": false,
-                    "legend_formula": "=round(bytes(VAL),2)",
-                    "metric_name": "vm`swap`free",
-                    "metric_type": "numeric",
-                    "name": "Swap :: Free",
                     "stack": 0
                 },
                 {
