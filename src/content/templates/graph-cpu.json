@@ -155,7 +155,7 @@
             "min_left_y": null,
             "min_right_y": null,
             "notes": null,
-            "style": "line"
+            "style": "area"
         }
     ]
 }

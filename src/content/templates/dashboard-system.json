@@ -243,7 +243,7 @@
                 "widget_id": "G1"
             },
             {
-                "width": 3,
+                "width": 2,
                 "name": "Graph",
                 "active": true,
                 "origin": "g2",
