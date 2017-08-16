@@ -1000,7 +1000,7 @@ cosi_register() {
     [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "Errors encountered during registration."
 
     echo
-    log "### Installing nad Agent ###"
+    log "### Configuring nad Agent ###"
     echo
     if [[ "${cosi_agent_mode:-}" == "push" ]]; then
         echo
