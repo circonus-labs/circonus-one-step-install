@@ -133,7 +133,7 @@
                     "date_window": "global",
                     "key_wrap": false,
                     "hide_xaxis": false,
-                    "key_loc": "out-r",
+                    "key_loc": "noop",
                     "label": "CPU Saturation",
                     "realtime": false
                 },
@@ -158,7 +158,7 @@
                     "date_window": "global",
                     "key_wrap": false,
                     "hide_xaxis": false,
-                    "key_loc": "out-r",
+                    "key_loc": "noop",
                     "label": "Memory Saturation",
                     "realtime": false
                 },
@@ -183,7 +183,7 @@
                     "date_window": "global",
                     "key_wrap": false,
                     "hide_xaxis": false,
-                    "key_loc": "out-r",
+                    "key_loc": "noop",
                     "label": "Network Saturation",
                     "realtime": false
                 },
@@ -208,7 +208,7 @@
                     "date_window": "global",
                     "key_wrap": false,
                     "hide_xaxis": false,
-                    "key_loc": "out-r",
+                    "key_loc": "noop",
                     "label": "Disk Saturation",
                     "realtime": false
                 },
@@ -236,7 +236,7 @@
                 "origin": "g1",
                 "height": 1,
                 "settings": {
-                    "markup": "<ul><li>Check dmesg for physical failures</li><li>Check failed malloc()'s with SystemTab</li></ul>",
+                    "markup": "<ul><li>Check dmesg for physical failures</li><li>Check failed malloc()'s with SystemTap</li></ul>",
                     "title": "Memory Errors"
                 },
                 "type": "html",
