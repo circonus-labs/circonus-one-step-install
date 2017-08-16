@@ -5,7 +5,8 @@
 require 'yaml'
 require 'digest/sha1'
 
-config_file = 'config.yaml'
+vagrant_root = File.dirname(__FILE__)
+config_file = File.join(vagrant_root, 'config.yaml')
 unless File.file?(config_file)
     puts 'ERROR: config file not found.'
     puts "\nSee example-config.yaml for instructions to setup '#{config_file}'"
