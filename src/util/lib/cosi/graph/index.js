@@ -347,7 +347,7 @@ module.exports = class Graph {
 
                     api.delete(this._cid).
                         then((result) => {
-                            if (result.parsed_body === null || (result.code < 200 || result.code > 299)) {
+                            if (result.code < 200 || result.code > 299) {
                                 const err = new Error();
 
                                 err.code = result.code;
