@@ -150,8 +150,8 @@ class Postgres extends Plugin {
      * @returns {Undefined} nothing, uses callback
      */
     disablePlugin(cb) {
-        if (!fs.existsSync(this.pg_conf_file)) {
-            console.log(chalk.yellow('WARN'), `PostgreSQL plugin configuration not found, plugin may already be disabled. ${this.pg_conf_file}`);
+        if (!fs.existsSync(this.settingsFile)) {
+            console.log(chalk.yellow('WARN'), `PostgreSQL plugin configuration not found, plugin may already be disabled. ${this.settingsFile}`);
             if (!this.options.force) {
                 process.exit(0);
             }
