@@ -306,6 +306,8 @@ class Dashboards extends Registration {
             console.log(`\tInterpolating title ${config.title}`);
             config.title = this._expand(config.title, data);
 
+            let missing_widgets = 0;
+
             console.log(`\tConfiguring graph widgets`);
             config.widgets = config.widgets.map((widget) => {
                 if (widget.type !== 'graph') {
@@ -316,6 +318,7 @@ class Dashboards extends Registration {
 
                 if (graphIdx === -1) {
                     console.log(chalk.yellow('\tWARN'), 'No graph found for', widget.widget_id, 'with tag', widget.tags);
+                    missing_widgets += 1;
 
                     return false; // delete from list
                 }
@@ -434,6 +437,8 @@ class Dashboards extends Registration {
                     removeWidget = config.widgets[i].settings.check_uuid === null;
                 } else if (config.widgets[i].type === 'forecast') {
                     removeWidget = {}.hasOwnProperty.call(config.widgets[i].settings, 'metrics');
+                } else if (config.widgets[i].type === 'html') {
+                    removeWidget = !config.widgets[i].settings.markup || config.widgets[i].settings.markup === '';
                 } else {
                     console.log(chalk.yellow('\tWARN'), `Unsupported widget type (${config.widgets[i].type}), ignoring widget id:${config.widgets[i].widget_id}`);
                 }
@@ -441,12 +446,20 @@ class Dashboards extends Registration {
                 if (removeWidget) {
                     console.log(chalk.yellow('\tWARN'), `Removing widget from dashboard (id ${config.widgets[i].widget_id})`);
                     config.widgets.splice(i, 1);
+                    missing_widgets += 1;
                 }
             }
 
             if (config.widgets.length === 0) {
                 console.log(chalk.red('ERROR'), 'No applicable widgets were configured with available metrics/graphs...');
                 reject(new Error('No widgets configured on dashboard'));
+
+                return;
+            }
+
+            if (missing_widgets > 0 && (/template-dashboard-system/).test(template.file)) {
+                console.log(chalk.yellow('\tWARN'), 'Not all system dashboard widgets found, skipping creation.');
+                resolve();
 
                 return;
             }
@@ -570,7 +583,7 @@ class Dashboards extends Registration {
                         return null;
                     }
 
-                    console.log(chalk.green('\tDashboard:'), `${this.regConfig.account.ui_url}/dashboards/view/${dashboard._dashboard_uuid}`);
+                    console.log(chalk.green('\tDashboard:'), `${this.regConfig.account.ui_url}/dashboards/view/${regConfig._dashboard_uuid}`);
 
                     return null;
                 }).
@@ -579,9 +592,9 @@ class Dashboards extends Registration {
                         console.log(`\tSaving registration ${regFile}`);
                         dashboard.save(regFile, true);
 
-                        console.log(chalk.green('\tDashboard created:'), `${this.regConfig.account.ui_url}/dashboards/view/${dashboard._dashboard_uuid}`);
-                        resolve();
+                        console.log(chalk.green('\tDashboard created:'), `${this.regConfig.account.ui_url}/dashboards/view/${cfg._dashboard_uuid}`);
                     }
+                    resolve();
                 }).
                 catch((err) => {
                     reject(err);
@@ -638,7 +651,12 @@ class Dashboards extends Registration {
                     }
 
                     if (Array.isArray(res.parsed_body) && res.parsed_body.length > 0) {
-                        console.log(chalk.green('\tFound'), `${res.parsed_body.length} existing dashboard(s) with title '${title}'`);
+                        if (res.parsed_body.length > 1) {
+                            console.log(chalk.red('\tERROR'), `Found ${res.parsed_body.length} existing dashboards matching title '${title}', there should be only one.`);
+                            process.exit(1);
+                        }
+
+                        console.log(chalk.green('\tFound'), `Existing dashboard with title '${title}'`);
                         resolve(res.parsed_body[0]);
 
                         return;
