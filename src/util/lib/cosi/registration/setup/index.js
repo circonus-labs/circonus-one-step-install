@@ -367,32 +367,38 @@ class Setup extends Registration {
     _getDefaultHostIp() {
         const self = this;
 
-        return new Promise((resolve) => {
-            self._checkAWS((awsHostname) => {
-                if (awsHostname !== null) {
-                    resolve(awsHostname);
+        return new Promise((resolve, reject) => {
+            self._checkAWS().
+                then((awsHostname) => {
+                    if (awsHostname !== null) {
+                        resolve(awsHostname);
 
-                    return;
-                }
+                        return;
+                    }
 
-                console.log('Obtaining target IP/Host from local information');
+                    console.log('Obtaining target IP/Host from local information');
 
-                const networkInterfaces = os.networkInterfaces();
+                    const networkInterfaces = os.networkInterfaces();
 
-                for (const iface in networkInterfaces) {
-                    if ({}.hasOwnProperty.call(networkInterfaces, iface)) {
-                        for (const addr of networkInterfaces[iface]) {
-                            if (!addr.internal && addr.family === 'IPv4') {
-                                resolve(addr.address);
+                    for (const iface in networkInterfaces) {
+                        if ({}.hasOwnProperty.call(networkInterfaces, iface)) {
+                            for (const addr of networkInterfaces[iface]) {
+                                if (!addr.internal && addr.family === 'IPv4') {
+                                    resolve(addr.address);
 
-                                return;
+                                    return;
+                                }
                             }
                         }
                     }
-                }
 
-                resolve('0.0.0.0');
-            });
+                    resolve('0.0.0.0');
+                }).
+                catch((err) => {
+                    // technically, checkAWS doesn't reject with an error
+                    // it *always* resolves with a value which is handled above
+                    reject(err);
+                });
         });
     }
 
