@@ -316,13 +316,17 @@ class Dashboards extends Registration {
 
                 if (graphIdx === -1) {
                     console.log(chalk.yellow('\tWARN'), 'No graph found for', widget.widget_id, 'with tag', widget.tags);
+
                     return false; // delete from list
                 }
 
                 // configure widget
-                widget.settings.graph_id = this.graphs[graphIdx].id;
-                widget.settings.label = this._expand(widget.settings.label, data);
-                delete widget.tags; // The tags property is only used to match graphs, remove it before submission
+                widget.settings.graph_id = this.graphs[graphIdx].id; // eslint-disable-line no-param-reassign
+                widget.settings.label = this._expand(widget.settings.label, data); // eslint-disable-line no-param-reassign
+                // The tags property is only used to match graphs, remove it before submission
+                delete widget.tags;  // eslint-disable-line no-param-reassign
+
+
                 return widget;
             }).filter((widget) => {
                 return widget; // remove deleted widgets
@@ -658,13 +662,16 @@ class Dashboards extends Registration {
     _findWidgetGraph(widget, metaData) {
         for (let graphIdx = 0; graphIdx < this.graphs.length; graphIdx++) {
             const graph = this.graphs[graphIdx];
+
             for (let j = 0; j < widget.tags.length; j++) {
                 const tag = widget.tags[j];
+
                 if (graph.tags.indexOf(tag) !== -1) { // graph contains tag?
                     return graphIdx;
                 }
                 for (let sgIdx = 0; sgIdx < metaData.sys_graphs.length; sgIdx++) {
                     const sys_graph = metaData.sys_graphs[sgIdx];
+
                     if (sys_graph.dashboard_tag !== tag) {
                         continue;
                     }
