@@ -1,3 +1,9 @@
+### 2.2.0 2017-08-17
+
+* Merge PR 26 - create USE dashboard by default (with USE specific graphs)
+* Update plugins to handle promises and new NAD location
+* Update PostgreSQL demo example
+
 ### 2.1.0 2017-08-15
 
 * fix api request object
