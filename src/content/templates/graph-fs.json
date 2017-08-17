@@ -15,7 +15,10 @@
     "filter": {
         "exclude": [
             "^/boot$",
-            "^/dev$"
+            "^/dev$",
+            "^/dev/shm$",
+            "^/run/user",
+            "^/sys/fs/cgroup$"
         ],
         "include": null
     },
