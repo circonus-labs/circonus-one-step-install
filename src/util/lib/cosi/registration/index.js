@@ -170,6 +170,16 @@ class Registration extends Events {
                 }).
                 then((agentMetrics) => {
                     this.metrics = agentMetrics;
+
+                    this.metricList = [];
+
+                    Object.keys(this.metrics).forEach((id) => {
+                        Object.keys(this.metrics[id]).forEach((val) => {
+                            this.metricList.push(`${id}\`${val}`);
+                        });
+                    });
+                    this.metricList.sort();
+
                     console.log(chalk.green('Metrics loaded'));
                     resolve();
                 }).
