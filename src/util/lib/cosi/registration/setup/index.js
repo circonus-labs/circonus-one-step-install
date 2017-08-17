@@ -332,6 +332,8 @@ class Setup extends Registration {
                 self.regConfig.templateData.host_target = os.hostname();
                 console.log(chalk.green('Reverse agent'), 'using', self.regConfig.templateData.host_target);
                 resolve();
+
+                return;
             }
 
             if (self.agentMode === 'revonly') {
