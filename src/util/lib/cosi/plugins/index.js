@@ -70,8 +70,6 @@ class Plugin extends Events {
 
         this.iface = null;              // set/override in subclass (if needed for protocol_observer)
 
-        this.nad_etc_dir = path.resolve(path.join(cosi.cosi_dir, '..', 'etc'));
-
         this.marker = '==========';
         this.on('error', (err) => {
             console.log(chalk.red('***************'));
@@ -549,19 +547,17 @@ class Plugin extends Events {
 
         console.log(`\tFetching templates for ${templateID}`);
 
-        fetcher.template(templateID, (err, template) => {
-            if (err !== null) {
+        fetcher.template(templateID).
+            then((template) => {
+                const cfgFile = path.resolve(path.join(cosi.reg_dir, `template-${templateID}-${self.instance}.json`));
+
+                template.save(cfgFile, true);
+                console.log(chalk.green('\tSaved'), `template ${cfgFile}`);
+                self.emit('fetch.done');
+            }).
+            catch((err) => {
                 self.emit('error', err);
-
-                return;
-            }
-
-            const cfgFile = path.resolve(path.join(cosi.reg_dir, `template-${templateID}-${self.instance}.json`));
-
-            template.save(cfgFile, true);
-            console.log(chalk.green('\tSaved'), `template ${cfgFile}`);
-            self.emit('fetch.done');
-        });
+            });
     }
 
 
