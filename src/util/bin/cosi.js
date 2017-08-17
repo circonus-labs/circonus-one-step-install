@@ -24,7 +24,8 @@ app.
     command('template', 'COSI check & graph template actions').
     command('broker', 'Circonus broker information actions').
     command('register', 'Register host using COSI templates & configuration').
-    command('reset', 'Remove COSI checks, graphs, and worksheets');
+    command('reset', 'Remove COSI checks, graphs, and worksheets').
+    command('dashboard', 'COSI dashboard actions');
 
 app.on('--help', () => {
     console.log(chalk.bold('COSI Utilities'), '\n');

@@ -1,0 +1,79 @@
+{
+    "type": "graph",
+    "id": "diskstats",
+    "description": "Disk Utilization Summary",
+    "version": "0.1.0",
+    "notes": [],
+    "graphs": [
+        {
+            "title": "{{=cosi.host_name}} Disk Utilization",
+            "description": "",
+            "guides": [],
+            "line_style": "interpolated",
+            "logarithmic_left_y": null,
+            "logarithmic_right_y": null,
+            "max_left_y": 100,
+            "max_right_y": null,
+            "metric_clusters": [],
+            "min_left_y": null,
+            "min_right_y": null,
+            "notes": null,
+            "style": "area",
+            "tags": [ "use", "use:disk-utilization" ],
+            "access_keys": [],
+            "composites": [],
+            "datapoints": [
+                {
+                    "variable" : true,
+                    "alpha": "0.3",
+                    "axis": "l",
+                    "check_id": null,
+                    "color": "#657aa6",
+                    "data_formula": "=VAL/10",
+                    "derive": "counter",
+                    "hidden": false,
+                    "legend_formula": "=round(auto(VAL,2))",
+                    "metric_name": "^diskstats`([^`]+)`io_ms$",
+                    "metric_type": "numeric",
+                    "name": "{{=cosi.metric_name}}",
+                    "stack": null
+                }
+            ]
+        },
+        {
+            "title": "{{=cosi.host_name}} Disk Saturation",
+            "description": "",
+            "guides": [],
+            "line_style": "interpolated",
+            "logarithmic_left_y": null,
+            "logarithmic_right_y": null,
+            "max_left_y": 100,
+            "max_right_y": null,
+            "metric_clusters": [],
+            "min_left_y": null,
+            "min_right_y": null,
+            "notes": null,
+            "style": "area",
+            "tags": [ "use", "use:disk-saturation" ],
+            "access_keys": [],
+            "composites": [],
+            "datapoints": [
+                {
+                    "variable": true,
+                    "alpha": "0.3",
+                    "axis": "l",
+                    "check_id": null,
+                    "color": "#7B4D94",
+                    "data_formula": "=VAL/10",
+                    "derive": "counter",
+                    "hidden": false,
+                    "legend_formula": "=round(auto(VAL,2))",
+                    "metric_name": "^diskstats`([^`]+)`io_ms_weighted$",
+                    "metric_type": "numeric",
+                    "name": "diskstats`{{=cosi.match[1]}}`avgqu-sz (average queue size, computed)",
+                    "stack": null
+                }
+            ]
+        }
+    ]
+}

@@ -242,7 +242,7 @@ class Dashboards extends Registration {
             console.log(chalk.blue(this.marker));
             console.log(`Configuring dasbhoard`);
 
-            const templateMatch = template.file.match(/^template-dashboard-([^-]+)-(.+)\.json$/);
+            const templateMatch = template.file.match(/^template-dashboard-([^-]+)(?:-(.*))?\.json$/);
 
             if (templateMatch === null) {
                 reject(new Error(`Invalid template, no instance found. ${template.file}`));
@@ -250,8 +250,8 @@ class Dashboards extends Registration {
                 return;
             }
 
-            const dashboardID = `${templateMatch[1]}-${templateMatch[2]}`;
-            const dashboardInstance = templateMatch[2];
+            const dashboardInstance = templateMatch[2] || 0;
+            const dashboardID = `${templateMatch[1]}-${dashboardInstance}`;
             const templateFile = path.resolve(path.join(cosi.reg_dir, template.file));
             const configFile = templateFile.replace('template-', 'config-');
 
@@ -307,23 +307,26 @@ class Dashboards extends Registration {
             config.title = this._expand(config.title, data);
 
             console.log(`\tConfiguring graph widgets`);
-            for (let i = config.widgets.length - 1; i >= 0; i--) {
-                const widget = config.widgets[i];
-
+            config.widgets = config.widgets.map((widget) => {
                 if (widget.type !== 'graph') {
-                    continue;
+                    return widget; // pass on unchanged
                 }
 
                 const graphIdx = this._findWidgetGraph(widget, metaData);
 
                 if (graphIdx === -1) {
                     console.log(chalk.yellow('\tWARN'), 'No graph found for', widget.widget_id, 'with tag', widget.tags);
-                    continue;
+                    return false; // delete from list
                 }
+
+                // configure widget
                 widget.settings.graph_id = this.graphs[graphIdx].id;
                 widget.settings.label = this._expand(widget.settings.label, data);
-                delete widget.tags; // tags property used to match graphs, remove before submission
-            }
+                delete widget.tags; // The tags property is only used to match graphs, remove it before submission
+                return widget;
+            }).filter((widget) => {
+                return widget; // remove deleted widgets
+            });
 
             console.log(`\tConfiguring gauge widgets`);
             for (let i = config.widgets.length - 1; i >= 0; i--) {
@@ -654,15 +657,18 @@ class Dashboards extends Registration {
      */
     _findWidgetGraph(widget, metaData) {
         for (let graphIdx = 0; graphIdx < this.graphs.length; graphIdx++) {
+            const graph = this.graphs[graphIdx];
             for (let j = 0; j < widget.tags.length; j++) {
-                if (this.graphs[graphIdx].tags.indexOf(widget.tags[j]) !== -1) {
+                const tag = widget.tags[j];
+                if (graph.tags.indexOf(tag) !== -1) { // graph contains tag?
                     return graphIdx;
                 }
                 for (let sgIdx = 0; sgIdx < metaData.sys_graphs.length; sgIdx++) {
-                    if (metaData.sys_graphs[sgIdx].dashboard_tag !== widget.tags[j]) {
+                    const sys_graph = metaData.sys_graphs[sgIdx];
+                    if (sys_graph.dashboard_tag !== tag) {
                         continue;
                     }
-                    if (this.graphs[graphIdx].instance_name === metaData.sys_graphs[sgIdx].instance_name) {
+                    if (graph.instance_name === sys_graph.instance_name) {
                         return graphIdx;
                     }
                 }
