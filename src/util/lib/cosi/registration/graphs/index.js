@@ -331,7 +331,7 @@ class Graphs extends Registration {
 
         const graphId = `${template.type}-${template.id}`;
 
-        const datapoints_filled = [];
+        let datapoints_filled = [];
 
         for (let i = 0; i < graph.datapoints.length; i++) {
             const dp = graph.datapoints[i];
@@ -343,7 +343,9 @@ class Graphs extends Registration {
                 const matches = this._getVariableDatapointMatches(dp);
 
                 if (matches.length > 0) {
-                    datapoints_filled.append(matches);
+                    const pts = datapoints_filled.concat(matches);
+
+                    datapoints_filled = pts;
                 } else {
                     console.log(`\tNo matches found for ${dp.metric_name}`);
                 }
@@ -396,7 +398,7 @@ class Graphs extends Registration {
                 const dp_filter = dp.filter;
 
                 for (const filter of dp_filter.exclude) {
-                    if (filter.test(metric)) {
+                    if (metric.match(filter)) {
                         excluded = true;
                         break;
                     }
