@@ -196,18 +196,6 @@ server.get(/^\/utils\/?$/, restify.plugins.serveStatic({
 
 
 //
-// handle /statsd or /statsd/
-//
-// return the cosi-statsd (containing circonus backend)
-//
-server.get(/^\/statsd\/?$/, restify.plugins.serveStatic({
-    directory : './content/files',
-    file      : 'cosi-statsd.tar.gz',
-    maxAge    : 0
-}));
-
-
-//
 // fire in the hole!
 //
 server.listen(settings.port, settings.listen, () => {
