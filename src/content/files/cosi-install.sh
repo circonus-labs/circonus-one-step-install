@@ -995,17 +995,15 @@ cosi_register() {
     echo
     log "### Running COSI registration ###"
     echo
-    log "running: $cosi_script" "$cosi_register_cmd"
+    log_only "running: $cosi_script" "$cosi_register_cmd"
     "$cosi_script" "$cosi_register_cmd" | tee -a $cosi_install_log
     [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "Errors encountered during registration."
 
-    echo
-    log "### Configuring nad Agent ###"
-    echo
+
     if [[ "${cosi_agent_mode:-}" == "push" ]]; then
         echo
+        log "### Enabling push mode for agent ###"
         echo
-        log "Enabling push mode for agent"
         if [[ -x "$install_nadpush" ]]; then
             $install_nadpush | tee -a $cosi_install_log
             [[ ${PIPESTATUS[0]} -eq 0 ]] || fail "Errors encountered during nadpush installation."
@@ -1014,8 +1012,8 @@ cosi_register() {
         fi
     elif [[ "${cosi_agent_mode}" == "reverse" || "${cosi_agent_mode}" == "revonly" ]]; then
         echo
+        log "### Enabling ${cosi_agent_mode} mode for agent ###"
         echo
-        log "Enabling ${cosi_agent_mode} mode for agent"
         if [[ -x "$install_nadreverse" ]]; then
             if [[ -x /bin/freebsd-version ]]; then
                 $install_nadreverse
@@ -1030,9 +1028,8 @@ cosi_register() {
     fi
 
     echo
-    log "### Creating Rulesets ###"
+    log "### Creating rulesets, if any ruleset configurations were pre-installed. ###"
     echo
-    log "Creating rulesets if any ruleset configurations were pre-installed."
     log "running: '${cosi_dir}/bin/cosi rulesets create'"
     "${cosi_dir}/bin/cosi" rulesets create
 

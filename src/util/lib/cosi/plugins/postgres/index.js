@@ -50,7 +50,7 @@ class Postgres extends Plugin {
         this.logFile = path.resolve(path.join(cosi.log_dir, `plugin-${this.name}.log`));
         this.cfgFile = path.resolve(path.join(cosi.etc_dir, `plugin-${this.name}.json`));
         this.settingsFile = path.resolve(path.join(cosi.nad_etc_dir, `${this.shortName}-conf.sh`));
-        this.protocolObserverConf = path.resolve(path.join(this.nad_etc_dir, `${this.shortName}_po_conf.sh`));
+        this.protocolObserverConf = path.resolve(path.join(cosi.nad_etc_dir, `${this.shortName}_po_conf.sh`));
         this.iface = options.iface || 'auto';
         this.execEnv = {
             COSI_PLUGIN_CONFIG_FILE : this.cfgFile,
@@ -150,8 +150,8 @@ class Postgres extends Plugin {
      * @returns {Undefined} nothing, uses callback
      */
     disablePlugin(cb) {
-        if (!fs.existsSync(this.pg_conf_file)) {
-            console.log(chalk.yellow('WARN'), `PostgreSQL plugin configuration not found, plugin may already be disabled. ${this.pg_conf_file}`);
+        if (!fs.existsSync(this.settingsFile)) {
+            console.log(chalk.yellow('WARN'), `PostgreSQL plugin configuration not found, plugin may already be disabled. ${this.settingsFile}`);
             if (!this.options.force) {
                 process.exit(0);
             }

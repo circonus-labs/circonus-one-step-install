@@ -168,41 +168,37 @@ class Cassandra extends Plugin {
 
         console.log(`\tFetching ${templateID} template`);
 
-        fetcher.template(templateID, (err, template) => {
-            if (err !== null) {
-                self.emit('error', err);
+        fetcher.template(templateID).
+            then((template) => {
+                const cfgFile = path.resolve(path.join(cosi.reg_dir, `template-${templateID}-${self.instance}.json`));
 
-                return;
-            }
+                template.save(cfgFile, true);
+                console.log(chalk.green('\tSaved'), `template ${cfgFile}`);
 
-            const cfgFile = path.resolve(path.join(cosi.reg_dir, `template-${templateID}-${self.instance}.json`));
-
-            template.save(cfgFile, true);
-            console.log(chalk.green('\tSaved'), `template ${cfgFile}`);
-
-            if (!self.enableClusters) {
-                self.emit('fetch.done');
-
-                return;
-            }
-
-            const clusterTemplateID = 'dashboard-cassandracluster';
-
-            console.log(`\tFetching ${clusterTemplateID} template`);
-            fetcher.template(clusterTemplateID, (clusterErr, clusterTemplate) => {
-                if (clusterErr !== null) {
-                    self.emit('error', clusterErr);
+                if (!self.enableClusters) {
+                    self.emit('fetch.done');
 
                     return;
                 }
 
-                const clusterCfgFile = path.resolve(path.join(cosi.reg_dir, `template-${clusterTemplateID}-${self.instance}.json`));
+                const clusterTemplateID = 'dashboard-cassandracluster';
 
-                clusterTemplate.save(clusterCfgFile, true);
-                console.log(chalk.green('\tSaved'), `template ${clusterCfgFile}`);
-                self.emit('fetch.done');
+                console.log(`\tFetching ${clusterTemplateID} template`);
+                fetcher.template(clusterTemplateID).
+                    then((clusterTemplate) => {
+                        const clusterCfgFile = path.resolve(path.join(cosi.reg_dir, `template-${clusterTemplateID}-${self.instance}.json`));
+
+                        clusterTemplate.save(clusterCfgFile, true);
+                        console.log(chalk.green('\tSaved'), `template ${clusterCfgFile}`);
+                        self.emit('fetch.done');
+                    }).
+                    catch((clusterErr) => {
+                        self.emit('error', clusterErr);
+                    });
+            }).
+            catch((err) => {
+                self.emit('error', err);
             });
-        });
     }
 
 
@@ -324,14 +320,13 @@ class Cassandra extends Plugin {
     _loadMetrics(cb) { // eslint-disable-line class-methods-use-this
         const metricsLoader = new Metrics(cosi.agent_url);
 
-        metricsLoader.getMetrics((err, metrics) => {
-            if (err) {
+        metricsLoader.getMetrics().
+            then((metrics) => {
+                cb(null, metrics);
+            }).
+            catch((err) => {
                 cb(err);
-
-                return;
-            }
-            cb(null, metrics);
-        });
+            });
     }
 
 

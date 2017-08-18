@@ -21,17 +21,29 @@ const Graph = require(path.resolve(path.join(cosi.lib_dir, 'graph')));
  * Maintains integer indices for objects
  */
 class Indexer {
+
+    /**
+     from PR26
+     */
     constructor() {
         this.store = {};
         this.count = 0;
     }
-    index(o) {
-        if(!this.store[o]) {
+
+    /**
+     from PR26
+     @arg {String} undocumentedKey a key for something?
+     @returns {Integer} a counter?
+     */
+    index(undocumentedKey) {
+        if (!this.store[undocumentedKey]) {
             this.count += 1;
-            this.store[o] = this.count;
+            this.store[undocumentedKey] = this.count;
         }
+
         return this.count;
     }
+
 }
 
 
@@ -208,7 +220,8 @@ class Graphs extends Registration {
 
             for (let graphIdx = 0; graphIdx < template.graphs.length; graphIdx++) {
                 const graph = template.graphs[graphIdx];
-                if (graph.variable === undefined && template.variable_metrics) {
+
+                if (typeof graph.variable === 'undefined' && template.variable_metrics) {
                     graph.variable = true;
                     graph.filter = template.filter;
                 }
@@ -318,18 +331,8 @@ class Graphs extends Registration {
 
         const graphId = `${template.type}-${template.id}`;
 
-        const self = this;
+        let datapoints_filled = [];
 
-        // compile list of all metrics
-        const metrics = [];
-        Object.keys(self.metrics).forEach((id) => {
-            Object.keys(self.metrics[id]).forEach((val) => {
-                metrics.push(`${id}\`${val}`);
-            });
-        });
-        metrics.sort();
-
-        const datapoints_filled = [];
         for (let i = 0; i < graph.datapoints.length; i++) {
             const dp = graph.datapoints[i];
 
@@ -337,41 +340,13 @@ class Graphs extends Registration {
             dp.check_id = this.checkMeta.system.id;
 
             if (dp.variable) {
-                var match_count = 0;
+                const matches = this._getVariableDatapointMatches(dp);
 
-                // fill in matching datapoints
-                for (const metric of metrics) {
-                    const match = metric.match(dp.metric_name);
-                    if(match) {
+                if (matches.length > 0) {
+                    const pts = datapoints_filled.concat(matches);
 
-                        // create a function, so we can bail out early
-                        (function() {
-                            match_count++;
-
-                            // apply filters
-                            if (dp.filter) {
-                                const dp_filter = dp.filter;
-                                for (const filter of dp_filter.exclude) {
-                                    if (metric.match(filter)) {
-                                        return; // bail
-                                    }
-                                }
-                            }
-
-                            // store a copy
-                            console.log(`\tFilling in datapoint ${metric}`);
-                            const dp_copy = JSON.parse(JSON.stringify(dp));
-                            dp_copy.metric_name = metric;
-
-                            // stash a copy of the matched string for use in template creation
-                            dp_copy.match = match;
-
-                            datapoints_filled.push(dp_copy);
-                        })();
-                    }
-                }
-
-                if (match_count == 0) {
+                    datapoints_filled = pts;
+                } else {
                     console.log(`\tNo matches found for ${dp.metric_name}`);
                 }
             } else { // not variable: pass on as is
@@ -398,6 +373,55 @@ class Graphs extends Registration {
         }
 
         console.log(chalk.green('\tSaved config'), cfgFile);
+    }
+
+    /**
+     * get all metrics which match a variable datapoint RegExp
+     * @arg {Object} dp the graph datapoint object
+     * @returns {Array} copies of the datapoint with matches filled in
+     */
+    _getVariableDatapointMatches(dp) {
+        const matches = [];
+
+        // fill in matching datapoints
+        for (const metric of this.metricList) {
+            const match = metric.match(dp.metric_name);
+
+            if (!match) {
+                continue;
+            }
+
+            let excluded = false;
+
+            // apply filters
+            if (dp.filter) {
+                const dp_filter = dp.filter;
+
+                for (const filter of dp_filter.exclude) {
+                    if (metric.match(filter)) {
+                        excluded = true;
+                        break;
+                    }
+                }
+            }
+
+            if (excluded) {
+                continue;
+            }
+
+            // store a copy
+            console.log(`\tFilling in datapoint ${metric}`);
+            const dp_copy = JSON.parse(JSON.stringify(dp));
+
+            dp_copy.metric_name = metric;
+
+            // stash a copy of the matched string for use in template creation
+            dp_copy.match = match;
+
+            matches.push(dp_copy);
+        }
+
+        return matches;
     }
 
     /**
@@ -513,8 +537,6 @@ class Graphs extends Registration {
         assert.equal(typeof template, 'object', 'template is required');
         assert.equal(typeof graphIdx, 'number', 'graphIdx is required');
 
-        const self = this;
-
         // flat list of full metric names metric_group`metric_name (fs`/sys/fs/cgroup`df_used_percent)
         const metrics = Object.keys(this.metrics[template.id]).map((val) => {
             return `${template.id}\`${val}`;
@@ -579,7 +601,7 @@ class Graphs extends Registration {
      * @arg {String} id for graph (to find custom options)
      * @returns {Undefined} nothing
      */
-    _setCustomGraphOptions(cfg, id) { // eslint-disable-line complexity
+    _setCustomGraphOptions(cfg, id) { // eslint-disable-line complexity, max-statements
         assert.equal(typeof cfg, 'object', 'cfg is required');
         assert.equal(typeof id, 'string', 'id is required');
 
@@ -645,9 +667,10 @@ class Graphs extends Registration {
 
             // extend data for datapoint templates
             const metric_data = Object.create(data);
-            metric_data['match'] = dp.match;
-            metric_data['match_idx'] = indexer.index(dp.match);
-            metric_data['metric_name'] = dp.metric_name;
+
+            metric_data.match = dp.match;
+            metric_data.match_idx = indexer.index(dp.match);
+            metric_data.metric_name = dp.metric_name;
 
             // expand CAQL statements
             if ({}.hasOwnProperty.call(dp, 'caql')) {
@@ -693,7 +716,6 @@ class Graphs extends Registration {
                 cfg.tags[i] = this._expand(cfg.tags[i], data); // eslint-disable-line no-param-reassign
             }
         }
-
     }
 
 }

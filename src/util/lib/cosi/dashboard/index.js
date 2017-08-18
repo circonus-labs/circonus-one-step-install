@@ -219,49 +219,69 @@ module.exports = class Dashboard {
     /**
      * call api to delete a dashboard from current config
      * note the current config must contain a `_cid` attribute
-     * @arg {Function} cb callback
-     * @returns {Undefined} nothing, uses callback
+     * @returns {Object} promise
      */
-    remove(cb) {
-        assert.strictEqual(typeof cb, 'function', 'cb must be a callback function');
-
-        const self = this;
-
-        api.setup(cosi.api_key, cosi.api_app, cosi.api_url);
-
-        api.get(self._cid, null, (getCode, getError, getResult) => {
-            if (getCode === 404 && (getResult.code && getResult.code === 'ObjectError.InstanceNotFound')) {
-                console.log(`\t${self._cid}`, chalk.bold('not found'));
-                cb(null);
+    remove() {
+        return new Promise((resolve, reject) => {
+            if (!{}.hasOwnProperty.call(this, '_cid')) {
+                reject(new Error('Invalid dashboard config, no _cid attribute'));
 
                 return;
             }
 
-            if (getCode < 200 || getCode > 299) {
-                console.error(chalk.red('API RESULT CODE'), `API ${getCode}`, getError, getResult);
-                cb(getError);
+            api.get(this._cid, null).
+                then((res) => {
+                    if (res.code === 404 && (res.parsed_body.code && res.parsed_body.code === 'ObjectError.InstanceNotFound')) {
+                        console.log(`\t${this._cid}`, chalk.bold('not found'));
+                        resolve(null);
 
-                return;
-            }
+                        return false;
+                    }
 
-            console.log(chalk.bold('\tDeleting'), `Dashboard ${self._cid}`);
+                    if (res.parsed_body === null || (res.code < 200 || res.code > 299)) {
+                        const err = new Error();
 
-            api.delete(self._cid, (code, errAPI, result) => {
-                if (errAPI) {
-                    cb(errAPI, result);
+                        err.code = res.code;
+                        err.message = 'UNEXPECTED_API_RETURN';
+                        err.body = res.parsed_body;
+                        err.raw_body = res.raw_body;
 
-                    return;
-                }
+                        reject(err);
 
-                if (code < 200 || code > 299) {
-                    console.error(chalk.red('API RESULT CODE'), `API ${code}`, errAPI, result);
-                    cb(`unexpected code: ${code}`, result);
+                        return false;
+                    }
 
-                    return;
-                }
+                    return true;
+                }).
+                then((ok) => {
+                    if (!ok) {
+                        return;
+                    }
+                    console.log(chalk.bold('\tDeleting'), `Dashboard ${this._cid}`);
 
-                cb(null, result);
-            });
+                    api.delete(this._cid).
+                        then((result) => {
+                            if (result.code < 200 || result.code > 299) {
+                                const err = new Error();
+
+                                err.code = result.code;
+                                err.message = 'UNEXPECTED_API_RETURN';
+                                err.body = result.parsed_body;
+                                err.raw_body = result.raw_body;
+
+                                reject(err);
+
+                                return;
+                            }
+                            resolve(result.parsed_body);
+                        }).
+                        catch((err) => {
+                            reject(err);
+                        });
+                }).
+                catch((err) => {
+                    reject(err);
+                });
         });
     }
 

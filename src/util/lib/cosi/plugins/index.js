@@ -70,8 +70,6 @@ class Plugin extends Events {
 
         this.iface = null;              // set/override in subclass (if needed for protocol_observer)
 
-        this.nad_etc_dir = path.resolve(path.join(cosi.cosi_dir, '..', 'etc'));
-
         this.marker = '==========';
         this.on('error', (err) => {
             console.log(chalk.red('***************'));
@@ -262,7 +260,7 @@ class Plugin extends Events {
 
         this._disableUpdateCheck(removeMetrics, (err) => {
             if (err !== null) {
-                self.emti('error', err);
+                self.emit('error', err);
 
                 return;
             }
@@ -358,28 +356,16 @@ class Plugin extends Events {
             check.metric_limit = 0;
         }
         console.log('\tSending updated check configuraiton to API');
-        check.update((err, result) => {
-            if (err) {
+        check.update().
+            then((updated) => {
+                check.save(checkRegFile, true);
+                console.log(chalk.green('\tUpdated'), `system check ${updated.display_name}, saved`, checkRegFile);
+
+                cb(null);
+            }).
+            catch((err) => {
                 cb(err);
-
-                return;
-            }
-
-            try {
-                fs.writeFileSync(checkRegFile, JSON.stringify(result, null, 4), {
-                    encoding : 'utf8',
-                    flag     : 'w',
-                    mode     : 0o644
-                });
-                console.log(chalk.green('\tUpdated'), `system check, saved`, checkRegFile);
-            } catch (writeErr) {
-                cb(writeErr);
-
-                return;
-            }
-
-            cb(null);
-        });
+            });
     }
 
 
@@ -444,28 +430,26 @@ class Plugin extends Events {
             const dash = new Dashboard(item.file);
 
             console.log('\tRemoving dashboard', dash.title);
-            dash.remove((err) => {
-                if (err) {
+            dash.remove().
+                then(() => {
+                    self._removeRegistrationFiles(item.file);
+                    cb(null);
+                }).
+                catch((err) => {
                     cb(err);
-
-                    return;
-                }
-                self._removeRegistrationFiles(item.file);
-                cb(null);
-            });
+                });
         } else if (item.type === 'graph') {
             const graph = new Graph(item.file);
 
             console.log('\tRemoving graph', graph.title);
-            graph.remove((err) => {
-                if (err) {
+            graph.remove().
+                then(() => {
+                    self._removeRegistrationFiles(item.file);
+                    cb(null);
+                }).
+                catch((err) => {
                     cb(err);
-
-                    return;
-                }
-                self._removeRegistrationFiles(item.file);
-                cb(null);
-            });
+                });
         }
     }
 
@@ -549,19 +533,17 @@ class Plugin extends Events {
 
         console.log(`\tFetching templates for ${templateID}`);
 
-        fetcher.template(templateID, (err, template) => {
-            if (err !== null) {
+        fetcher.template(templateID).
+            then((template) => {
+                const cfgFile = path.resolve(path.join(cosi.reg_dir, `template-${templateID}-${self.instance}.json`));
+
+                template.save(cfgFile, true);
+                console.log(chalk.green('\tSaved'), `template ${cfgFile}`);
+                self.emit('fetch.done');
+            }).
+            catch((err) => {
                 self.emit('error', err);
-
-                return;
-            }
-
-            const cfgFile = path.resolve(path.join(cosi.reg_dir, `template-${templateID}-${self.instance}.json`));
-
-            template.save(cfgFile, true);
-            console.log(chalk.green('\tSaved'), `template ${cfgFile}`);
-            self.emit('fetch.done');
-        });
+            });
     }
 
 

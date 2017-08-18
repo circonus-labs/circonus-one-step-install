@@ -221,7 +221,11 @@ class Worksheets extends Registration {
                     }
 
                     if (Array.isArray(res.parsed_body) && res.parsed_body.length > 0) {
-                        console.log(chalk.green('\tFound'), `${res.parsed_body.length} existing worksheet(s) with title '${title}'`);
+                        if (res.parsed_body.length > 1) {
+                            console.log(chalk.red('\tERROR'), `Found ${res.parsed_body.length} existing worksheet(s) with title '${title}', there should be only one.`);
+                            process.exit(1);
+                        }
+                        console.log(chalk.green('\tFound'), `Existing worksheet with title '${title}'`);
                         resolve(res.parsed_body[0]);
 
                         return;

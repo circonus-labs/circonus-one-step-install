@@ -131,7 +131,7 @@
                     "data_formula": "=VAL/{{=cosi.num_cpus}}",
                     "color": "#8E69A2",
                     "alpha": "0.3",
-                    "metric_name": "loadavg`1min",
+                    "metric_name": "loadavg`1",
                     "name" : "{{=cosi.metric_name}} (normalized)",
                     "hidden": false,
                     "derive": "gauge"

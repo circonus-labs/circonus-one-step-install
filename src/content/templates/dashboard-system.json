@@ -223,7 +223,7 @@
                 "origin": "g0",
                 "height": 1,
                 "settings": {
-                    "markup": "<ul><li>Check `perf(1)` for processor specific error events</li></ul>",
+                    "markup": "<ul><li>Check <code><a target=_blank href='http://www.brendangregg.com/perf.html'>perf</a></code> for processor specific error events</li></ul>",
                     "title": "CPU Errors"
                 },
                 "type": "html",
@@ -236,7 +236,7 @@
                 "origin": "g1",
                 "height": 1,
                 "settings": {
-                    "markup": "<ul><li>Check dmesg for physical failures</li><li>Check failed malloc()'s with SystemTap</li></ul>",
+                    "markup": "<ul><li>Check <code>dmesg</code> for physical failures</li><li>Check failed <code>malloc()</code>'s with <a target=_blank href='https://sourceware.org/systemtap/'>SystemTap</a></li></ul>",
                     "title": "Memory Errors"
                 },
                 "type": "html",
@@ -273,7 +273,7 @@
                 "origin": "g3",
                 "height": 1,
                 "settings": {
-                    "markup": "<ul><li>Check /sys/devices/../ioerr_cnt</li><li>Check smartctl</li><li>Trace the IO subsystem for error response codes</li></ul>",
+                    "markup": "<ul><li>Check <code>/sys/devices/*/ioerr_cnt</code></li><li>Check <code>smartctl</code></li><li>Trace the IO subsystem for error response codes</li></ul>",
                     "title": "Disk Errors"
                 },
                 "type": "html",

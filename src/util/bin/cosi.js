@@ -14,7 +14,7 @@ const chalk = require('chalk');
 const cosi = require(path.resolve(path.join(__dirname, '..', 'lib', 'cosi')));
 
 app.
-    version(cosi.version).
+    version(cosi.app_version).
     command('check', 'COSI check actions').
     command('graph', 'COSI graph actions').
     command('worksheet', 'COSI worksheet actions').
