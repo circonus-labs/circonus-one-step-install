@@ -60,7 +60,7 @@ class Handlers {
 
 
     /**
-     * handle request for '/'
+     * handle request for '/robots.txt'
      * @arg {Object} req request object
      * @arg {Object} res response object
      * @arg {Function} next function in handler chain
@@ -75,7 +75,7 @@ class Handlers {
 
 
     /**
-     * handle request for '/'
+     * handle request for '/package'
      * @arg {Object} req request object
      * @arg {Object} res response object
      * @arg {Function} next function in handler chain
@@ -116,14 +116,19 @@ class Handlers {
 
 
     /**
-     * handle request for '/'
+     * handle request for '/templates'
      * @arg {Object} req request object
      * @arg {Object} res response object
      * @arg {Function} next function in handler chain
      * @returns {Undefined} result from next handler in chain
      */
     templateList(req, res, next) { // eslint-disable-line class-methods-use-this, no-unused-vars
-        const list = templates.list(req.params.dist, req.params.ver_info.clean, req.params.arch);
+        const list = templates.list(
+            req.params.type,
+            req.params.dist,
+            req.params.ver_info.clean,
+            req.params.arch
+        );
 
         if (req.accepts('json')) {
             res.cache('private', { maxAge: 300 });
@@ -139,7 +144,7 @@ class Handlers {
 
 
     /**
-     * handle request for '/'
+     * handle request for '/template/...'
      * @arg {Object} req request object
      * @arg {Object} res response object
      * @arg {Function} next function in handler chain
@@ -151,6 +156,7 @@ class Handlers {
         const template = templates.get(
             req.params.t_cat,
             req.params.t_name,
+            req.params.type,
             req.params.dist,
             req.params.ver_info.clean,
             req.params.arch
@@ -168,7 +174,7 @@ class Handlers {
 
 
     /**
-     * handle request for '/'
+     * handle request for '/broker'
      * @arg {Object} req request object
      * @arg {Object} res response object
      * @arg {Function} next function in handler chain
@@ -230,10 +236,8 @@ class Handlers {
      * @returns {Undefined} result from next handler in chain
      */
     defaultBrokers(req, res, next) { // eslint-disable-line class-methods-use-this, no-unused-vars
-        const brokers = self._getDefaultBrokers();
-
         res.cache('private', { maxAge: 0 });
-        res.json(brokers);
+        res.json(self._getDefaultBrokers());
 
         return next();
     }
