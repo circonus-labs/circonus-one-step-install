@@ -65,15 +65,32 @@ function sendMetrics(metricJson) {
         return;
     }
 
+    metrics.npmem = process.memoryUsage();
+    const fullmetrics = JSON.stringify(metrics);
     const client = settings.send_req_opts.protocol === 'https:' ? https : http;
 
+    if (!{}.hasOwnProperty.call(settings.send_req_opts, 'agent') || settings.send_req_opts.agent === false) {
+        settings.send_req_opts.agent = new client.Agent();
+        settings.send_req_opts.agent.keepAlive = false;
+        settings.send_req_opts.agent.keepAliveMsecs = 0;
+        settings.send_req_opts.agent.maxSockets = 1;
+        settings.send_req_opts.agent.maxFreeSockets = 1;
+        settings.send_req_opts.agent.maxCachedSessions = 0;
+    }
+
     const req = client.request(settings.send_req_opts);
+
+    req.setHeader('Content-Length', Buffer.byteLength(fullmetrics));
 
     req.on('response', (res) => {
         let data = '';
 
         res.on('data', (chunk) => {
             data += chunk;
+        });
+
+        res.on('error', (err) => {
+            console.dir(err);
         });
 
         res.once('end', () => {
@@ -102,8 +119,7 @@ function sendMetrics(metricJson) {
         log.error(`Error sending metrics to broker ${err}`);
     });
 
-    metrics.npmem = process.memoryUsage();
-    req.write(JSON.stringify(metrics));
+    req.write(fullmetrics);
     req.end();
 }
 
