@@ -526,6 +526,7 @@ __install_agent() {
     # reset the agent directory after nad has been installed
     # for the first time.
     [[ -d "${base_dir}/nad" ]] && agent_dir="${base_dir}/nad"
+    [[ -d "${base_dir}/etc" ]] || mkdir -p "${base_dir}/etc"
 
     # plugin fixups
     local plugin_dir="${agent_dir}/etc/node-agent.d"
