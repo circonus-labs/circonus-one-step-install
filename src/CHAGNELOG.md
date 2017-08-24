@@ -1,3 +1,9 @@
+### 2.3.2 2017-08-24
+
+* upd: create use dashboard regardless of graph availability
+* upd: do not disable diskstats plugin when required proc files not present
+* fix: do not create graphs with 0 datapoints
+
 ### 2.3.1 2017-08-24
 
 * fix: restore --target functionality for system check
