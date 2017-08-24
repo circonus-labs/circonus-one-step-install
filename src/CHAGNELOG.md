@@ -1,3 +1,14 @@
+### 2.3.0 2017-08-22
+
+* fix: work around variations in sed handling '-i'
+* NAD v2.4.4
+* new: os type templates
+* fix: ensure /opt/circonsu/etc exists
+* fix: content-length header, no keepalive, no connection cache (nadpush)
+* remove obsolete statsd endpoint
+* update endpoint comments
+* fix: check agent mode on reset (don't uninstall reverse if nad is not reverse)
+
 ### 2.2.0 2017-08-17
 
 * Merge PR 26 - create USE dashboard by default (with USE specific graphs)
