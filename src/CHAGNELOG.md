@@ -1,3 +1,7 @@
+### 2.3.1 2017-08-24
+
+* fix: restore --target functionality for system check
+
 ### 2.3.0 2017-08-22
 
 * fix: work around variations in sed handling '-i'
