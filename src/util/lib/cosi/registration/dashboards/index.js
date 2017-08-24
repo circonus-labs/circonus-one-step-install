@@ -306,34 +306,24 @@ class Dashboards extends Registration {
             console.log(`\tInterpolating title ${config.title}`);
             config.title = this._expand(config.title, data);
 
-            let missing_widgets = 0;
-
             console.log(`\tConfiguring graph widgets`);
-            config.widgets = config.widgets.map((widget) => {
+            for (let i = config.widgets.length - 1; i >= 0; i--) {
+                const widget = config.widgets[i];
+
                 if (widget.type !== 'graph') {
-                    return widget; // pass on unchanged
+                    continue;
                 }
 
                 const graphIdx = this._findWidgetGraph(widget, metaData);
 
                 if (graphIdx === -1) {
                     console.log(chalk.yellow('\tWARN'), 'No graph found for', widget.widget_id, 'with tag', widget.tags);
-                    missing_widgets += 1;
-
-                    return false; // delete from list
+                    continue;
                 }
-
-                // configure widget
-                widget.settings.graph_id = this.graphs[graphIdx].id; // eslint-disable-line no-param-reassign
-                widget.settings.label = this._expand(widget.settings.label, data); // eslint-disable-line no-param-reassign
-                // The tags property is only used to match graphs, remove it before submission
-                delete widget.tags;  // eslint-disable-line no-param-reassign
-
-
-                return widget;
-            }).filter((widget) => {
-                return widget; // remove deleted widgets
-            });
+                widget.settings.graph_id = this.graphs[graphIdx].id;
+                widget.settings.label = this._expand(widget.settings.label, data);
+                delete widget.tags; // tags property used to match graphs, remove before submission
+            }
 
             console.log(`\tConfiguring gauge widgets`);
             for (let i = config.widgets.length - 1; i >= 0; i--) {
@@ -428,6 +418,8 @@ class Dashboards extends Registration {
 
 
             console.log(`\tPurging unconfigured widgets`);
+            let missing_widgets = 0;
+
             for (let i = config.widgets.length - 1; i >= 0; i--) {
                 let removeWidget = false;
 

@@ -526,6 +526,7 @@ __install_agent() {
     # reset the agent directory after nad has been installed
     # for the first time.
     [[ -d "${base_dir}/nad" ]] && agent_dir="${base_dir}/nad"
+    [[ -d "${base_dir}/etc" ]] || mkdir -p "${base_dir}/etc"
 
     # plugin fixups
     local plugin_dir="${agent_dir}/etc/node-agent.d"
@@ -742,14 +743,11 @@ __fetch_cosi_utils() {
     fi
 
     log "Fixing cosi util shebangs..."
-    local sed_args=""
-    if [[ "$cosi_os_type" =~ FreeBSD ]]; then
-        sed_args="-i ''"
-    else
-        sed_args="-i''"
-    fi
+
     for f in $(ls -1 /opt/circonus/cosi/bin/{cosi,circonus}*); do
-        sed -e "s#%%NODE_BIN%%#$node_bin#" $sed_args $f
+        sed -e "s#%%NODE_BIN%%#$node_bin#" $f > $f.tmp
+        mv $f.tmp $f
+        chmod 755 $f
     done
 
 }

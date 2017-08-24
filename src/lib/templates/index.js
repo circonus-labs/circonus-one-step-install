@@ -45,12 +45,13 @@ class Templates {
      * get specific template
      * @arg {String} templateCategory check, graph, etc.
      * @arg {String} templateName system, vm, cpu, etc.
+     * @arg {String} ostype os type Linux, SunOS, etc.(templates can be specific)
      * @arg {String} dist os distribution (templates can be specific)
      * @arg {String} vers os distribution version (templates can be specific)
      * @arg {String} arch platform architecture (templates can be specific)
      * @returns {Object} template or null
      */
-    get(templateCategory, templateName, dist, vers, arch) { // eslint-disable-line max-params
+    get(templateCategory, templateName, ostype, dist, vers, arch) { // eslint-disable-line max-params
         const templateFileName = `${templateCategory}-${templateName}.json`;
         const defaultFileList = [
             {
@@ -59,20 +60,27 @@ class Templates {
             }
         ];
 
+        if (ostype) {
+            defaultFileList.unshift({
+                file : path.resolve(path.join(this.dir, ostype, templateFileName)),
+                key  : this._templateKey(templateCategory, templateName, ostype)
+            });
+        }
+
         if (dist) {
             defaultFileList.unshift({
                 file : path.resolve(path.join(this.dir, dist, templateFileName)),
-                key  : this._templateKey(templateCategory, templateName, dist)
+                key  : this._templateKey(templateCategory, templateName, null, dist)
             });
             if (vers) {
                 defaultFileList.unshift({
                     file : path.resolve(path.join(this.dir, dist, vers, templateFileName)),
-                    key  : this._templateKey(templateCategory, templateName, dist, vers)
+                    key  : this._templateKey(templateCategory, templateName, null, dist, vers)
                 });
                 if (arch) {
                     defaultFileList.unshift({
                         file : path.resolve(path.join(this.dir, dist, vers, arch, templateFileName)), // eslint-disable-line max-len
-                        key  : this._templateKey(templateCategory, templateName, dist, vers, arch)
+                        key  : this._templateKey(templateCategory, templateName, null, dist, vers, arch) // eslint-disable-line max-len
                     });
                 }
             }
@@ -104,12 +112,13 @@ class Templates {
 
     /**
      * list templates
+     * @arg {String} ostype os type (templates can be specific)
      * @arg {String} dist os distribution (templates can be specific)
      * @arg {String} vers os distribution version (templates can be specific)
      * @arg {String} arch platform architecture (templates can be specific)
      * @returns {Object} templates or null
      */
-    list(dist, vers, arch) {
+    list(ostype, dist, vers, arch) {
         const result = {};
 
         // hot mess, needs to be made more efficent
@@ -117,15 +126,19 @@ class Templates {
         // start with defaults
         Object.assign(result, this._listDir());
 
+        if (ostype) {
+            Object.assign(result, this._listDir(ostype));
+        }
+
         if (dist) {
             // overlay dist specific
-            Object.assign(result, this._listDir(dist));
+            Object.assign(result, this._listDir(null, dist));
             if (vers) {
                 // overlay version specific
-                Object.assign(result, this._listDir(dist, vers));
+                Object.assign(result, this._listDir(null, dist, vers));
                 if (arch) {
                     // finally, overlay architecture specific
-                    Object.assign(result, this._listDir(dist, vers, arch));
+                    Object.assign(result, this._listDir(null, dist, vers, arch));
                 }
             }
         }
@@ -136,13 +149,18 @@ class Templates {
 
     /**
      * list templates from specific dir
+     * @arg {String} ostype os type (templates can be specific)
      * @arg {String} dist os distribution (templates can be specific)
      * @arg {String} vers os distribution version (templates can be specific)
      * @arg {String} arch platform architecture (templates can be specific)
      * @returns {Object} templates or null
      */
-    _listDir(dist, vers, arch) {
+    _listDir(ostype, dist, vers, arch) {
         const dirs = [ this.dir ];
+
+        if (ostype) {
+            dirs.push(ostype);
+        }
 
         if (dist) {
             dirs.push(dist);
@@ -212,13 +230,14 @@ class Templates {
      * generate template key
      * @arg {String} templateCategory check, graph, etc.
      * @arg {String} templateName system, vm, cpu, etc.
+     * @arg {String} ostype os type (templates can be specific)
      * @arg {String} dist os distribution (templates can be specific)
      * @arg {String} vers os distribution version (templates can be specific)
      * @arg {String} arch platform architecture (templates can be specific)
      * @returns {String} key
      */
-    _templateKey(templateCategory, templateName, dist, vers, arch) { // eslint-disable-line class-methods-use-this, max-params
-        return `${dist || ''}|${vers || ''}|${arch || ''}|${templateCategory}-${templateName}`;
+    _templateKey(templateCategory, templateName, ostype, dist, vers, arch) { // eslint-disable-line class-methods-use-this, max-params
+        return `${ostype || ''}|${dist || ''}|${vers || ''}|${arch || ''}|${templateCategory}-${templateName}`;
     }
 
 }
