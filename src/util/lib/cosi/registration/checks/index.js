@@ -366,6 +366,11 @@ class Checks extends Registration {
             const template = new Template(templateFile);
             const check = template.check;
 
+            // set target to default (if check.target not already set in template)
+            if (!{}.hasOwnProperty.call(check, 'target') || check.target === '') {
+                check.target = '{{=cosi.host_target}}';
+            }
+
             check.type = this.agentCheckType;
 
             // set the broker receiving for pulling metrics
