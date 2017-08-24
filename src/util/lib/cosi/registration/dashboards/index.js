@@ -450,10 +450,11 @@ class Dashboards extends Registration {
             }
 
             if (missing_widgets > 0 && (/template-dashboard-system/).test(template.file)) {
-                console.log(chalk.yellow('\tWARN'), 'Not all system dashboard widgets found, skipping creation.');
-                resolve();
-
-                return;
+                console.log(chalk.yellow('\tWARN'), 'Not all system dashboard widgets found, dashboard will be created without missing visuals.');
+                // no longer prevent creating the dashboard - create incomplete dashboard instead...
+                // resolve();
+                //
+                // return;
             }
 
             try {
