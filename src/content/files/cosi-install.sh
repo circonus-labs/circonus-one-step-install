@@ -528,22 +528,6 @@ __install_agent() {
     [[ -d "${base_dir}/nad" ]] && agent_dir="${base_dir}/nad"
     [[ -d "${base_dir}/etc" ]] || mkdir -p "${base_dir}/etc"
 
-    # plugin fixups
-    local plugin_dir="${agent_dir}/etc/node-agent.d"
-    log "Checking $plugin_dir"
-    if [[ -d $plugin_dir ]]; then
-        local plugin="${plugin_dir}/diskstats.sh"
-        log "Checking $plugin"
-        if [[ -h $plugin ]]; then
-            # diskstats.sh installed by default on linux
-            # but required /proc files not always present.
-            [[ -f /proc/mdstat && -f /proc/diskstats ]] || {
-                log "requirements missing, removing $plugin"
-                rm $plugin
-            }
-        fi
-    fi
-
     # callout hook placeholder (POST)
     if [[ -n "${agent_post_hook:-}" && -x "${agent_post_hook}" ]]; then
         log "Agent POST hook found, running..."
