@@ -357,6 +357,12 @@ class Graphs extends Registration {
         }
         graph.datapoints = datapoints_filled;
 
+        if (graph.datapoints.length === 0) {
+            console.log(chalk.yellow('\tWARN'), 'Graph has no datapoints, skipping.');
+
+            return;
+        }
+
         this._setTags(graph, graphId);
         this._setCustomGraphOptions(graph, graphId);
 
