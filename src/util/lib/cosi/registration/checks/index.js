@@ -522,6 +522,7 @@ class Checks extends Registration {
                     'nadrev_enable=1',
                     `nadrev_plugin_dir=${plugin_dir}`,
                     `nadrev_check_id="${bundle_id}"`,
+                    `nadrev_api_url="${cosi.api_url}"`,
                     `nadrev_key="${cosi.api_key}"`
                 ].join('\n');
             }

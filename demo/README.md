@@ -1,15 +1,13 @@
 # COSI Demo
 
-This directory contains a Vagrantfile defining VMs to run both cosi-site and clients (CentOS 7 and
-Ubuntu 14) for the installer locally for the purposes of development and
-demonstration. (See the [Vagrantfile](/demo/Vagrantfile) in this directory.)
+This directory contains a Vagrantfile defining VMs to run both cosi-site and clients (CentOS, Ubuntu, etc.) for the installer locally for the purposes of development, learning, testing customizations, and demonstration. (See the [Vagrantfile](/demo/Vagrantfile) in this directory.)
 
 ## Environment
 
 * Circonus account ([Sign up for a free account](http://www.circonus.com/lp/free-account/))
 * [Vagrant](https://www.vagrantup.com/)
 * [Virtualbox](https://www.virtualbox.org/)
-* [NodeJS](https://nodejs.org/en/) *v4.4.1*
+* [NodeJS](https://nodejs.org/en/)
 * [Ansible](http://docs.ansible.com/ansible/intro_installation.html)
 
 ## Prerequisite
@@ -18,7 +16,10 @@ Build the COSI-Site package for the Ansible provisioning configuration.
 
 ```sh
 # from demo/ directory
-cd ../src && make package && cd -
+cd ../src
+make init
+make package
+cd -
 ```
 
 See the [COSI Site README](/src) for more information about building the COSI site.
@@ -30,7 +31,6 @@ For COSI development, you will need:
 - A circonus account
 - A local version of the COSI site
 - Client VM for testing the COSI installer
-
 
 ### Start a COSI site VM
 
@@ -46,7 +46,7 @@ This host will be visible as `cosi-site` from the client VMs.
 
 ### Start a client VM
 
-Bring up a client VM [at least one]:
+Bring up a client VM [at least one, see the Vagrantfile for all of the client options]:
 * CentOS 7: `vagrant up c7`
 * Ubuntu 14: `vagrant up u14`
 * OmniOS r151014: `vagrant up omnios`
@@ -56,8 +56,8 @@ Once the client is up you can ssh into it (e.g. `vagrant ssh c7`) and run a cosi
 ### Get a Circonus API Token
 
 The COSI client will install Checks and Graphs into a Circonus SaaS account. In order to do so, it
-needs an API token. You can copy-paste the API toke from the `[+New Host]` button on the checks
-page (under `--key`) or create a new one as follows:
+needs an API token. You can copy-paste the API token and the API App name from the `[+New Host]`
+button on the checks page (under `--key` and `--app`) or create a new one as follows:
 
 1. Log into Circonus and navigate to the [API Tokens](https://login.circonus.com/user/tokens) page.
 1. If there are no API tokens, click the **New API Token+** button in upper right corner.
@@ -66,13 +66,14 @@ page (under `--key`) or create a new one as follows:
 
 ### Run the COSI Installer
 
+Replace `<token app name value>` with the one copied from above or `cosi` if a new token was created with default app state set to allow. Replace `<token key value>` with the token copied.
+
 ```sh
 [vagrant@cosi-c7-a3982610d ~]$ sudo -i
 [root@cosi-c7-a3982610d ~]# curl -sSL 'http://cosi-site/install' | bash -s -- \
---cosiurl http://cosi-site/ \
---agent push \
---app cosi \
---key <value copied above>
+   --cosiurl http://cosi-site/ \
+   --app <token app name value> \
+   --key <token key value>
 ```
 
 This will download the installation script from the cosi-site VM and run it in bash. Resulting in the following:
@@ -90,7 +91,6 @@ This will download the installation script from the cosi-site VM and run it in b
 * Enable available metrics (from NAD)
 * Create a set of default graphs
 * Create a worksheet containing the default graphs
-* Start `circonus-nadpush`, if the *mode* is "push"
 * Output the graph, check, and worksheet URLs (using the main `/opt/circonus/cosi/bin/cosi` utility)
 * Notes:
 * NAD is installed in `/opt/circonus`

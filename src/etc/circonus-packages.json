@@ -181,6 +181,18 @@
                     "package_name": null
                 }
             }
+        ],
+        "2017.03": [
+            {
+                "arch": "x86_64",
+                "package_info": {
+                    "package_url": null,
+                    "package_file": "nad-omnibus-2.4.4-1.el6.x86_64.rpm",
+                    "publisher_url": null,
+                    "publisher_name": null,
+                    "package_name": null
+                }
+            }
         ]
     },
     "debian": {

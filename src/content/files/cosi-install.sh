@@ -624,7 +624,12 @@ __start_agent() {
         elif [[ -s /var/svc/manifest/network/circonus/nad.xml ]]; then
             svcadm enable nad
         elif [[ -s /etc/rc.d/nad ]]; then
-            if [[ -s /etc/rc.conf ]]; then
+            # create blank /etc/rc.conf if it does not exist
+            # e.g. an outlier use case: bare install which has not had
+            # even the most rudimentary operational configuration tasks
+            # perfomed but, cosi is being run on it for whatever reason...
+            [[ -f /etc/rc.conf ]] || touch /etc/rc.conf
+            if [[ -f /etc/rc.conf ]]; then
                 # treat as FreeBSD
                 # enable it if there is no nad_enable setting
                 [[ $(grep -cE '^nad_enable' /etc/rc.conf) -eq 0 ]] && echo 'nad_enable="YES"' >> /etc/rc.conf
