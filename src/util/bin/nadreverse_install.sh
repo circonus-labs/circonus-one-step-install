@@ -70,28 +70,31 @@ function install_linux_nadv2 {
         install_conf=1
     fi
 
+    [[ -f $nad_conf_new ]] || cp $nad_conf $nad_conf_new
+
+    echo -e "\n\n# ADDED BY COSI\n" >> $nad_conf_new
+
     # add listen address setting, if not set
     if [[ $(grep -c "^NAD_LISTEN" $nad_conf) -eq 0 ]]; then
-    	[[ -f $nad_conf_new ]] || { cp $nad_conf $nad_conf_new; echo -e "\n\n# ADDED BY COSI\n" >> $nad_conf_new; }
     	echo 'NAD_LISTEN="127.0.0.1:2609"' >> $nad_conf_new
         install_conf=1
     fi
 
     # add reverse flag setting, if not set
     if [[ $(grep -c "^NAD_REVERSE" $nad_conf) -eq 0 ]]; then
-        [[ -f $nad_conf_new ]] || { cp $nad_conf $nad_conf_new; echo -e "\n\n# ADDED BY COSI\n" >> $nad_conf_new; }
     	echo 'NAD_REVERSE="yes"' >> $nad_conf_new
         install_conf=1
     fi
 
-    # add api url flag if set in config
+    # add api url flag, if not set
     if [[ "${nadrev_api_url:-}" != "" ]]; then
         if [[ $(grep -c "^NAD_API_URL" $nad_conf) -eq 0 ]]; then
-            [[ -f $nad_conf_new ]] || { cp $nad_conf $nad_conf_new; echo -e "\n\n# ADDED BY COSI\n" >> $nad_conf_new; }
         	echo "NAD_API_URL=\"${nadrev_api_url}\"" >> $nad_conf_new
             install_conf=1
         fi
     fi
+
+    [[ $install_conf -eq 1 ]] || rm $nad_conf_new
 
 }
 
