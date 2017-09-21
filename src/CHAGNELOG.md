@@ -1,3 +1,14 @@
+### 2.4.0 2017-09-21
+
+* fix: remove pg plugin configs on reset if postgres plugin was enabled
+* upd: demo documentation
+* fix: create blank `/etc/rc.conf` if it does not exist - edge usecase
+* fix: abort if target cannot be derived, e.g. no hostname set - edge usecase
+* fix: always add api url used by cosi to nad.conf
+* add: support amzn linux 2017.03 - rhel6
+* add: quick reference to system dashboard
+* fix: don't enforce y-max on disk saturation graph
+
 ### 2.3.2 2017-08-24
 
 * upd: create use dashboard regardless of graph availability
