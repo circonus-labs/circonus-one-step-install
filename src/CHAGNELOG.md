@@ -1,3 +1,8 @@
+### 2.4.1 2017-10-23
+
+* NAD v2.5.0
+* fix: more pedantic checking for missing attributes in dashboard widgets; catch instances where dashboard templates contain incomplete widget configs. (e.g. graph widget in template lacking `settings.graph_id` entirely; rather than `settings.graph_id = null`.)
+
 ### 2.4.0 2017-09-21
 
 * fix: remove pg plugin configs on reset if postgres plugin was enabled
