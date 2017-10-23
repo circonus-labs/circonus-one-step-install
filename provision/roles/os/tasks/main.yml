@@ -6,7 +6,7 @@
   include_vars: "../vars/common.yml"
 
 - name: Common tasks
-  include: "common.yml"
+  import_tasks: "common.yml"
 
 - name: OS Specific variables
   include_vars: "{{ item }}"
@@ -20,7 +20,7 @@
         skip: true
 
 - name: OS Specific tasks
-  include: "{{ item }}"
+  include_tasks: "{{ item }}"
   with_first_found:
       - files:
           - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
