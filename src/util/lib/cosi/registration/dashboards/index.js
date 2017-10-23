@@ -421,18 +421,40 @@ class Dashboards extends Registration {
             let missing_widgets = 0;
 
             for (let i = config.widgets.length - 1; i >= 0; i--) {
-                let removeWidget = false;
+                let removeWidget = true;
 
-                if (config.widgets[i].type === 'graph') {
-                    removeWidget = config.widgets[i].settings.graph_id === null;
-                } else if (config.widgets[i].type === 'gauge') {
-                    removeWidget = config.widgets[i].settings.check_uuid === null;
-                } else if (config.widgets[i].type === 'forecast') {
-                    removeWidget = {}.hasOwnProperty.call(config.widgets[i].settings, 'metrics');
-                } else if (config.widgets[i].type === 'html') {
-                    removeWidget = !config.widgets[i].settings.markup || config.widgets[i].settings.markup === '';
-                } else {
-                    console.log(chalk.yellow('\tWARN'), `Unsupported widget type (${config.widgets[i].type}), ignoring widget id:${config.widgets[i].widget_id}`);
+                switch (config.widgets[i].type) {
+                    case 'graph':
+                        if ({}.hasOwnProperty.call(config.widgets[i], 'settings') &&
+                            {}.hasOwnProperty.call(config.widgets[i].settings, 'graph_id') &&
+                                config.widgets[i].settings.graph_id !== null) {
+                            removeWidget = false;
+                        }
+                        break;
+                    case 'gauge':
+                        if ({}.hasOwnProperty.call(config.widgets[i], 'settings') &&
+                        {}.hasOwnProperty.call(config.widgets[i].settings, 'check_uuid') &&
+                            config.widgets[i].settings.check_uuid !== null) {
+                            removeWidget = false;
+                        }
+                        break;
+                    case 'forecast':
+                        if ({}.hasOwnProperty.call(config.widgets[i], 'settings') &&
+                        {}.hasOwnProperty.call(config.widgets[i].settings, 'metrics')) {
+                            removeWidget = false;
+                        }
+                        break;
+                    case 'html':
+                        if ({}.hasOwnProperty.call(config.widgets[i], 'settings') &&
+                        {}.hasOwnProperty.call(config.widgets[i].settings, 'markup') &&
+                            (config.widgets[i].settings.markup !== null &&
+                            config.widgets[i].settings.markup !== '')) {
+                            removeWidget = false;
+                        }
+                        break;
+                    default:
+                        console.log(chalk.yellow('\tWARN'), `Unsupported widget type (${config.widgets[i].type}), ignoring widget id:${config.widgets[i].widget_id}`);
+                        removeWidget = false;
                 }
 
                 if (removeWidget) {
