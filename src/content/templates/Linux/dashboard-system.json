@@ -1,7 +1,7 @@
 {
     "type": "dashboard",
     "id": "system",
-    "description" : "The standard dashboard for monitoring postgres.",
+    "description" : "The standard dashboard for system monitoring.",
     "notes" : [],
     "config": {
         "account_default": false,
