@@ -286,7 +286,7 @@
                 "origin": "a4",
                 "height": 1,
                 "settings": {
-                    "markup": "<ul>\n<li>blues -- Utilization metrics. A high utilization means the system can not process more work.<\/li>\n<li>yellows -- Free metrics. These metrics indicate unused resources. Nothing to worry about.<\/li>\n<li>purple -- Saturation metrics. System performance might be impacted by queuing latencies.<\/li>\n<li>reds -- Error metrics. Errors should be investigated.<\/li>\n<\/ul>\n<p>\nFor details see <a href=\"https:\/\/www.circonus.com\/2017\/08\/system-monitoring-with-the-use-dashboard\/\">System Monitoring with the USE Dashboard<\/a> on the Circonus blog.\n<\/p>",
+                    "markup": "<ul>\n<li>blue -- Utilization metrics. A high utilization means the system can not process more work.<\/li>\n<li>yellow -- Free metrics. These metrics indicate unused resources. Nothing to worry about.<\/li>\n<li>purple -- Saturation metrics. System performance might be impacted by queuing latencies.<\/li>\n<li>red -- Error metrics. Errors should be investigated.<\/li>\n<\/ul>\n<p>\nFor details see <a href=\"https:\/\/www.circonus.com\/2017\/08\/system-monitoring-with-the-use-dashboard\/\">System Monitoring with the USE Dashboard<\/a> on the Circonus blog.\n<\/p>",
                     "title": "Quick Reference"
                 },
                 "type": "html",
