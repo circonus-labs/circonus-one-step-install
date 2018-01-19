@@ -1,5 +1,8 @@
 ---
 
+#node_version: "8.9.4"
+node_version: "4.4.5"
+
 #
 # the base directory where binaries are expected to be in ./bin. e.g.
 #   {{ node_directory }}/bin/node

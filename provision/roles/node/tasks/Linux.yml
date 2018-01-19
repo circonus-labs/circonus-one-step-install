@@ -11,6 +11,7 @@
   args:
     chdir: "{{ node_directory }}"
   changed_when: false
+  check_mode: no
 
 - debug: msg="Found Node {{ node_ver_result.stdout }} want v{{ node_version }}"
   when: node_ver_result.rc == 0

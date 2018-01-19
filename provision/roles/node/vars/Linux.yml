@@ -1,4 +1,5 @@
 ---
+
 node_arch: "x{{ '86' if ansible_userspace_bits == '32' else '64' if ansible_userspace_bits == '64' else 'UNK'}}"
 
 node_tar_file: node-v{{ node_version }}-{{ ansible_system|lower }}-{{ node_arch }}.tar.xz

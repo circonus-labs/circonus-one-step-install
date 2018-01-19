@@ -2,3 +2,8 @@
 
 # override default group
 node_group: bin
+
+# if using omnios, ensure node_version is built and appropriate node and
+# modules tgz's are placed in roles/{site,node}/files directories
+# respectively.
+node_version: "4.4.5"
