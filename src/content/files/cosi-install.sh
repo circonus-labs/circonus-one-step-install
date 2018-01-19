@@ -899,6 +899,12 @@ cosi_initialize() {
         fi
     fi
 
+    hn=$(hostname)
+    if [[ -z "${hn:-}" && -z "${cosi_host_target:-}" ]]; then
+        echo "cosi requires system hostname to be set or overridden with --target"
+        exit 1
+    fi
+
     #
     # optionally, save the cosi-install config
     # (can be used on other systems and/or during testing)
