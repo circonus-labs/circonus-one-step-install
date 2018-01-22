@@ -1,3 +1,10 @@
+### 2.4.2 2018-01-19
+
+* update deployment playbook to allow port to be set
+* update deployment playbooks to use explicit 'import_tasks' (static) and 'include_tasks' (dynamic) over deprecated bare 'include'
+* NAD v2.6.0
+* add check for empty hostname in installer
+
 ### 2.4.1 2017-10-23
 
 * NAD v2.5.0
