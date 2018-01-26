@@ -1,3 +1,7 @@
+### 2.4.4 2018-01-26
+
+* fix JSON in dashboard template
+
 ### 2.4.3 2018-01-26
 
 * USEDashbord: Hint at /var/log/messages for OOM events
