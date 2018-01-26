@@ -236,7 +236,7 @@
                 "origin": "g1",
                 "height": 1,
                 "settings": {
-                    "markup": "<ul><li>Check <code>/var/log/messages</code> for OOM events ("Killed process")</li><li>Check <code>dmesg</code> for physical failures</li><li>Check failed <code>malloc()</code>'s with <a target=_blank href='https://sourceware.org/systemtap/'>SystemTap</a></li></ul>",
+                    "markup": "<ul><li>Check <code>/var/log/messages</code> for OOM events (\"Killed process\")</li><li>Check <code>dmesg</code> for physical failures</li><li>Check failed <code>malloc()</code>'s with <a target=_blank href='https://sourceware.org/systemtap/'>SystemTap</a></li></ul>",
                     "title": "Memory Errors"
                 },
                 "type": "html",
