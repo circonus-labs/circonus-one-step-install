@@ -2,7 +2,7 @@
 - hosts: all
   vars:
     # update when src/package.json version bumped and ready for release
-    cosi_site_version: "2.4.1"
+    cosi_site_version: "2.4.3"
     # note, **just** the file name, not a "path" the specified file is expected
     # to be in ./content/files relative to cosi-site.js
     installer_rpm_file: "cosi-{{ cosi_site_version }}-1.noarch.rpm"

@@ -1,3 +1,7 @@
+### 2.4.3 2018-01-26
+
+* USEDashbord: Hint at /var/log/messages for OOM events
+
 ### 2.4.2 2018-01-19
 
 * update deployment playbook to allow port to be set
