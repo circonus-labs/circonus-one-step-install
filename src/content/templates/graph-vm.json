@@ -9,7 +9,7 @@
             "access_keys": [],
             "composites": [
                 {
-                    "legend_formula": null,
+                    "legend_formula": "=round(bytes(VAL),2)",
                     "color": "#657aa6",
                     "stack": 0,
                     "name": "vm`meminfo`MemUsed (computed)",
@@ -18,7 +18,7 @@
                     "data_formula": "=D-A-B-C"
                 },
                 {
-                    "legend_formula": null,
+                    "legend_formula": "=round(bytes(VAL),2)",
                     "color": "#b5c52d",
                     "stack": 0,
                     "name": "vm`meminfo`MemFree",
@@ -27,7 +27,7 @@
                     "data_formula": "=C"
                 },
                 {
-                    "legend_formula": null,
+                    "legend_formula": "=round(bytes(VAL),2)",
                     "color": "#94a024",
                     "stack": 0,
                     "name": "vm`meminfo`Buffers",
@@ -36,7 +36,7 @@
                     "data_formula": "=A"
                 },
                 {
-                    "legend_formula": null,
+                    "legend_formula": "=round(bytes(VAL),2)",
                     "color": "#c9db32",
                     "stack": 0,
                     "name": "vm`meminfo`Caches",
@@ -138,7 +138,7 @@
                     "derive": "counter",
                     "alpha": "0.3",
                     "axis": "r",
-                    "legend_formula": null,
+                    "legend_formula": "=round(auto(VAL),2)",
                     "check_id": null,
                     "stack": null,
                     "name": "{{=cosi.metric_name}}",
