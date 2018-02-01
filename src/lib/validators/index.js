@@ -192,7 +192,7 @@ class Validators {
             errors.push(`Invalid template category '${req.params.t_cat}'`);
         }
 
-        if (!req.params.t_name.match(/^[a-z0-9_]+$/i)) {
+        if (!req.params.t_name.match(/^[a-z0-9-_`]+$/i)) {
             errors.push(`Invalid template name '${req.params.t_name}'`);
         }
 
