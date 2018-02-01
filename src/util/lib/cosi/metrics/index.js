@@ -189,7 +189,23 @@ class Metrics {
         const metricList = {};
 
         for (const group in rawMetrics) { // eslint-disable-line guard-for-in
-            metricList[group] = this._getMetrics(null, rawMetrics[group]);
+            const instanceOffset = group.indexOf('`');
+
+            if (instanceOffset === -1) {
+                metricList[group] = this._getMetrics(null, rawMetrics[group]);
+            } else {
+                const pluginName = group.substr(0, instanceOffset);
+                const pluginInstance = group.substr(instanceOffset + 1);
+
+                if ({}.hasOwnProperty.call(metricList, pluginName)) {
+                    const curr = metricList[pluginName];
+                    const additional = this._getMetrics(pluginInstance, rawMetrics[group]);
+
+                    metricList[pluginName] = Object.assign(curr, additional);
+                } else {
+                    metricList[pluginName] = this._getMetrics(pluginInstance, rawMetrics[group]);
+                }
+            }
         }
 
         return metricList;
