@@ -25,7 +25,7 @@
             "composites": [],
             "datapoints": [
                 {
-                    "legend_formula": null,
+                    "legend_formula": "=round(VAL,2)",
                     "check_id": null,
                     "metric_type": "numeric",
                     "stack": null,
@@ -39,7 +39,7 @@
                     "derive": "gauge"
                 },
                 {
-                    "legend_formula": null,
+                    "legend_formula": "=round(VAL,2)",
                     "check_id": null,
                     "metric_type": "numeric",
                     "stack": null,
