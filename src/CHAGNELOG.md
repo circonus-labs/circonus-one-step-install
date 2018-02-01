@@ -1,3 +1,8 @@
+### 2.5.0 2018-02-01
+
+* Revise legend_formulas
+* update template regex to support backtick and dash in plugin names w/subgroups (e.g. process_memory)
+
 ### 2.4.4 2018-01-26
 
 * fix JSON in dashboard template
