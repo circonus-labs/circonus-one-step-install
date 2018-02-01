@@ -1,3 +1,7 @@
+### 2.6.0 2018-02-01
+
+* treat plugins with instances as single plugin similar to disk, if, diskstats, etc. rather than separate distinct plugins.
+
 ### 2.5.0 2018-02-01
 
 * Revise legend_formulas
