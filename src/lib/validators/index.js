@@ -101,7 +101,7 @@ class Validators {
             errors.push(`Invalid OS distribution version '${osVers}'`);
         }
 
-        if (!osArch.match(/^(i386|i686|x86_64|amd64|arm6l|arm7l)$/)) {
+        if (!osArch.match(/^(i386|i686|x86_64|amd64|armv6l|armv7l)$/)) {
             errors.push(`Invalid OS architecture '${osArch}'`);
         }
 

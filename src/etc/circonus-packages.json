@@ -250,7 +250,7 @@
     "raspbian": {
         "8": [
             {
-                "arch": "arm6l",
+                "arch": "armv6l",
                 "package_info": {
                     "package_url": null,
                     "package_file": "manual",
@@ -260,7 +260,7 @@
                 }
             },
             {
-                "arch": "arm7l",
+                "arch": "armv7l",
                 "package_info": {
                     "package_url": null,
                     "package_file": "manual",
@@ -272,7 +272,7 @@
         ],
         "9": [
             {
-                "arch": "arm6l",
+                "arch": "armv6l",
                 "package_info": {
                     "package_url": null,
                     "package_file": "manual",
@@ -282,7 +282,7 @@
                 }
             },
             {
-                "arch": "arm7l",
+                "arch": "armv7l",
                 "package_info": {
                     "package_url": null,
                     "package_file": "manual",
