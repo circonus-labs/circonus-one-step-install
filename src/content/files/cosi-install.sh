@@ -949,12 +949,22 @@ cosi_check_agent() {
     __check_agent
 
     if [[ $agent_state -eq 0 ]]; then
+        if [[ "${cosi_agent_package_info[1]}" == "manual" ]]; then
+            log "Agent not found - OS requires manual agent installation"
+            log "Install NAD agent and try again - see https://github.com/circonus-labs/nad#installation"
+            fail "Manual agent installation required"
+        fi
         log "Agent not found, installing Agent"
         __install_agent
         __check_agent
     fi
 
     if [[ $agent_state -eq 1 ]]; then
+        if [[ "${cosi_agent_package_info[1]}" == "manual" ]]; then
+            log "Agent found but not running - OS requires manual agent installation"
+            log "Please start the agent and try again"
+            fail "Manual agent start required"
+        fi
         __start_agent
         __check_agent
     fi
