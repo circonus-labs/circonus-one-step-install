@@ -246,5 +246,51 @@
                 }
             }
         ]
+    },
+    "raspbian": {
+        "8": [
+            {
+                "arch": "armv6l",
+                "package_info": {
+                    "package_url": null,
+                    "package_file": "manual",
+                    "publisher_url": null,
+                    "publisher_name": null,
+                    "package_name": null
+                }
+            },
+            {
+                "arch": "armv7l",
+                "package_info": {
+                    "package_url": null,
+                    "package_file": "manual",
+                    "publisher_url": null,
+                    "publisher_name": null,
+                    "package_name": null
+                }
+            }
+        ],
+        "9": [
+            {
+                "arch": "armv6l",
+                "package_info": {
+                    "package_url": null,
+                    "package_file": "manual",
+                    "publisher_url": null,
+                    "publisher_name": null,
+                    "package_name": null
+                }
+            },
+            {
+                "arch": "armv7l",
+                "package_info": {
+                    "package_url": null,
+                    "package_file": "manual",
+                    "publisher_url": null,
+                    "publisher_name": null,
+                    "package_name": null
+                }
+            }
+        ]
     }
 }
