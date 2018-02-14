@@ -1,3 +1,8 @@
+### 2.7.0 2018-02-14
+
+* add support for OS requiring manual agent install (e.g. RPi)
+* add awareness of raspbian 8/9 arm6/arm7
+
 ### 2.6.0 2018-02-01
 
 * treat plugins with instances as single plugin similar to disk, if, diskstats, etc. rather than separate distinct plugins.
