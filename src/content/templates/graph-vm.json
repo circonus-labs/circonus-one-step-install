@@ -68,7 +68,7 @@
                     "color" : "#000000",
                     "data_formula" : null,
                     "legend_formula" : null,
-                    "name" : "vm`meminfo`Buffers",
+                    "name" : "vm`meminfo`Cached",
                     "alpha" : "0.3",
                     "stack" : null
                 },
@@ -81,7 +81,7 @@
                     "color" : "#000000",
                     "data_formula" : null,
                     "legend_formula" : null,
-                    "name" : "vm`meminfo`Buffers",
+                    "name" : "vm`meminfo`MemFree",
                     "alpha" : "0.3",
                     "stack" : null
                 },
@@ -94,7 +94,7 @@
                     "color" : "#000000",
                     "data_formula" : null,
                     "legend_formula" : null,
-                    "name" : "vm`meminfo`Buffers",
+                    "name" : "vm`meminfo`MemTotal",
                     "alpha" : "0.3",
                     "stack" : null
                 }
