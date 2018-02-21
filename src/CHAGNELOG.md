@@ -1,3 +1,7 @@
+### 2.7.1 2018-02-21
+
+* Fix names in metric vm datapoints
+
 ### 2.7.0 2018-02-14
 
 * add support for OS requiring manual agent install (e.g. RPi)
