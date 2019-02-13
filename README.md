@@ -1,3 +1,10 @@
+# DEPRECATED
+
+This version of cosi is no longer active. Please see [cosi-server](https://github.com/circonus-labs/cosi-server) and [cosi-tool](https://github.com/circonus-labs/cosi-tool) for the up-to-date version of cosi.
+
+---
+
+
 # COSI - The Circonus One Step Installer
 
 The purpose of COSI is to simplify the task of getting metrics flowing from a new host into Circonus, consisting of:
