@@ -2,9 +2,9 @@
 
 The purpose of COSI is to simplify the task of getting metrics flowing from a new host into Circonus, consisting of:
 
-1. Install and configure the Circonus monitoring agent [nad](https://github.com/circonus-labs/nad)
+1. Install and configure the [Circonus monitoring agent](https://github.com/circonus-labs/circonus-agent).
 
-1. Create and configure a Circonus check that receives data from the agent
+1. Create and configure a Circonus check that receives data from the agent.
 
 1. Create graphs and worksheets for each of the basic metric groups (e.g. cpu, memory, disk, network, filesystem, etc.)
 
@@ -17,7 +17,7 @@ In most cases, you will want to use the Circonus UI to install COSI on your host
 
 1. Log into your Circonus Account
 
-1. Go to the Checks page, click `[NEW HOST+]` on the top right.
+1. On the System Dashboard page, click `[New Host]` at top right, or from the Integrations -> Hosts page, click `New +` at top right.
 
 1. Copy and run the command displayed on the host to be setup.
 
@@ -35,7 +35,7 @@ This repository contains the following components:
 
 * [COSI site](/src).
   A Node.js-based service that serves the COSI installer itself,
-  templates, and pointers to NAD packages. Most users will rely on the
-  hosted COSI site provided by Circonus (<https://onestep.circonus.com>).
+  templates, and pointers to circonus-agent packages. Most users will rely on the
+  hosted COSI site provided by Circonus (<https://setup.circonus.com>).
 
 The [COSI user documentation](https://github.com/circonus-labs/circonus-one-step-install/wiki) is in the wiki for this repository.
